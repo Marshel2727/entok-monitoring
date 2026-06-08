@@ -1,0 +1,45 @@
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+venv/
+.venv/
+env/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# Flask runtime uploads and local data
+backend/app/static/uploads/
+*.db
+*.sqlite
+*.sqlite3
+*.sql
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+dist/
+build/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Local duplicate/experiment folder
+pakan-next/
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
