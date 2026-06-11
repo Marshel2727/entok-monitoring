@@ -69,7 +69,7 @@ export default function PanduanPenjagaPage({
         
         <button className="retro-btn" onClick={handlePrint} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px' }}>
           <LuPrinter size={14} />
-          <span>[ CETAK ACUAN PAKAN ]</span>
+          <span>Cetak Acuan Pakan</span>
         </button>
       </div>
 
@@ -114,7 +114,7 @@ export default function PanduanPenjagaPage({
       <div className="duck-guide-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
         {formulasiList.length === 0 ? (
           <div className="panel" style={{ gridColumn: 'span 2', padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
-            [ BELUM ADA FORMULASI YANG DIBUAT SEBAGAI ACUAN ]
+            Belum Ada Formulasi yang Dibuat Sebagai Acuan
           </div>
         ) : (
           formulasiList.map((item) => {

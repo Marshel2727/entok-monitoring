@@ -3,6 +3,7 @@ import { PopulasiLog } from '../types';
 
 export interface PopulationPhase {
   id: string;
+  phase_id?: string;
   phase: string;
   total_ducks: number;
   last_updated: string;

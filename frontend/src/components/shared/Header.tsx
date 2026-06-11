@@ -21,7 +21,7 @@ export default function Header() {
     if (pathname.includes('/dashboard/riwayat')) return 'RIWAYAT AKTIVITAS';
     if (pathname.includes('/dashboard/notifikasi')) return 'NOTIFIKASI ALARM';
     if (pathname.includes('/dashboard/profil')) return 'PROFIL PENGAWAS';
-    return 'DASHBOARD MONITORING';
+    return 'DASHBOARD SUPPLY CHAIN ENTOK'.toUpperCase();
   };
 
   return (
@@ -30,7 +30,7 @@ export default function Header() {
         <h2 className="page-main-title">{getPageTitle()}</h2>
         <div className="system-status">
           <span className="status-indicator"></span>
-          <span>SISTEM OPERASIONAL: ONLINE</span>
+          <span>SISTEM OPERASIONAL: AKTIF</span>
         </div>
       </div>
 
@@ -38,11 +38,11 @@ export default function Header() {
         <div className="topbar-actions" aria-label="Akses cepat">
           <Link href="/penjaga" className="topbar-action-link" title="Buka Checklist Penjaga">
             <LuCheck size={15} />
-            <span>Checklist</span>
+            <span>PORTAL PENJAGA</span>
           </Link>
           <Link href="/website-publik" className="topbar-action-link" title="Buka Website Publik">
             <LuGlobe size={15} />
-            <span>Website Publik</span>
+            <span>KATALOG PRODUK</span>
           </Link>
         </div>
 

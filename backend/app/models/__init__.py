@@ -1,5 +1,6 @@
 # app/models/__init__.py
 from app.models.user import User
+from app.models.growth_phase import GrowthPhase
 from app.models.feed import Feed, FeedTransaction
 from app.models.formulation import Formulation
 from app.models.population import Population, PopulationLog

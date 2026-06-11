@@ -5,6 +5,7 @@ from app.utils.db import db
 from app.models.feed import Feed, FeedTransaction
 from app.models.formulation import Formulation
 from app.models.population import Population
+from app.models.growth_phase import GrowthPhase, normalize_phase_key
 from app.models.timbangan import Timbangan, TimbanganReading
 from app.models.feeding_batch import FeedingBatch, FeedingBatchIngredient
 from app.service.activity_service import create_log
@@ -25,6 +26,12 @@ def _parse_date(date_str=None):
         return None, {'status': 'error', 'message': 'Format tanggal tidak valid. Gunakan YYYY-MM-DD.'}
 
 
+def _apply_task_scope(query, task_id=None):
+    if task_id:
+        return query.filter(FeedingBatch.task_id == task_id)
+    return query.filter(FeedingBatch.task_id.is_(None))
+
+
 def _phase_population(form_phase, populations):
     form_phase_lower = form_phase.lower()
     for population in populations:
@@ -35,16 +42,7 @@ def _phase_population(form_phase, populations):
 
 
 def _phase_key(phase):
-    phase_lower = (phase or '').strip().lower()
-    if 'starter' in phase_lower:
-        return 'starter'
-    if 'grower 1' in phase_lower or 'grower1' in phase_lower:
-        return 'grower 1'
-    if 'grower 2' in phase_lower or 'grower2' in phase_lower:
-        return 'grower 2'
-    if 'finisher' in phase_lower:
-        return 'finisher'
-    return phase_lower
+    return normalize_phase_key(phase)
 
 
 def _phase_rank(phase):
@@ -70,12 +68,16 @@ def _find_feed_by_name(name):
 def _build_planned_ingredients():
     populations = Population.query.all()
     formulations = Formulation.query.all()
+    populations_by_phase_id = {population.phase_id: population for population in populations if population.phase_id}
 
     planned = []
     for formulation in formulations:
-        population = _phase_population(formulation.phase, populations)
+        population_record = populations_by_phase_id.get(formulation.phase_id)
+        population = population_record.total_ducks if population_record else _phase_population(formulation.phase, populations)
         if population <= 0:
             continue
+
+        phase_name = formulation.growth_phase.name if formulation.growth_phase else formulation.phase
 
         for feed_name, percentage in formulation.composition.items():
             amount = (formulation.target_consumption * population * (percentage / 100.0)) / 1000.0
@@ -88,7 +90,8 @@ def _build_planned_ingredients():
 
             planned.append({
                 'feed': feed,
-                'phase': formulation.phase,
+                'phase_id': formulation.phase_id,
+                'phase': phase_name,
                 'population_count': population,
                 'target_consumption': formulation.target_consumption,
                 'planned_amount': round(amount, 3),
@@ -107,6 +110,7 @@ def _add_batch_ingredients(batch, ingredients):
         db.session.add(FeedingBatchIngredient(
             batch_id=batch.id,
             feed_id=feed.id,
+            phase_id=item.get('phase_id'),
             feed_name=feed.name,
             phase=item['phase'],
             population_count=item['population_count'],
@@ -126,6 +130,7 @@ def _planned_signature(ingredients):
     return sorted([
         (
             _phase_key(item['phase']),
+            item.get('phase_id'),
             item['feed'].id,
             round(float(item['planned_amount']), 3),
             int(item['population_count']),
@@ -139,6 +144,7 @@ def _batch_signature(batch):
     return sorted([
         (
             _phase_key(item.phase),
+            item.phase_id,
             item.feed_id,
             round(float(item.planned_amount or 0), 3),
             int(item.population_count or 0),
@@ -175,30 +181,48 @@ def _sync_preparing_batch_plan(batch, ingredients):
     return None
 
 
-def get_today_batch(date_str=None):
+def get_today_batch(date_str=None, task_id=None):
     batch_date, error = _parse_date(date_str)
     if error:
         return error, 400
 
-    batch = FeedingBatch.query.filter(
+    query = FeedingBatch.query.filter(
         FeedingBatch.batch_date == batch_date,
         FeedingBatch.status.in_(('PREPARING', 'FINALIZED'))
-    ).order_by(FeedingBatch.created_at.desc()).first()
+    )
+    batch = _apply_task_scope(query, task_id).order_by(FeedingBatch.created_at.desc()).first()
     return {
         'status': 'success',
         'data': batch.to_dict() if batch else None
     }, 200
 
 
-def create_batch(user_id, date_str=None):
+def get_today_batches(date_str=None):
     batch_date, error = _parse_date(date_str)
     if error:
         return error, 400
 
-    existing = FeedingBatch.query.filter(
+    batches = FeedingBatch.query.filter(
         FeedingBatch.batch_date == batch_date,
         FeedingBatch.status.in_(('PREPARING', 'FINALIZED'))
-    ).order_by(FeedingBatch.created_at.desc()).first()
+    ).order_by(FeedingBatch.created_at.desc()).all()
+
+    return {
+        'status': 'success',
+        'data': [batch.to_dict() for batch in batches]
+    }, 200
+
+
+def create_batch(user_id, date_str=None, task_id=None):
+    batch_date, error = _parse_date(date_str)
+    if error:
+        return error, 400
+
+    query = FeedingBatch.query.filter(
+        FeedingBatch.batch_date == batch_date,
+        FeedingBatch.status.in_(('PREPARING', 'FINALIZED'))
+    )
+    existing = _apply_task_scope(query, task_id).order_by(FeedingBatch.created_at.desc()).first()
     if existing:
         if existing.status == 'PREPARING':
             ingredients, error, code = _build_planned_ingredients()
@@ -219,14 +243,15 @@ def create_batch(user_id, date_str=None):
     if error:
         return error, code
 
-    batch = FeedingBatch(batch_date=batch_date, keeper_id=user_id, status='PREPARING')
+    batch = FeedingBatch(batch_date=batch_date, task_id=task_id, keeper_id=user_id, status='PREPARING')
     db.session.add(batch)
     db.session.flush()
 
     _add_batch_ingredients(batch, ingredients)
 
     db.session.commit()
-    create_log("SISTEM", f"Membuat batch racikan pakan tanggal {batch_date.isoformat()}.", user_id)
+    task_label = f" untuk tugas {task_id}" if task_id else ""
+    create_log("SISTEM", f"Membuat batch racikan pakan tanggal {batch_date.isoformat()}{task_label}.", user_id)
 
     return {
         'status': 'success',
@@ -246,7 +271,7 @@ def _get_active_batch_for_scale(date_str, user_id=None):
     ).order_by(FeedingBatch.created_at.desc()).first()
 
     if batch:
-        response, code = create_batch(user_id, batch_date.isoformat())
+        response, code = create_batch(user_id, batch_date.isoformat(), batch.task_id)
         if code not in (200, 201):
             return None, response, code
 
@@ -266,7 +291,7 @@ def _get_active_batch_for_scale(date_str, user_id=None):
     return batch, None, 200
 
 
-def _find_batch_ingredient(batch, feed, label, phase=None):
+def _find_batch_ingredient(batch, feed, label, phase=None, phase_id=None):
     requested_phase = _phase_key(phase)
     label_lower = (label or '').strip().lower()
 
@@ -277,7 +302,9 @@ def _find_batch_ingredient(batch, feed, label, phase=None):
         if same_feed or same_label:
             candidates.append(item)
 
-    if phase:
+    if phase_id:
+        candidates = [item for item in candidates if item.phase_id == phase_id]
+    elif phase:
         candidates = [item for item in candidates if _phase_key(item.phase) == requested_phase]
 
     if len(candidates) == 1:
@@ -298,6 +325,7 @@ def record_scale_reading(data, user_id=None):
     timbangan_id = data.get('timbangan_id', 2)
     label = (data.get('label') or data.get('feed_name') or '').strip()
     phase = (data.get('phase') or data.get('fase') or '').strip()
+    phase_id = (data.get('phase_id') or data.get('fase_id') or '').strip() or None
     value = data.get('value', data.get('amount'))
     unit = (data.get('unit') or 'kg').strip()
     mode = (data.get('mode') or 'SET').strip().upper()
@@ -327,7 +355,7 @@ def record_scale_reading(data, user_id=None):
         return {'status': 'error', 'message': 'Racikan pakan harus dikirim dari timbangan tipe MULTI'}, 400
 
     feed = _find_feed_by_name(label)
-    ingredient, ingredient_error = _find_batch_ingredient(batch, feed, label, phase)
+    ingredient, ingredient_error = _find_batch_ingredient(batch, feed, label, phase, phase_id)
     if ingredient_error:
         return {'status': 'error', 'message': ingredient_error}, 400
 
@@ -498,12 +526,13 @@ def cancel_batch(batch_id, user_id=None):
     }, 200
 
 
-def has_finalized_batch(date_str):
+def has_finalized_batch(date_str, task_id=None):
     batch_date, error = _parse_date(date_str)
     if error:
         return False
 
-    return FeedingBatch.query.filter_by(
+    query = FeedingBatch.query.filter_by(
         batch_date=batch_date,
         status='FINALIZED'
-    ).first() is not None
+    )
+    return _apply_task_scope(query, task_id).first() is not None

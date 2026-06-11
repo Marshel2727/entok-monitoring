@@ -3,6 +3,7 @@ import os
 from flask import Flask
 from flask_migrate import Migrate
 from flask_cors import CORS
+from flasgger import Swagger
 from app.utils.db import db
 from app.config import Config
 
@@ -15,6 +16,9 @@ def create_app(config_class=Config):
     # Enable CORS dynamically based on FRONTEND_URL
     frontend_url = os.getenv('FRONTEND_URL', '*')
     CORS(app, resources={r"/api/*": {"origins": frontend_url}})
+
+    # Initialize Swagger
+    Swagger(app)
 
     # Initialize extensions
     db.init_app(app)

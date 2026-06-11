@@ -1,0 +1,27 @@
+Slide plan:
+1. Cover with hero image and operating promise.
+2. Problem map with four customer pain points.
+3. Product system map showing ENTOK as operating layer.
+4. Value linkage slide connecting capabilities to outcomes.
+5. Daily workflow timeline from setup to report.
+6. Feeding batch logic with target, weigh, compare, finalize.
+7. Backend/data connection map to address whether it is real data or UI only.
+8. Mobile keeper experience mockup with checklist and batch dropdown.
+9. Supervisor dashboard operating loop.
+10. Customer onboarding path.
+11. Customer decision matrix / before-after.
+12. Closing demo path and next step.
+
+Macro-layout families:
+- editorial cover
+- pain point map
+- platform architecture map
+- outcome bridge
+- timeline
+- workflow deep dive
+- data relationship diagram
+- phone mockup
+- operating loop
+- onboarding path
+- comparison matrix
+- closing checklist

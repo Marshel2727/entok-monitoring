@@ -347,7 +347,7 @@ export default function KelolaPakanPage({
                 onChange={(e) => setQuickFeedId(e.target.value)}
                 required
               >
-                <option value="" disabled>[ Pilih Jenis Pakan ]</option>
+                <option value="" disabled>Pilih Jenis Pakan</option>
                 {feedList.map(feed => (
                   <option key={feed.id} value={feed.id}>{feed.nama} ({feed.kategori})</option>
                 ))}
@@ -369,7 +369,7 @@ export default function KelolaPakanPage({
             </div>
 
             <button type="submit" className="retro-btn" style={{ height: '38px', padding: '0 24px', cursor: 'pointer' }}>
-              [ Simpan Restock ]
+              Simpan Restock
             </button>
           </form>
         </div>
@@ -392,7 +392,7 @@ export default function KelolaPakanPage({
                 }}
                 required
               >
-                <option value="" disabled>[ Pilih Timbangan ]</option>
+                <option value="" disabled> Pilih Timbangan </option>
                 {timbanganList.map((item) => (
                   <option key={item.id} value={String(item.id)}>
                     {item.nama} - {item.tipe}{item.default_label ? ` (${item.default_label})` : ''}
@@ -413,7 +413,7 @@ export default function KelolaPakanPage({
                   }}
                   required
                 >
-                  <option value="" disabled>[ Pilih Fase ]</option>
+                  <option value="" disabled>Pilih Fase</option>
                   {formulasiList.map((form) => (
                     <option key={form.id} value={form.fase}>{form.fase}</option>
                   ))}
@@ -431,7 +431,7 @@ export default function KelolaPakanPage({
                   required
                   disabled={!scalePhase}
                 >
-                  <option value="" disabled>{scalePhase ? '[ Pilih Bahan ]' : '[ Pilih Fase Dulu ]'}</option>
+                  <option value="" disabled>{scalePhase ? 'Pilih Bahan' : 'Pilih Fase Dulu'}</option>
                   {scaleFeedOptions.map((feed) => (
                     <option key={feed.id} value={feed.id}>{feed.nama}</option>
                   ))}
@@ -441,7 +441,7 @@ export default function KelolaPakanPage({
                   className="form-input"
                   value={selectedScaleLabel || ''}
                   disabled
-                  placeholder="[ Otomatis dari timbangan ]"
+                  placeholder="Otomatis dari timbangan"
                 />
               )}
             </div>
@@ -466,7 +466,7 @@ export default function KelolaPakanPage({
               disabled={!onScaleReading || isScaleSaving}
               style={{ height: '38px', padding: '0 18px', cursor: onScaleReading && !isScaleSaving ? 'pointer' : 'not-allowed', alignSelf: 'end' }}
             >
-              {isScaleSaving ? '[ MENYIMPAN... ]' : '[ Kirim Reading ]'}
+              {isScaleSaving ? 'MENYIMPAN...' : 'Kirim Reading'}
             </button>
           </form>
           {selectedScale?.tipe === 'MULTI' && selectedScaleFormulation && (
@@ -517,7 +517,7 @@ export default function KelolaPakanPage({
                   whiteSpace: 'nowrap'
                 }}
               >
-                {isCompositionSaving ? '[ MEMASUKKAN... ]' : '[ Masukkan Sesuai Komposisi ]'}
+                {isCompositionSaving ? 'MEMASUKKAN...' : 'Masukkan Sesuai Komposisi'}
               </button>
             </div>
           )}
@@ -637,7 +637,7 @@ export default function KelolaPakanPage({
               {displayedFeeds.length === 0 ? (
                 <tr>
                   <td colSpan={5} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
-                    [ INVENTARIS PAKAN KOSONG ]
+                    INVENTARIS PAKAN KOSONG
                   </td>
                 </tr>
               ) : (
@@ -690,14 +690,14 @@ export default function KelolaPakanPage({
               onClick={handlePrevPage}
               disabled={currentPage === 1}
             >
-              [ &lt; PREV ]
+              &lt; PREV
             </button>
             <button 
               className="action-btn" 
               onClick={handleNextPage}
               disabled={currentPage === totalPages || totalPages === 0}
             >
-              [ NEXT &gt; ]
+              NEXT &gt;
             </button>
           </div>
         </div>

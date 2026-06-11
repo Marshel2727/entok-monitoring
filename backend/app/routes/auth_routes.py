@@ -7,6 +7,44 @@ auth_bp = Blueprint('auth_bp', __name__)
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
+    """
+    User Login
+    ---
+    tags:
+      - Authentication
+    summary: Authenticate a user and return a JWT token.
+    parameters:
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            username:
+              type: string
+              description: The user's username.
+              example: "pengawas"
+            password:
+              type: string
+              description: The user's password.
+              example: "password"
+    responses:
+      200:
+        description: Login successful, returns a JWT token.
+        schema:
+          type: object
+          properties:
+            status:
+              type: string
+              example: "success"
+            token:
+              type: string
+              example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      400:
+        description: Bad Request, username or password not provided.
+      401:
+        description: Unauthorized, invalid credentials.
+    """
     data = request.get_json() or {}
     username = data.get('username')
     password = data.get('password')

@@ -154,7 +154,7 @@ export default function KelolaAkunPenjagaPage({
               {filteredAccounts.length === 0 ? (
                 <tr>
                   <td colSpan={7} style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                    {searchTerm ? '[ TIDAK ADA HASIL PENCARIAN PENJAGA ]' : '[ TIDAK ADA DATA AKUN PENJAGA ]'}
+                    {searchTerm ? 'Tidak Ada Hasil Pencarian Penjaga' : 'Tidak Ada Data Akun Penjaga'}
                   </td>
                 </tr>
               ) : (

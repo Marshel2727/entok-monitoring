@@ -49,21 +49,21 @@ export default function Sidebar() {
     },
     {
       type: 'item',
-      data: { name: 'FEED CHARTS', icon: <LuTrendingUp size={16} />, path: '/dashboard/feed-charts' }
+      data: { name: 'GRAFIK RANTAI PAKAN', icon: <LuTrendingUp size={16} />, path: '/dashboard/feed-charts' }
     },
     {
       type: 'item',
-      data: { name: 'KELOLA AKUN', icon: <LuUsers size={16} />, path: '/dashboard/akun-penjaga' }
+      data: { name: 'MANAJEMEN AKUN', icon: <LuUsers size={16} />, path: '/dashboard/akun-penjaga' }
     },
     {
       type: 'group',
       data: {
-        groupName: 'OPERASIONAL KANDANG',
+        groupName: 'OPERASIONAL PRODUKSI',
         icon: <LuWheat size={16} />,
         items: [
-          { name: 'KELOLA POPULASI', icon: <LuBird size={14} />, path: '/dashboard/populasi' },
-          { name: 'FEED MANAGEMENT', icon: <LuWheat size={14} />, path: '/dashboard/pakan' },
-          { name: 'FORMULASI PAKAN', icon: <LuTestTube size={14} />, path: '/dashboard/formulasi' },
+          { name: 'MANAJEMEN POPULASI TERNAK', icon: <LuBird size={14} />, path: '/dashboard/populasi' },
+          { name: 'MANAJEMEN PAKAN', icon: <LuWheat size={14} />, path: '/dashboard/pakan' },
+          { name: 'FORMULASI RANSUM', icon: <LuTestTube size={14} />, path: '/dashboard/formulasi' },
         ]
       }
     },
@@ -73,8 +73,8 @@ export default function Sidebar() {
         groupName: 'PORTAL PENJAGA',
         icon: <LuClipboardList size={16} />,
         items: [
-          { name: 'KELOLA TUGAS', icon: <LuClipboardList size={14} />, path: '/dashboard/tugas' },
-          { name: 'ACUAN PAKAN PENJAGA', icon: <LuBookOpen size={14} />, path: '/dashboard/acuan-pakan' },
+          { name: 'MANAJEMEN TUGAS HARIAN', icon: <LuClipboardList size={14} />, path: '/dashboard/tugas' },
+          { name: 'PANDUAN PEMBERIAN PAKAN', icon: <LuBookOpen size={14} />, path: '/dashboard/acuan-pakan' },
         ]
       }
     },
@@ -90,7 +90,7 @@ export default function Sidebar() {
     },
     {
       type: 'item',
-      data: { name: 'ACTIVITY HISTORY', icon: <LuHistory size={16} />, path: '/dashboard/riwayat' }
+      data: { name: 'RIWAYAT AKTIVITAS', icon: <LuHistory size={16} />, path: '/dashboard/riwayat' }
     }
   ];
 
@@ -125,7 +125,7 @@ export default function Sidebar() {
       <div className="sidebar-header">
         <div className="sidebar-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <LuTerminal size={20} style={{ color: 'var(--accent-light)' }} />
-          <span>MONITORING ENTOK</span>
+          <span>MONITORING SI ENTOK</span>
         </div>
         
         <Link 
@@ -134,7 +134,7 @@ export default function Sidebar() {
           style={{ cursor: 'pointer', textDecoration: 'none', display: 'block' }}
           title="Klik untuk membuka Pengaturan Profil"
         >
-          <div className="profile-welcome">[ Selamat datang, ]</div>
+          <div className="profile-welcome">Selamat datang,</div>
           <div className="profile-name">{user?.nama || 'Kepala Pengawas'}</div>
         </Link>
       </div>

@@ -1,0 +1,21 @@
+{
+  "product": "ENTOK Smart Farm Management",
+  "audience": "customer",
+  "slideCount": 12,
+  "supportedSystemElements": [
+    "dashboard pengawas",
+    "checklist penjaga",
+    "SOP kerja",
+    "batch racikan pakan",
+    "Timbangan 2",
+    "stok pakan",
+    "populasi dan fase usia",
+    "log aktivitas"
+  ],
+  "nonQuantifiedBusinessLinks": [
+    "kontrol stok lebih rapi",
+    "tugas harian lebih mudah diaudit",
+    "racikan pakan lebih konsisten",
+    "pengawas punya visibilitas operasional"
+  ]
+}

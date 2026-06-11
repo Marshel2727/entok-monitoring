@@ -39,10 +39,11 @@ interface ChecklistPenjagaPageProps {
   jumlahFinisher?: number;
   checklist?: DailyChecklistItem[];
   feedingBatch?: FeedingBatch | null;
+  feedingBatches?: FeedingBatch[];
   onToggleTask?: (taskId: string, isCompleted: boolean) => Promise<void>;
-  onCreateFeedingBatch?: () => Promise<void>;
-  onFinalizeFeedingBatch?: () => Promise<void>;
-  onCancelFeedingBatch?: () => Promise<void>;
+  onCreateFeedingBatch?: (taskId?: string) => Promise<void>;
+  onFinalizeFeedingBatch?: (batchId?: string) => Promise<void>;
+  onCancelFeedingBatch?: (batchId?: string) => Promise<void>;
   onResetDaily?: () => Promise<void>;
 }
 
@@ -63,6 +64,7 @@ export default function ChecklistPenjagaPage({
   jumlahFinisher = 10,
   checklist,
   feedingBatch,
+  feedingBatches = [],
   onToggleTask,
   onCreateFeedingBatch,
   onFinalizeFeedingBatch,
@@ -109,6 +111,7 @@ export default function ChecklistPenjagaPage({
   const [panduanTab, setPanduanTab] = useState<'kerja' | 'nutrisi'>('kerja');
   const [selectedPanduan, setSelectedPanduan] = useState<PenjagaTaskItem | null>(null);
   const [showRacikanDropdown, setShowRacikanDropdown] = useState(false);
+  const [showMobileBatchDropdown, setShowMobileBatchDropdown] = useState(false);
   const [keeperName, setKeeperName] = useState('Penjaga');
 
   const getPopulasiByFase = (fase: string) => {
@@ -143,43 +146,43 @@ export default function ChecklistPenjagaPage({
     return '#e53e3e';
   };
 
-  const handleCreateBatch = async () => {
+  const handleCreateBatch = async (taskId?: string) => {
     try {
-      await onCreateFeedingBatch?.();
+      await onCreateFeedingBatch?.(taskId);
     } catch (err: any) {
       alert(err.message || 'Gagal membuat batch racikan.');
     }
   };
 
-  const handleFinalizeBatch = async () => {
+  const handleFinalizeBatch = async (batchId?: string) => {
     if (!window.confirm('Finalisasi racikan akan memotong stok sesuai hasil timbang. Lanjutkan?')) {
       return;
     }
 
     try {
-      await onFinalizeFeedingBatch?.();
+      await onFinalizeFeedingBatch?.(batchId);
     } catch (err: any) {
       alert(err.message || 'Gagal finalisasi racikan.');
     }
   };
 
-  const handleCancelBatch = async () => {
+  const handleCancelBatch = async (batchId?: string) => {
     if (!window.confirm('Batalkan batch racikan hari ini?')) {
       return;
     }
 
     try {
-      await onCancelFeedingBatch?.();
+      await onCancelFeedingBatch?.(batchId);
     } catch (err: any) {
       alert(err.message || 'Gagal membatalkan batch racikan.');
     }
   };
 
-  const getBatchItemsByPhase = () => {
+  const getBatchItemsByPhase = (batch: FeedingBatch | null | undefined = feedingBatch) => {
     const groups: { phase: string; items: NonNullable<FeedingBatch['ingredients']> }[] = [];
     const phaseIndex = new Map<string, number>();
 
-    (feedingBatch?.ingredients || []).forEach((item) => {
+    (batch?.ingredients || []).forEach((item) => {
       const phase = item.phase || 'Gabungan';
       if (!phaseIndex.has(phase)) {
         phaseIndex.set(phase, groups.length);
@@ -191,7 +194,7 @@ export default function ChecklistPenjagaPage({
     return groups;
   };
 
-  const getBatchTotalsByFeed = () => {
+  const getBatchTotalsByFeed = (batch: FeedingBatch | null | undefined = feedingBatch) => {
     const totals = new Map<string, {
       feedName: string;
       planned: number;
@@ -199,7 +202,7 @@ export default function ChecklistPenjagaPage({
       deducted: number;
     }>();
 
-    (feedingBatch?.ingredients || []).forEach((item) => {
+    (batch?.ingredients || []).forEach((item) => {
       const key = item.feed_id || item.feed_name.toLowerCase();
       const current = totals.get(key) || {
         feedName: item.feed_name,
@@ -265,7 +268,7 @@ export default function ChecklistPenjagaPage({
               Menunggu data dari Timbangan 2. Target bisa disiapkan dulu dari formulasi dan populasi hari ini.
             </span>
             <button
-              onClick={handleCreateBatch}
+              onClick={() => handleCreateBatch()}
               disabled={!onCreateFeedingBatch}
               style={{
                 border: '1px solid #15D36B',
@@ -397,7 +400,7 @@ export default function ChecklistPenjagaPage({
               {isPreparing && (
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button
-                    onClick={handleCancelBatch}
+                    onClick={() => handleCancelBatch(feedingBatch.id)}
                     disabled={!onCancelFeedingBatch}
                     style={{
                       border: '1px solid #e53e3e',
@@ -413,7 +416,7 @@ export default function ChecklistPenjagaPage({
                     BATAL
                   </button>
                   <button
-                    onClick={handleFinalizeBatch}
+                    onClick={() => handleFinalizeBatch(feedingBatch.id)}
                     disabled={!onFinalizeFeedingBatch}
                     style={{
                       border: '1px solid #15D36B',
@@ -437,51 +440,65 @@ export default function ChecklistPenjagaPage({
     );
   };
 
-  const renderMobileFeedingBatchPanel = () => {
-    const isPreparing = feedingBatch?.status === 'PREPARING';
-    const isFinalized = feedingBatch?.status === 'FINALIZED';
-    const groupedItems = getBatchItemsByPhase();
-    const totalItems = getBatchTotalsByFeed();
-    const hasBatchItems = Boolean(feedingBatch && feedingBatch.ingredients.length > 0);
+  const renderMobileFeedingBatchPanel = (batch: FeedingBatch | null | undefined = feedingBatch, task?: PenjagaTaskItem | null) => {
+    const isPreparing = batch?.status === 'PREPARING';
+    const isFinalized = batch?.status === 'FINALIZED';
+    const mobileBatchStatusLabel = isFinalized ? 'SIAP' : batch ? 'DIRACIK' : 'BELUM ADA';
+    const groupedItems = getBatchItemsByPhase(batch);
+    const totalItems = getBatchTotalsByFeed(batch);
+    const hasBatchItems = Boolean(batch && batch.ingredients.length > 0);
 
     return (
       <div style={{
         backgroundColor: '#ffffff',
         borderRadius: '14px',
         padding: '14px',
-        border: '1px solid #edf2f7',
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.02)'
+        border: '1px solid #dce8e2',
+        boxShadow: '0 8px 18px rgba(15, 23, 42, 0.07)'
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', alignItems: 'start' }}>
-          <div>
-            <div style={{ fontSize: '11px', fontWeight: '900', color: '#2d3748', textTransform: 'uppercase' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '44px minmax(0, 1fr) auto', gap: '10px', alignItems: 'center' }}>
+          <div style={{
+            width: '42px',
+            height: '42px',
+            borderRadius: '12px',
+            backgroundColor: '#effff5',
+            border: '1px solid #d8f3e4',
+            color: '#15D36B',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <LuSparkles size={20} />
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: '12px', fontWeight: '950', color: '#102033', textTransform: 'uppercase', lineHeight: 1.25 }}>
               Batch Racikan
             </div>
-            <div style={{ fontSize: '9px', color: '#718096', marginTop: '2px', lineHeight: '1.4' }}>
-              Finalisasi dulu sebelum tugas Beri Pakan selesai.
+            <div style={{ fontSize: '9px', color: '#68758f', marginTop: '4px', lineHeight: '1.4' }}>
+              Data Timbangan 2 masuk ke sini. Stok dipotong saat finalisasi.
             </div>
           </div>
           <span style={{
-            fontSize: '8px',
+            fontSize: '9px',
             fontWeight: '900',
             color: isFinalized ? '#155724' : '#856404',
             backgroundColor: isFinalized ? '#d4edda' : '#fff3cd',
             border: `1px solid ${isFinalized ? '#15D36B' : '#f59e0b'}`,
             borderRadius: '999px',
-            padding: '3px 8px',
+            padding: '5px 10px',
             whiteSpace: 'nowrap'
           }}>
-            {isFinalized ? 'FINAL' : feedingBatch ? 'DIRACIK' : 'BELUM ADA'}
+            {mobileBatchStatusLabel}
           </span>
         </div>
 
-        {!feedingBatch && (
+        {!batch && (
           <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div style={{ fontSize: '10px', color: '#718096', lineHeight: '1.5', backgroundColor: '#f8f9fc', borderRadius: '8px', padding: '10px' }}>
               Target racikan belum disiapkan. Data Timbangan 2 akan masuk ke batch setelah target tersedia.
             </div>
             <button
-              onClick={handleCreateBatch}
+              onClick={() => handleCreateBatch(task?.id)}
               disabled={!onCreateFeedingBatch}
               style={{
                 width: '100%',
@@ -500,61 +517,80 @@ export default function ChecklistPenjagaPage({
           </div>
         )}
 
-        {feedingBatch && (
+        {batch && (
           <>
-            <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {groupedItems.map((group) => (
-                <div key={group.phase} style={{ border: '1px solid #edf2f7', borderRadius: '10px', overflow: 'hidden' }}>
+                <div key={group.phase} style={{ border: '1px solid #dcefe4', borderRadius: '12px', overflow: 'hidden', backgroundColor: '#ffffff' }}>
                   <div style={{
                     display: 'flex',
                     justifyContent: 'space-between',
                     gap: '8px',
-                    padding: '8px 10px',
-                    backgroundColor: '#f0fff4',
+                    padding: '9px 10px',
+                    backgroundColor: '#effff5',
                     color: '#15D36B',
-                    fontSize: '9px',
+                    fontSize: '10px',
                     fontWeight: '900',
                     textTransform: 'uppercase'
                   }}>
-                    <span>{group.phase}</span>
-                    <span style={{ color: '#718096' }}>{group.items[0]?.population_count || 0} ekor</span>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{group.phase}</span>
+                    <span style={{ color: '#68758f', textTransform: 'none' }}>
+                      {group.items[0]?.population_count || 0} ekor - target {group.items[0]?.target_consumption || 0} gr/ekor
+                    </span>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     {group.items.map((item) => {
                       const hasScaleData = Number(item.weighed_amount || 0) > 0;
                       return (
                         <div key={item.id} style={{
+                          padding: '11px 10px',
+                          borderTop: '1px solid #e8eef2',
                           display: 'grid',
-                          gridTemplateColumns: '1fr auto',
-                          gap: '8px',
-                          padding: '9px 10px',
-                          borderTop: '1px solid #edf2f7',
+                          gridTemplateColumns: '42px minmax(0, 1fr)',
+                          gap: '10px',
                           alignItems: 'center'
                         }}>
-                          <div>
-                            <div style={{ fontSize: '11px', fontWeight: '900', color: '#2d3748' }}>{item.feed_name}</div>
-                            <div style={{ fontSize: '9px', color: '#718096', marginTop: '2px' }}>
-                              Target {formatBatchKg(item.planned_amount)} | Selisih{' '}
-                              <span style={{ color: getBatchVarianceColor(item.variance_amount), fontWeight: '900' }}>
-                                {item.variance_amount > 0 ? '+' : ''}{formatBatchKg(item.variance_amount)}
+                          <div style={{
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '50%',
+                            overflow: 'hidden',
+                            border: '2px solid #ffffff',
+                            boxShadow: '0 3px 8px rgba(15, 23, 42, 0.12)',
+                            backgroundColor: '#eef8f1'
+                          }}>
+                            <img
+                              src={resolveAssetUrl(getMobileFeedImage(item.feed_name), '/images/azolla_microphylla.png')}
+                              alt={item.feed_name}
+                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            />
+                          </div>
+
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center' }}>
+                              <div style={{ fontSize: '12px', fontWeight: '950', color: '#102033', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {item.feed_name}
+                              </div>
+                              <span style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                fontSize: '8px',
+                                fontWeight: '900',
+                                color: hasScaleData ? '#155724' : '#856404',
+                                backgroundColor: hasScaleData ? '#d4edda' : '#fff3cd',
+                                borderRadius: '999px',
+                                padding: '4px 8px',
+                                whiteSpace: 'nowrap'
+                              }}>
+                                {hasScaleData ? 'MASUK' : 'MENUNGGU'}
                               </span>
                             </div>
-                          </div>
-                          <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontSize: '12px', fontWeight: '900', color: hasScaleData ? '#2d3748' : '#a0aec0' }}>
-                              {formatBatchKg(item.weighed_amount)}
-                            </div>
-                            <div style={{
-                              display: 'inline-block',
-                              marginTop: '2px',
-                              fontSize: '8px',
-                              fontWeight: '900',
-                              color: hasScaleData ? '#155724' : '#856404',
-                              backgroundColor: hasScaleData ? '#d4edda' : '#fff3cd',
-                              borderRadius: '999px',
-                              padding: '2px 6px'
-                            }}>
-                              {hasScaleData ? 'MASUK' : 'MENUNGGU'}
+
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '7px', marginTop: '9px' }}>
+                              {renderMobileBatchMetric('Target', formatBatchKg(item.planned_amount))}
+                              {renderMobileBatchMetric('Timbang', formatBatchKg(item.weighed_amount), hasScaleData ? '#102033' : '#a8b6c8')}
+                              {renderMobileBatchMetric('Terpotong', formatBatchKg(item.deducted_amount))}
+                              {renderMobileBatchMetric('Selisih', `${item.variance_amount > 0 ? '+' : ''}${formatBatchKg(item.variance_amount)}`, getBatchVarianceColor(item.variance_amount))}
                             </div>
                           </div>
                         </div>
@@ -566,23 +602,31 @@ export default function ChecklistPenjagaPage({
             </div>
 
             {hasBatchItems && (
-              <div style={{ marginTop: '10px', backgroundColor: '#f8f9fc', border: '1px solid #edf2f7', borderRadius: '10px', padding: '10px' }}>
-                <div style={{ fontSize: '9px', fontWeight: '900', color: '#718096', textTransform: 'uppercase', marginBottom: '6px' }}>
-                  Total potong saat finalisasi
+              <div style={{ marginTop: '12px', backgroundColor: '#f8faff', border: '1px solid #dfe8f3', borderRadius: '10px', overflow: 'hidden' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '10px', fontWeight: '900', color: '#102033', textTransform: 'uppercase', padding: '10px', borderBottom: '1px solid #e8eef2' }}>
+                  <LuClipboardList size={13} color="#15D36B" />
+                  <span>Total Pemotongan Stok Saat Finalisasi</span>
                 </div>
                 {totalItems.map((item) => (
-                  <div key={item.feedName} style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', fontSize: '10px', color: '#2d3748', padding: '3px 0' }}>
-                    <span style={{ fontWeight: '800' }}>{item.feedName}</span>
-                    <span>{formatBatchKg(isFinalized ? item.deducted : item.weighed)}</span>
+                  <div key={item.feedName} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '8px', fontSize: '10px', color: '#102033', padding: '9px 10px', borderBottom: '1px solid #eef2f5', alignItems: 'center' }}>
+                    <span style={{ fontWeight: '900' }}>{item.feedName}</span>
+                    <span style={{ color: '#68758f', textAlign: 'right' }}>
+                      Target {formatBatchKg(item.planned)}<br />
+                      <strong style={{ color: '#102033' }}>Potong {formatBatchKg(isFinalized ? item.deducted : item.weighed)}</strong>
+                    </span>
                   </div>
                 ))}
               </div>
             )}
 
             {isPreparing && (
-              <div style={{ display: 'grid', gridTemplateColumns: '0.7fr 1.3fr', gap: '8px', marginTop: '12px' }}>
+              <div style={{ marginTop: '14px' }}>
+                <div style={{ fontSize: '10px', color: '#68758f', marginBottom: '10px' }}>
+                  Toleransi selisih: {batch.tolerance_percent}% per bahan.
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '0.9fr 1.35fr', gap: '8px' }}>
                 <button
-                  onClick={handleCancelBatch}
+                  onClick={() => handleCancelBatch(batch.id)}
                   disabled={!onCancelFeedingBatch}
                   style={{
                     border: '1px solid #e53e3e',
@@ -598,7 +642,7 @@ export default function ChecklistPenjagaPage({
                   Batal
                 </button>
                 <button
-                  onClick={handleFinalizeBatch}
+                  onClick={() => handleFinalizeBatch(batch.id)}
                   disabled={!onFinalizeFeedingBatch}
                   style={{
                     border: 'none',
@@ -613,6 +657,7 @@ export default function ChecklistPenjagaPage({
                 >
                   Finalisasi & Potong Stok
                 </button>
+                </div>
               </div>
             )}
           </>
@@ -775,8 +820,13 @@ export default function ChecklistPenjagaPage({
   const activeTaskId = tasksList.find(t => !completedTasks[t.id])?.id || null;
   const activeTask = activeTaskId ? tasksList.find(t => t.id === activeTaskId) : null;
   const isFeedingTask = (task?: PenjagaTaskItem | null) => Boolean(task?.nama?.toLowerCase().includes("beri pakan"));
-  const isFeedingBatchFinal = feedingBatch?.status === 'FINALIZED';
-  const needsFeedingFinalization = (task?: PenjagaTaskItem | null) => isFeedingTask(task) && !isFeedingBatchFinal;
+  const getFeedingBatchForTask = (task?: PenjagaTaskItem | null) => {
+    if (!isFeedingTask(task)) return null;
+    return feedingBatches.find((batch) => batch.task_id === task?.id) || null;
+  };
+  const isFeedingBatchFinalForTask = (task?: PenjagaTaskItem | null) => getFeedingBatchForTask(task)?.status === 'FINALIZED';
+  const isFeedingBatchFinal = isFeedingBatchFinalForTask(activeTask);
+  const needsFeedingFinalization = (task?: PenjagaTaskItem | null) => isFeedingTask(task) && !isFeedingBatchFinalForTask(task);
 
   const tryToggleTask = async (id: string, targetState: boolean): Promise<boolean> => {
     if (isPublic) {
@@ -794,7 +844,7 @@ export default function ChecklistPenjagaPage({
 
     if (targetState) {
       if (isBeriPakan) {
-        if (feedingBatch?.status !== 'FINALIZED') {
+        if (!isFeedingBatchFinalForTask(task)) {
           alert('Finalisasi batch racikan pakan terlebih dahulu. Stok dipotong dari tabel pembanding, bukan dari checklist.');
           return false;
         }
@@ -892,6 +942,510 @@ export default function ChecklistPenjagaPage({
 
   const dedakFeed = feedList.find(f => f.nama.toLowerCase() === 'dedak');
   const dedakStock = dedakFeed ? dedakFeed.stok : 56.2;
+  const showLegacyMobileLayout: boolean = false;
+
+  const getShortIndonesianDate = () => {
+    const today = new Date();
+    const options: Intl.DateTimeFormatOptions = { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' };
+    return today.toLocaleDateString('id-ID', options);
+  };
+
+  const formatMobileTime = (time: string) => {
+    const trimmed = (time || '').trim();
+    return trimmed.toLowerCase().includes('wita') ? trimmed : `${trimmed} WITA`;
+  };
+
+  const getMobileFeedImage = (feedName: string) => {
+    const normalized = feedName.toLowerCase();
+    if (normalized.includes('jagung')) return '/images/jagung_giling.png';
+    if (normalized.includes('bsf') || normalized.includes('larva') || normalized.includes('maggot')) return '/images/larva_bsf.png';
+    if (normalized.includes('azolla') || normalized.includes('hijauan')) return '/images/azolla_microphylla.png';
+    return '/images/azolla_microphylla.png';
+  };
+
+  const renderMobileBatchMetric = (label: string, value: string, color = '#102033') => (
+    <div style={{ minWidth: 0 }}>
+      <div style={{ fontSize: '8px', color: '#68758f', fontWeight: '900', textTransform: 'uppercase', lineHeight: 1.1 }}>
+        {label}
+      </div>
+      <div style={{ fontSize: '10px', color, fontWeight: '950', lineHeight: 1.2, marginTop: '3px', whiteSpace: 'nowrap' }}>
+        {value}
+      </div>
+    </div>
+  );
+
+  const renderMobileProgressCard = () => (
+    <div style={{
+      backgroundColor: '#ffffff',
+      borderRadius: '10px',
+      margin: '-18px 18px 14px 18px',
+      padding: '12px 14px',
+      boxShadow: '0 7px 14px rgba(45, 55, 72, 0.16)',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '14px',
+      position: 'relative',
+      zIndex: 10,
+      minHeight: '78px'
+    }}>
+      <div style={{ position: 'relative', width: '58px', height: '58px', flexShrink: 0 }}>
+        <svg width="58" height="58" viewBox="0 0 36 36">
+          <circle cx="18" cy="18" r="14.2" fill="none" stroke="#c9c9c9" strokeWidth="4.4" />
+          <circle
+            cx="18"
+            cy="18"
+            r="14.2"
+            fill="none"
+            stroke="#15D36B"
+            strokeWidth="4.4"
+            strokeDasharray={`${progressPercent}, 100`}
+            strokeLinecap="round"
+            transform="rotate(-90 18 18)"
+          />
+        </svg>
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          fontSize: '11px',
+          fontWeight: '900',
+          color: '#1a202c'
+        }}>
+          {progressPercent}%
+        </div>
+      </div>
+
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: '10px', fontWeight: '900', color: '#13934c', lineHeight: 1.2 }}>
+          Progress Hari ini
+        </div>
+        <div style={{ fontSize: '10px', fontWeight: '800', color: '#13934c', marginTop: '2px', lineHeight: 1.25 }}>
+          {completedCount}/{totalCount} kegiatan selesai
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '6px', color: '#13934c', fontSize: '9px', lineHeight: 1.2 }}>
+          <LuCheck size={10} style={{ strokeWidth: 3, flexShrink: 0 }} />
+          <span>{allTasksComplete ? 'Semua kegiatan selesai hari ini' : 'Semangat! Melakukan kegiatan hari ini'}</span>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderMobileChecklistTimeline = () => {
+    const mobileBatchTaskId =
+      tasksList.find((task) => isFeedingTask(task) && activeTaskId === task.id)?.id
+      ?? tasksList.find((task) => isFeedingTask(task) && !completedTasks[task.id])?.id;
+
+    return (
+      <div style={{ padding: '0 14px 12px 14px', position: 'relative' }}>
+        <div style={{
+          position: 'absolute',
+          left: '30px',
+          top: '16px',
+          bottom: '24px',
+          width: '1.5px',
+          backgroundColor: '#d7dde2',
+          zIndex: 1
+        }} />
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '9px', position: 'relative', zIndex: 2 }}>
+          {tasksList.map((task, index) => {
+            const isCompleted = completedTasks[task.id];
+            const isActive = activeTaskId === task.id;
+            const showAction = isActive && !isCompleted;
+            const isBlockedFeeding = needsFeedingFinalization(task);
+            const taskFeedingBatch = getFeedingBatchForTask(task);
+            const isTaskFeedingBatchFinal = taskFeedingBatch?.status === 'FINALIZED';
+
+            return (
+              <div key={task.id} style={{ display: 'grid', gridTemplateColumns: '32px 1fr', gap: '9px', alignItems: 'start' }}>
+                <div style={{
+                  width: '25px',
+                  height: '25px',
+                  borderRadius: '50%',
+                  backgroundColor: '#ffffff',
+                  border: isCompleted ? '2px solid #15D36B' : isActive ? '2px solid #f59e0b' : '2px solid #80888f',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: isCompleted ? '#15D36B' : isActive ? '#f59e0b' : '#5e6770',
+                  boxShadow: '0 0 0 3px #f3f4f5',
+                  marginTop: '9px'
+                }}>
+                  {isCompleted ? <LuCheck size={14} style={{ strokeWidth: 3 }} /> : <LuClock size={13} />}
+                </div>
+
+                <div>
+                  <div
+                    onClick={() => handleToggleComplete(task.id)}
+                    style={{
+                      backgroundColor: '#b8ff9d',
+                      border: isCompleted ? '1px solid #15D36B' : isActive ? '1px solid #88e671' : '1px solid transparent',
+                      borderRadius: showAction ? '7px 7px 0 0' : '7px',
+                      padding: '8px 8px',
+                      display: 'grid',
+                      gridTemplateColumns: '36px minmax(0, 1fr) auto',
+                      gap: '8px',
+                      alignItems: 'center',
+                      boxShadow: isActive ? '0 2px 7px rgba(21, 211, 107, 0.18)' : 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <div style={{ width: '34px', height: '34px', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#d9f6d2' }}>
+                      <img
+                        src={resolveAssetUrl(task.img, '/images/azolla_microphylla.png')}
+                        alt={task.nama}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: '10px', fontWeight: '900', color: '#102a1b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {task.nama}
+                      </div>
+                      <div style={{ fontSize: '8px', color: '#486154', marginTop: '1px' }}>{formatMobileTime(task.waktu)}</div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <span style={{
+                        fontSize: '7px',
+                        backgroundColor: isCompleted ? '#667d69' : isActive ? '#a19041' : '#7e8085',
+                        color: '#ffffff',
+                        padding: '3px 6px',
+                        borderRadius: '999px',
+                        fontWeight: '900',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {isCompleted ? 'Selesai' : isActive ? 'Waktunya' : 'Belum Waktunya'}
+                      </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedPanduan(task);
+                        }}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#0c9f50',
+                          cursor: 'pointer',
+                          padding: 0,
+                          display: 'flex',
+                          alignItems: 'center'
+                        }}
+                        title="Panduan"
+                      >
+                        <LuBookOpen size={14} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {showAction && (
+                    <button
+                      onClick={() => handleToggleComplete(task.id)}
+                      style={{
+                        width: '100%',
+                        margin: '0',
+                        display: 'block',
+                        backgroundColor: isBlockedFeeding ? '#80888f' : '#ffffff',
+                        color: isBlockedFeeding ? '#ffffff' : '#1a202c',
+                        border: isBlockedFeeding ? 'none' : '1px solid #88e671',
+                        borderTop: 'none',
+                        borderRadius: '0 0 7px 7px',
+                        padding: '7px 8px',
+                        fontSize: '8px',
+                        fontWeight: '900',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {isBlockedFeeding ? 'Finalisasi Dulu' : 'Tandai Selesai'}
+                    </button>
+                  )}
+
+                  {task.id === mobileBatchTaskId && (
+                    <div style={{ marginTop: '8px' }}>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowMobileBatchDropdown((current) => !current);
+                        }}
+                        style={{
+                          width: '100%',
+                          backgroundColor: '#ffffff',
+                          color: '#102033',
+                          border: '1px solid #dce8e2',
+                          borderRadius: '7px',
+                          padding: '9px 10px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '10px',
+                          fontSize: '9px',
+                          fontWeight: '900',
+                          cursor: 'pointer',
+                          boxShadow: showMobileBatchDropdown ? '0 2px 8px rgba(21, 211, 107, 0.12)' : 'none'
+                        }}
+                      >
+                        <span>Batch Racikan Pakan</span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                          <span style={{
+                            fontSize: '7px',
+                            color: isTaskFeedingBatchFinal ? '#155724' : taskFeedingBatch ? '#856404' : '#6c757d',
+                            backgroundColor: isTaskFeedingBatchFinal ? '#d4edda' : taskFeedingBatch ? '#fff3cd' : '#f1f3f5',
+                            borderRadius: '999px',
+                            padding: '3px 6px',
+                            fontWeight: '900'
+                          }}>
+                            {isTaskFeedingBatchFinal ? 'SIAP' : taskFeedingBatch ? 'DIRACIK' : 'BELUM ADA'}
+                          </span>
+                          <span>{showMobileBatchDropdown ? '▲' : '▼'}</span>
+                        </span>
+                      </button>
+
+                      {showMobileBatchDropdown && (
+                        <div style={{ marginTop: '8px' }}>
+                          {renderMobileFeedingBatchPanel(taskFeedingBatch, task)}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  const renderMobileDashboardHome = () => (
+    <div>
+      <div style={{
+        backgroundColor: '#2ed35e',
+        color: '#ffffff',
+        padding: '14px 18px 30px 18px',
+        minHeight: '82px',
+        boxShadow: '0 3px 8px rgba(21, 211, 107, 0.18)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
+          <div style={{
+            width: '34px',
+            height: '34px',
+            borderRadius: '50%',
+            backgroundColor: '#ffffff',
+            color: '#15D36B',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontWeight: '900',
+            border: '2px solid rgba(255, 255, 255, 0.6)'
+          }}>
+            P
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: '11px', fontWeight: '900', lineHeight: 1.2 }}>Selamat Pagi, {keeperName}!</div>
+            <div style={{ fontSize: '9px', lineHeight: 1.25, opacity: 0.95 }}>Berikut kegiatan hari ini</div>
+          </div>
+        </div>
+      </div>
+
+      {renderMobileProgressCard()}
+
+      <div style={{ padding: '0 14px 12px 14px' }}>
+        <div style={{
+          backgroundColor: '#b8ff9d',
+          border: '1px solid #8cea77',
+          borderRadius: '9px',
+          padding: '10px',
+          boxShadow: '0 2px 7px rgba(21, 211, 107, 0.12)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#0f7d3a', fontSize: '9px', fontWeight: '900', marginBottom: '8px' }}>
+            <LuClock size={12} />
+            <span>Kegiatan Dilakukan</span>
+          </div>
+
+          {activeTask ? (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 56px', gap: '10px', alignItems: 'center' }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                  <div style={{ fontSize: '11px', fontWeight: '900', color: '#102a1b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {activeTask.nama}
+                  </div>
+                  <span style={{
+                    fontSize: '7px',
+                    color: '#ffffff',
+                    backgroundColor: '#667d69',
+                    borderRadius: '999px',
+                    padding: '3px 6px',
+                    whiteSpace: 'nowrap',
+                    fontWeight: '900'
+                  }}>
+                    {formatMobileTime(activeTask.waktu)}
+                  </span>
+                </div>
+                <div style={{ fontSize: '9px', color: '#486154', lineHeight: 1.35, marginTop: '4px' }}>
+                  {activeTask.deskripsi}
+                </div>
+                <div style={{ display: 'flex', gap: '7px', marginTop: '8px' }}>
+                  <button
+                    onClick={handleMarkActiveComplete}
+                    style={{
+                      backgroundColor: needsFeedingFinalization(activeTask) ? '#7e8085' : '#ffffff',
+                      color: needsFeedingFinalization(activeTask) ? '#ffffff' : '#102a1b',
+                      border: 'none',
+                      borderRadius: '4px',
+                      padding: '5px 10px',
+                      fontSize: '8px',
+                      fontWeight: '900',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {needsFeedingFinalization(activeTask) ? 'Finalisasi Dulu' : 'Tandai Selesai'}
+                  </button>
+                  <button
+                    onClick={() => setSelectedPanduan(activeTask)}
+                    style={{
+                      backgroundColor: 'transparent',
+                      color: '#0f7d3a',
+                      border: '1px solid #0f7d3a',
+                      borderRadius: '4px',
+                      padding: '5px 10px',
+                      fontSize: '8px',
+                      fontWeight: '900',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Panduan
+                  </button>
+                </div>
+              </div>
+              <div style={{ width: '56px', height: '56px', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#d9f6d2' }}>
+                <img
+                  src={resolveAssetUrl(activeTask.img, '/images/azolla_microphylla.png')}
+                  alt={activeTask.nama}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              </div>
+            </div>
+          ) : (
+            <div style={{ fontSize: '10px', color: '#0f5f32', fontWeight: '800' }}>
+              {hasTasks ? 'Semua kegiatan hari ini selesai.' : 'Belum ada tugas hari ini.'}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div style={{ padding: '0 14px 16px 14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#0f7d3a', fontSize: '10px', fontWeight: '900', marginBottom: '8px' }}>
+          <LuClipboardList size={13} />
+          <span>Checklist Hari Ini</span>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
+          {tasksList.map((task) => {
+            const isCompleted = completedTasks[task.id];
+            const isActive = activeTaskId === task.id;
+
+            return (
+              <div
+                key={task.id}
+                onClick={() => handleToggleComplete(task.id)}
+                style={{
+                  backgroundColor: '#b8ff9d',
+                  borderRadius: '8px',
+                  padding: '8px',
+                  display: 'grid',
+                  gridTemplateColumns: '34px minmax(0, 1fr) auto',
+                  gap: '8px',
+                  alignItems: 'center',
+                  border: isActive ? '1px solid #15D36B' : '1px solid transparent',
+                  cursor: 'pointer'
+                }}
+              >
+                <div style={{ width: '32px', height: '32px', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#d9f6d2' }}>
+                  <img src={resolveAssetUrl(task.img, '/images/azolla_microphylla.png')} alt={task.nama} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: '9px', fontWeight: '900', color: '#102a1b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.nama}</div>
+                  <div style={{ fontSize: '7px', color: '#486154', marginTop: '1px' }}>{formatMobileTime(task.waktu)}</div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                  <span style={{
+                    fontSize: '7px',
+                    backgroundColor: isCompleted ? '#667d69' : isActive ? '#a19041' : '#7e8085',
+                    color: '#ffffff',
+                    borderRadius: '999px',
+                    padding: '3px 6px',
+                    fontWeight: '900',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {isCompleted ? 'Selesai' : isActive ? 'Waktunya' : 'Belum Waktunya'}
+                  </span>
+                  <div style={{
+                    width: '13px',
+                    height: '13px',
+                    borderRadius: '50%',
+                    border: '1.5px solid #ffffff',
+                    backgroundColor: isCompleted ? '#15D36B' : 'transparent',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#ffffff'
+                  }}>
+                    {isCompleted && <LuCheck size={9} style={{ strokeWidth: 3 }} />}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderMobileChecklistHome = () => (
+    <div>
+      <div style={{
+        backgroundColor: '#2ed35e',
+        color: '#ffffff',
+        padding: '16px 22px 34px 22px',
+        minHeight: '78px',
+        boxShadow: '0 3px 8px rgba(21, 211, 107, 0.18)'
+      }}>
+        <div style={{ fontSize: '13px', fontWeight: '900', lineHeight: 1.1 }}>Checklist Kegiatan</div>
+        <p style={{ fontSize: '10px', marginTop: '2px', opacity: 0.96 }}>{getShortIndonesianDate()}</p>
+      </div>
+
+      {renderMobileProgressCard()}
+      {renderMobileChecklistTimeline()}
+
+      <div style={{ padding: '4px 18px 16px 47px' }}>
+        <div style={{
+          backgroundColor: '#55f884',
+          borderRadius: '6px',
+          padding: '11px 12px',
+          border: '1px solid #20d060',
+          display: 'flex',
+          gap: '10px',
+          alignItems: 'center'
+        }}>
+          <div style={{
+            color: '#f59e0b',
+            width: '24px',
+            height: '24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0
+          }}>
+            <LuSun size={22} />
+          </div>
+          <div>
+            <div style={{ fontSize: '9px', fontWeight: '900', color: '#0f7d3a', textTransform: 'uppercase' }}>Tips Hari Ini</div>
+            <div style={{ fontSize: '9px', color: '#0f5f32', marginTop: '2px', lineHeight: '1.35' }}>
+              Pastikan kandang selalu bersih dan kering agar entok sehat.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   // --- SUB-RENDER: PHONE VIEW APP CONTENT ---
   // (Used inside the smartphone mockup OR inside the mobile-view standalone portal)
@@ -942,9 +1496,11 @@ export default function ChecklistPenjagaPage({
         display: 'flex',
         flexDirection: 'column'
       }}>
+        {activeTab === 'home' && renderMobileDashboardHome()}
+        {activeTab === 'checklist' && renderMobileChecklistHome()}
         
         {/* TAB 1: HOME VIEW */}
-        {activeTab === 'home' && (
+        {showLegacyMobileLayout && activeTab === 'home' && (
           <div>
             {/* Green Header Banner */}
             <div style={{
@@ -1161,7 +1717,7 @@ export default function ChecklistPenjagaPage({
                               Target racikan belum disiapkan. Data Timbangan 2 akan masuk ke batch setelah target tersedia.
                             </div>
                             <button
-                              onClick={handleCreateBatch}
+                              onClick={() => handleCreateBatch(activeTask?.id)}
                               disabled={!onCreateFeedingBatch}
                               style={{
                                 width: '100%',
@@ -1266,7 +1822,7 @@ export default function ChecklistPenjagaPage({
                             {feedingBatch.status === 'PREPARING' && (
                               <div style={{ display: 'grid', gridTemplateColumns: '0.7fr 1.3fr', gap: '8px', marginTop: '4px' }}>
                                 <button
-                                  onClick={handleCancelBatch}
+                                  onClick={() => handleCancelBatch(feedingBatch.id)}
                                   disabled={!onCancelFeedingBatch}
                                   style={{
                                     border: '1.5px solid #e53e3e',
@@ -1282,7 +1838,7 @@ export default function ChecklistPenjagaPage({
                                   Batal
                                 </button>
                                 <button
-                                  onClick={handleFinalizeBatch}
+                                  onClick={() => handleFinalizeBatch(feedingBatch.id)}
                                   disabled={!onFinalizeFeedingBatch}
                                   style={{
                                     border: 'none',
@@ -1360,7 +1916,7 @@ export default function ChecklistPenjagaPage({
                   </div>
                 ) : (
                   <div style={{ textAlign: 'center', padding: '12px 0', color: '#15D36B', fontWeight: 'bold', fontSize: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                    <span>{hasTasks ? 'SEMUA KEGIATAN SELESAI!' : '[ TIDAK ADA TUGAS HARI INI ]'}</span>
+                    <span>{hasTasks ? 'SEMUA KEGIATAN SELESAI!' : 'Tidak Ada Tugas Hari Ini'}</span>
                     <span style={{ fontSize: '10px', color: '#718096', fontWeight: 'normal' }}>
                       {hasTasks ? 'Pekerjaan hari ini selesai. Kandang entok terpantau aman.' : 'Belum ada jadwal tugas rutin untuk tanggal ini.'}
                     </span>
@@ -1465,7 +2021,7 @@ export default function ChecklistPenjagaPage({
         )}
 
         {/* TAB 2: TIMELINE CHECKLIST VIEW */}
-        {activeTab === 'checklist' && (
+        {showLegacyMobileLayout && activeTab === 'checklist' && (
           <div>
             <div style={{
               backgroundColor: '#ffffff',
@@ -1792,7 +2348,7 @@ export default function ChecklistPenjagaPage({
         )}
 
         {/* Bottom Sticky Tips Card (only on Home & Checklist) */}
-        {activeTab !== 'panduan' && (
+        {showLegacyMobileLayout && activeTab !== 'panduan' && (
           <div style={{ padding: '0 16px 16px 16px', marginTop: 'auto' }}>
             <div style={{
               backgroundColor: '#dbfbe3',
@@ -1835,13 +2391,13 @@ export default function ChecklistPenjagaPage({
         left: 0,
         right: 0,
         height: 56,
-        backgroundColor: '#ffffff',
-        borderTop: '1px solid #edf2f7',
+        backgroundColor: '#2ed35e',
+        borderTop: '1px solid rgba(255, 255, 255, 0.24)',
         display: 'flex',
         justifyContent: 'space-around',
         alignItems: 'center',
         zIndex: 1000,
-        boxShadow: '0 -2px 10px rgba(0, 0, 0, 0.05)'
+        boxShadow: '0 -2px 10px rgba(0, 0, 0, 0.08)'
       }}>
         <button 
           onClick={() => setActiveTab('home')}
@@ -1851,7 +2407,7 @@ export default function ChecklistPenjagaPage({
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            color: activeTab === 'home' ? '#15D36B' : '#a0aec0',
+            color: activeTab === 'home' ? '#ffffff' : 'rgba(255, 255, 255, 0.62)',
             cursor: 'pointer',
             gap: '4px'
           }}
@@ -1868,7 +2424,7 @@ export default function ChecklistPenjagaPage({
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            color: activeTab === 'checklist' ? '#15D36B' : '#a0aec0',
+            color: activeTab === 'checklist' ? '#ffffff' : 'rgba(255, 255, 255, 0.62)',
             cursor: 'pointer',
             gap: '4px'
           }}
@@ -1885,7 +2441,7 @@ export default function ChecklistPenjagaPage({
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            color: activeTab === 'panduan' ? '#15D36B' : '#a0aec0',
+            color: activeTab === 'panduan' ? '#ffffff' : 'rgba(255, 255, 255, 0.62)',
             cursor: 'pointer',
             gap: '4px'
           }}
@@ -2250,12 +2806,12 @@ export default function ChecklistPenjagaPage({
                               </button>
                             </div>
                           </div>
-                          {task.nama.toLowerCase().includes("beri pakan") && (
-                            <div onClick={(e) => e.stopPropagation()}>
-                              {renderCompositionDropdown()}
-                            </div>
-                          )}
                         </div>
+                        {task.nama.toLowerCase().includes("beri pakan") && (
+                          <div onClick={(e) => e.stopPropagation()}>
+                            {renderCompositionDropdown()}
+                          </div>
+                        )}
 
                       </div>
                     );

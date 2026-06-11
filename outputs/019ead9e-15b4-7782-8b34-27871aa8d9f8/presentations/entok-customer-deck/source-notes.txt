@@ -1,0 +1,19 @@
+Sources used:
+- Local codebase: C:\PROJECT WEB\ENTOK\frontend\src and C:\PROJECT WEB\ENTOK\backend\app
+- Local assets:
+  - C:\PROJECT WEB\ENTOK\frontend\public\images\muscovy_duck_home.png
+  - C:\PROJECT WEB\ENTOK\frontend\public\images\entok_jumbo_dewasa.png
+  - C:\PROJECT WEB\ENTOK\frontend\public\images\jagung_giling.png
+  - C:\PROJECT WEB\ENTOK\frontend\public\images\azolla_microphylla.png
+  - C:\PROJECT WEB\ENTOK\frontend\public\images\larva_bsf.png
+  - C:\PROJECT WEB\ENTOK\frontend\public\images\bibit_dod_unggul.png
+
+Product facts reflected from the app:
+- Pengawas manages dashboard, feed stock, formulation, population, keeper tasks, keeper accounts, notifications, and reporting.
+- Penjaga executes the mobile daily checklist with SOP guidance.
+- Feeding tasks require a finalized feeding batch before completion.
+- Timbangan 2 sends ingredient weighing data into a feeding batch.
+- Stock is deducted once when the feeding batch is finalized.
+- Recent logic supports task-specific feeding batches, so each feeding event can require its own batch.
+
+No external statistics or customer metrics were used.

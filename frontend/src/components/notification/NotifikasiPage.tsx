@@ -111,7 +111,7 @@ export default function NotifikasiPage({
             style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
           >
             <LuTrash2 size={13} />
-            <span>[ HAPUS LOG RIWAYAT ]</span>
+            <span>HAPUS LOG RIWAYAT</span>
           </button>
         )}
       </div>
@@ -161,7 +161,7 @@ export default function NotifikasiPage({
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         {filteredNotifications.length === 0 ? (
           <div className="panel" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-            [ TIDAK ADA NOTIFIKASI DALAM KATEGORI INI ]
+            TIDAK ADA NOTIFIKASI DALAM KATEGORI INI
           </div>
         ) : (
           filteredNotifications.map((item) => {

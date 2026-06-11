@@ -72,7 +72,7 @@ export default function KelolaPopulasiPage({
       {/* Unified Form Section */}
       <div className="panel" style={{ padding: '24px' }}>
         <div style={{ fontSize: '11px', color: 'var(--accent-light)', fontFamily: 'var(--font-mono)', fontWeight: 'bold', borderBottom: '1px dashed var(--border)', paddingBottom: '10px', marginBottom: '20px' }}>
-          [ FORM PENGISIAN JUMLAH ENTOK BERDASARKAN UMUR ]
+          FORM PENGISIAN JUMLAH ENTOK BERDASARKAN UMUR
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -106,7 +106,7 @@ export default function KelolaPopulasiPage({
                   required
                 />
                 <button type="submit" className="retro-btn" style={{ padding: '0 20px', fontWeight: 'bold', minWidth: '120px', cursor: 'pointer' }}>
-                  [ SUBMIT ]
+                  PERBARUI
                 </button>
               </div>
             </div>
@@ -201,7 +201,7 @@ export default function KelolaPopulasiPage({
                 {populasiHistory.length === 0 ? (
                   <tr>
                     <td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', padding: '24px' }}>
-                      [ BELUM ADA RIWAYAT PERUBAHAN POPULASI ]
+                      BELUM ADA RIWAYAT PERUBAHAN POPULASI
                     </td>
                   </tr>
                 ) : (

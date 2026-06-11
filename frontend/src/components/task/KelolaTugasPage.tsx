@@ -238,7 +238,7 @@ export default function KelolaTugasPage({
               {tasksList.length === 0 ? (
                 <tr>
                   <td colSpan={6} style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                    [ TIDAK ADA DATA TUGAS PENJAGA ]
+                    TIDAK ADA DATA TUGAS PENJAGA
                   </td>
                 </tr>
               ) : (
@@ -414,7 +414,7 @@ export default function KelolaTugasPage({
                         onChange={(e) => { if (e.target.value) setImg(e.target.value); }}
                         style={{ fontSize: '11px', maxWidth: '180px' }}
                       >
-                        <option value="" disabled>{img && img.startsWith('data:image') ? '[ File Diunggah ]' : '-- Pustaka Default --'}</option>
+                        <option value="" disabled>{img && img.startsWith('data:image') ? 'File Diunggah' : '-- Pustaka Default --'}</option>
                         {PREDEFINED_IMAGES.map((imgItem) => (
                           <option key={imgItem.value} value={imgItem.value}>
                             {imgItem.label}

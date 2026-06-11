@@ -75,7 +75,7 @@ export default function WebsitePublikPreviewPage() {
         alignItems: 'center',
         justifyContent: 'center'
       }}>
-        [ MEMUAT PRATINJAU WEBSITE PUBLIK... ]
+        MEMUAT PRATINJAU WEBSITE PUBLIK...
       </div>
     );
   }

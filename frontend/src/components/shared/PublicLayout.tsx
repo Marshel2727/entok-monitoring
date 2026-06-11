@@ -419,7 +419,7 @@ export default function PublicLayout({
                     </div>
                     <div>
                       <div className="pub-contact-info-label">Lokasi Peternakan</div>
-                      <div className="pub-contact-info-value">Jl. AP Pettarani, Makassar, Indonesia</div>
+                      <div className="pub-contact-info-value">Jl. Ir Haeruddin, Kec. Pallantikang, Kab. Gowa, Sulawesi Selatan</div>
                     </div>
                   </div>
 

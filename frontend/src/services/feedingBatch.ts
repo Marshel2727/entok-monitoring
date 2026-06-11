@@ -4,6 +4,7 @@ export interface FeedingBatchIngredient {
   id: number;
   batch_id: string;
   feed_id: string | null;
+  phase_id?: string | null;
   feed_name: string;
   phase: string;
   population_count: number;
@@ -18,6 +19,7 @@ export interface FeedingBatchIngredient {
 export interface FeedingBatch {
   id: string;
   tanggal: string;
+  task_id?: string | null;
   keeper_id: string | null;
   status: 'PREPARING' | 'FINALIZED' | 'CANCELLED';
   tolerance_percent: number;
@@ -36,10 +38,18 @@ export const feedingBatchService = {
     return res.data;
   },
 
-  createBatch: async (dateStr?: string) => {
+  getTodayBatches: async (dateStr?: string) => {
+    const endpoint = dateStr
+      ? `/feeding-batches/today?date=${encodeURIComponent(dateStr)}&all=1`
+      : '/feeding-batches/today?all=1';
+    const res = await api.get<{ status: string; data: FeedingBatch[] }>(endpoint);
+    return res.data || [];
+  },
+
+  createBatch: async (dateStr?: string, taskId?: string) => {
     const res = await api.post<{ status: string; message: string; data: FeedingBatch }>(
       '/feeding-batches',
-      { date: dateStr }
+      { date: dateStr, task_id: taskId }
     );
     return res.data;
   },

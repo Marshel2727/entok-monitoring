@@ -8,6 +8,7 @@ class FeedingBatch(db.Model):
 
     id = db.Column(db.String(50), primary_key=True, default=lambda: str(uuid.uuid4()))
     batch_date = db.Column(db.Date, nullable=False, index=True)
+    task_id = db.Column(db.String(50), db.ForeignKey('tasks.id', ondelete='SET NULL'), nullable=True, index=True)
     keeper_id = db.Column(db.String(50), db.ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
     status = db.Column(db.Enum('PREPARING', 'FINALIZED', 'CANCELLED', name='feeding_batch_status'), nullable=False, default='PREPARING')
     tolerance_percent = db.Column(db.Float, nullable=False, default=10.0)
@@ -44,6 +45,7 @@ class FeedingBatch(db.Model):
         return {
             'id': self.id,
             'tanggal': self.batch_date.isoformat() if self.batch_date else None,
+            'task_id': self.task_id,
             'keeper_id': self.keeper_id,
             'status': self.status,
             'tolerance_percent': self.tolerance_percent,
@@ -60,6 +62,7 @@ class FeedingBatchIngredient(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     batch_id = db.Column(db.String(50), db.ForeignKey('feeding_batches.id', ondelete='CASCADE'), nullable=False, index=True)
     feed_id = db.Column(db.String(50), db.ForeignKey('feeds.id', ondelete='SET NULL'), nullable=True)
+    phase_id = db.Column(db.String(50), db.ForeignKey('growth_phases.id', ondelete='SET NULL'), nullable=True, index=True)
     feed_name = db.Column(db.String(100), nullable=False)
     phase = db.Column(db.String(100), nullable=False, default='Gabungan')
     population_count = db.Column(db.Integer, nullable=False, default=0)
@@ -71,14 +74,17 @@ class FeedingBatchIngredient(db.Model):
     unit = db.Column(db.String(20), nullable=False, default='kg')
 
     feed = db.relationship('Feed', lazy='select')
+    growth_phase = db.relationship('GrowthPhase', lazy='select')
 
     def to_dict(self):
+        phase_name = self.growth_phase.name if self.growth_phase else self.phase
         return {
             'id': self.id,
             'batch_id': self.batch_id,
             'feed_id': self.feed_id,
+            'phase_id': self.phase_id,
             'feed_name': self.feed_name,
-            'phase': self.phase,
+            'phase': phase_name,
             'population_count': self.population_count,
             'target_consumption': self.target_consumption,
             'planned_amount': self.planned_amount,

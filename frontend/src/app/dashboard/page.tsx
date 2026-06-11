@@ -116,7 +116,7 @@ export default function DashboardHome() {
   if (loading) {
     return (
       <div className="panel" style={{ padding: '24px', textAlign: 'center', fontFamily: 'var(--font-mono)' }}>
-        [ MEMUAT DATA DASHBOARD... ]
+        Memuat Data Dashboard...
       </div>
     );
   }
@@ -390,7 +390,7 @@ export default function DashboardHome() {
           <div className="panel-body" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }}>
             {growthProgress.length === 0 ? (
               <div style={{ minHeight: '120px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: '11px', border: '1px dashed var(--border)', borderRadius: 'var(--radius)' }}>
-                [ BELUM ADA DATA TIMBANGAN ENTOK ]
+                Belum Ada Data Timbangan Entok
               </div>
             ) : (
               <div style={{ position: 'relative', width: '100%', height: '120px' }}>
@@ -473,8 +473,8 @@ export default function DashboardHome() {
               }}
             >
               {growthProgress.length >= 2 && weeklyTrend > 0
-                ? `[ Tren naik ${formatKg(weeklyTrend)} kg / minggu ]`
-                : '[ Butuh minimal 2 pembacaan berat ]'}
+                ? `Tren naik ${formatKg(weeklyTrend)} kg / minggu`
+                : 'Butuh minimal 2 pembacaan berat'}
             </div>
           </div>
         </div>
@@ -501,7 +501,7 @@ export default function DashboardHome() {
               {timbangans.length === 0 ? (
                 <tr>
                   <td colSpan={3} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                    [ TIDAK ADA ALAT REGISTERED ]
+                    Tidak Ada Alat Terdaftar
                   </td>
                 </tr>
               ) : (
@@ -514,7 +514,7 @@ export default function DashboardHome() {
                     <td style={{ textAlign: 'right', paddingRight: '40px' }}>
                       <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: t.status === 'ONLINE' ? 'var(--accent-light)' : 'var(--warning)', fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>
                         <LuWifi size={13} style={{ opacity: t.status === 'ONLINE' ? 1 : 0.5 }} />
-                        <span>[ {t.status} ]</span>
+                        <span>{t.status}</span>
                       </div>
                     </td>
                   </tr>

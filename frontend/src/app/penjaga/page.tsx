@@ -21,6 +21,7 @@ export default function PenjagaPortal() {
   const [populations, setPopulations] = useState<any[]>([]);
   const [tasks, setTasks] = useState<any[]>([]);
   const [feedingBatch, setFeedingBatch] = useState<FeedingBatch | null>(null);
+  const [feedingBatches, setFeedingBatches] = useState<FeedingBatch[]>([]);
   const [loadingPortal, setLoadingPortal] = useState(true);
 
   useEffect(() => {
@@ -57,14 +58,16 @@ export default function PenjagaPortal() {
         formulationService.getFormulations(),
         populationService.getPopulations(),
         taskService.getTasks(),
-        feedingBatchService.getTodayBatch(today),
+        feedingBatchService.getTodayBatches(today),
       ]);
       setChecklist(checkRes.status === 'fulfilled' ? checkRes.value || [] : []);
       setFeeds(feedsRes.status === 'fulfilled' ? feedsRes.value || [] : []);
       setFormulations(formulationRes.status === 'fulfilled' ? formulationRes.value || [] : []);
       setPopulations(populationRes.status === 'fulfilled' ? populationRes.value || [] : []);
       setTasks(tasksRes.status === 'fulfilled' ? tasksRes.value || [] : []);
-      setFeedingBatch(batchRes.status === 'fulfilled' ? batchRes.value || null : null);
+      const loadedBatches = batchRes.status === 'fulfilled' ? batchRes.value || [] : [];
+      setFeedingBatches(loadedBatches);
+      setFeedingBatch(loadedBatches.find((batch) => !batch.task_id) || loadedBatches[0] || null);
 
       [checkRes, feedsRes, formulationRes, populationRes, tasksRes, batchRes].forEach((result) => {
         if (result.status === 'rejected') {
@@ -84,21 +87,23 @@ export default function PenjagaPortal() {
     await fetchDailyData();
   };
 
-  const handleCreateFeedingBatch = async () => {
+  const handleCreateFeedingBatch = async (taskId?: string) => {
     const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Makassar' });
-    await feedingBatchService.createBatch(today);
+    await feedingBatchService.createBatch(today, taskId);
     await fetchDailyData();
   };
 
-  const handleFinalizeFeedingBatch = async () => {
-    if (!feedingBatch) return;
-    await feedingBatchService.finalizeBatch(feedingBatch.id);
+  const handleFinalizeFeedingBatch = async (batchId?: string) => {
+    const targetBatchId = batchId || feedingBatch?.id;
+    if (!targetBatchId) return;
+    await feedingBatchService.finalizeBatch(targetBatchId);
     await fetchDailyData();
   };
 
-  const handleCancelFeedingBatch = async () => {
-    if (!feedingBatch) return;
-    await feedingBatchService.cancelBatch(feedingBatch.id);
+  const handleCancelFeedingBatch = async (batchId?: string) => {
+    const targetBatchId = batchId || feedingBatch?.id;
+    if (!targetBatchId) return;
+    await feedingBatchService.cancelBatch(targetBatchId);
     await fetchDailyData();
   };
 
@@ -119,7 +124,7 @@ export default function PenjagaPortal() {
         alignItems: 'center',
         justifyContent: 'center'
       }}>
-        [ MEMUAT PORTAL OPERASIONAL... ]
+        MEMUAT PORTAL OPERASIONAL...
       </div>
     );
   }
@@ -138,6 +143,7 @@ export default function PenjagaPortal() {
     <ChecklistPenjagaPage
       checklist={checklist}
       feedingBatch={feedingBatch}
+      feedingBatches={feedingBatches}
       feedList={feeds}
       formulasiList={formulations}
       tasksList={tasks}

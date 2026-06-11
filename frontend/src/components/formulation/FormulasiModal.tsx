@@ -239,7 +239,7 @@ export default function FormulasiModal({
               
               {activeIngredients.length === 0 ? (
                 <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px', border: '1px dashed var(--border)', fontFamily: 'var(--font-mono)' }}>
-                  [ BELUM ADA BAHAN PAKAN TERDAFTAR DI KATEGORI INI ]
+                  Belum Ada Bahan Pakan Terdaftar di Kategori Ini
                   <br />
                   <span style={{ fontSize: '10px' }}>Silakan tambahkan bahan pakan di tab Kelola Pakan terlebih dahulu.</span>
                 </div>
@@ -322,7 +322,7 @@ export default function FormulasiModal({
               onClick={onClose}
               style={{ marginRight: '8px', cursor: 'pointer' }}
             >
-              [ BATAL ]
+              Batal
             </button>
             <button 
               type="submit" 
@@ -330,7 +330,7 @@ export default function FormulasiModal({
               disabled={!isValid || !fase}
               style={{ color: isValid && fase ? 'var(--accent-light)' : 'var(--text-muted)', cursor: isValid && fase ? 'pointer' : 'not-allowed' }}
             >
-              [ SIMPAN FORMULASI ]
+              Simpan Formulasi
             </button>
           </div>
         </form>

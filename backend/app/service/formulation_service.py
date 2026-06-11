@@ -1,10 +1,15 @@
 # app/service/formulation_service.py
 from app.utils.db import db
 from app.models.formulation import Formulation
+from app.models.growth_phase import GrowthPhase
 from app.service.activity_service import create_log
+from app.service.growth_phase_service import get_or_create_growth_phase
 
 def get_all_formulations():
-    formulations = Formulation.query.all()
+    formulations = Formulation.query.outerjoin(GrowthPhase, Formulation.phase_id == GrowthPhase.id).order_by(
+        GrowthPhase.sort_order.asc(),
+        Formulation.phase.asc()
+    ).all()
     return {
         'status': 'success',
         'data': [form.to_dict() for form in formulations]
@@ -29,6 +34,8 @@ def save_formulation(form_id, data):
     if not fase or not kategori:
         return {'status': 'error', 'message': 'Fase usia dan kategori wajib diisi'}, 400
 
+    growth_phase = get_or_create_growth_phase(fase)
+
     # Validate composition total percentage equals 100%
     total_pct = sum(float(val) for val in komposisi.values())
     if abs(total_pct - 100.0) > 0.01:
@@ -44,11 +51,14 @@ def save_formulation(form_id, data):
             return {'status': 'error', 'message': 'Formulasi tidak ditemukan'}, 404
 
         # Check phase uniqueness if changed
-        existing = Formulation.query.filter_by(phase=fase).first()
+        existing = Formulation.query.filter_by(phase_id=growth_phase.id).first()
+        if not existing:
+            existing = Formulation.query.filter_by(phase=fase).first()
         if existing and existing.id != form_id:
-            return {'status': 'error', 'message': f'Formulasi untuk fase "{fase}" sudah terdaftar'}, 400
+            return {'status': 'error', 'message': f'Formulasi untuk fase "{growth_phase.name}" sudah terdaftar'}, 400
 
-        form.phase = fase
+        form.phase_id = growth_phase.id
+        form.phase = growth_phase.name
         form.target_consumption = target_konsumsi
         form.category = kategori
         form.composition = komposisi
@@ -64,12 +74,15 @@ def save_formulation(form_id, data):
         }, 200
     else:
         # Create mode
-        existing = Formulation.query.filter_by(phase=fase).first()
+        existing = Formulation.query.filter_by(phase_id=growth_phase.id).first()
+        if not existing:
+            existing = Formulation.query.filter_by(phase=fase).first()
         if existing:
-            return {'status': 'error', 'message': f'Formulasi untuk fase "{fase}" sudah terdaftar'}, 400
+            return {'status': 'error', 'message': f'Formulasi untuk fase "{growth_phase.name}" sudah terdaftar'}, 400
 
         new_form = Formulation(
-            phase=fase,
+            phase_id=growth_phase.id,
+            phase=growth_phase.name,
             target_consumption=target_konsumsi,
             category=kategori,
             composition=komposisi,

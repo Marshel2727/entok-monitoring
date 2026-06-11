@@ -338,11 +338,13 @@ export default function FeedChartsPage({
       {/* Top Header Section */}
       <div className="dashboard-header-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h1 className="page-main-title" style={{ fontSize: '24px', letterSpacing: '1px' }}>Monitoring Entok</h1>
+          <h1 className="page-main-title" style={{ fontSize: '24px', letterSpacing: '1px' }}>Supply Chain Entok - Monitoring & Pemasaran</h1>
           <p style={{ fontSize: '11px', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', marginTop: '4px' }}>
             GRAFIK PANGAN - ANALISIS PERANGKAT IOT
           </p>
         </div>
+
+        
         
         {/* Dropdown Filters and Export Button */}
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', fontFamily: 'var(--font-mono)' }}>
@@ -474,13 +476,13 @@ export default function FeedChartsPage({
               <span>TIMBANGAN 3: KURVA PERTUMBUHAN</span>
             </div>
             <span style={{ fontSize: '9px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-              {latestGrowthReading ? `[ UPDATE: ${formatWitaShortDate(latestGrowthReading.date)} ]` : '[ BELUM ADA DATA ]'}
+              {latestGrowthReading ? `UPDATE: ${formatWitaShortDate(latestGrowthReading.date)}` : 'BELUM ADA DATA'}
             </span>
           </div>
           <div className="chart-body" style={{ padding: '20px 20px 10px 20px', display: 'flex', flexDirection: 'column', height: 'auto' }}>
             {growthData.length === 0 ? (
               <div style={{ height: '160px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px dashed var(--border)', borderRadius: 'var(--radius)', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: '11px' }}>
-                [ BELUM ADA DATA TIMBANGAN ENTOK ]
+                Belum Ada Data Timbangan Entok
               </div>
             ) : (
             <div style={{ height: '160px', position: 'relative', width: '100%' }}>

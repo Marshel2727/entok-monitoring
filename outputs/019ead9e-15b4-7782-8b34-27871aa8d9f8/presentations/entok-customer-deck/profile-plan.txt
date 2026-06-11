@@ -1,0 +1,30 @@
+task mode: create
+primary deck-profile: product-platform
+secondary gates: customer-facing go-to-market clarity, operational proof, mobile workflow clarity
+
+required proof objects:
+- platform map connecting pengawas, penjaga, timbangan, database, and stock movement
+- customer journey from setup to daily execution to reporting
+- feeding batch workflow showing why stock is deducted once at finalization
+- product-to-financial linkage through fewer stock mistakes, clearer accountability, and faster routine control
+- onboarding path for customer adoption
+
+source/asset requirements:
+- Use local product context from the ENTOK codebase and previously discussed workflow.
+- Use local farm/feed assets from frontend/public/images.
+- Do not invent quantitative ROI percentages or unsupported metrics.
+
+brand authenticity constraints:
+- Use ENTOK as editable product text only.
+- Do not create an unofficial logo, mascot, partner badge, or app icon.
+- Local images are used as illustrative product/domain assets, not brand identity marks.
+
+profile-specific QA gates:
+- Avoid generic feature-card grids by showing system flow and operating logic.
+- Make every diagram label specific to the ENTOK workflow.
+- Tie each capability to customer value.
+- Preserve slide rhythm across at least five macro-layout families.
+
+known missing inputs:
+- No official company logo, screenshots, customer metrics, or deployment pricing were provided.
+- Canva direct publishing is not available in this environment, so the deliverable is an editable PPTX that can be imported into Canva.

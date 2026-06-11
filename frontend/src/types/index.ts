@@ -28,6 +28,7 @@ export interface FeedItem {
 
 export interface FormulasiItem {
   id: string;
+  phase_id?: string;
   fase: string;
   kategori: string;
   targetKonsumsi: number; // in grams
@@ -44,6 +45,7 @@ export interface ActivityLog {
 
 export interface PopulasiLog {
   id: string;
+  phase_id?: string;
   kategori: string; // fase
   nilaiLama: number;
   nilaiBaru: number;
