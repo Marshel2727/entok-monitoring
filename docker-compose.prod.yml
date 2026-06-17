@@ -32,7 +32,7 @@ services:
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
       FRONTEND_URL: ${FRONTEND_URL}
     ports:
-      - "5000:5000"
+      - "5001:5000"
     volumes:
       - entok_uploads:/app/app/static/uploads
     depends_on:
