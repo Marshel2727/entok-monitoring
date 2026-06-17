@@ -18,7 +18,7 @@ export interface DailyChecklistItem {
 
 export const taskService = {
   getTasks: async () => {
-    const res = await api.get<{ status: string; data: PenjagaTaskItem[] }>('/tasks');
+    const res = await api.getCached<{ status: string; data: PenjagaTaskItem[] }>('/tasks', 30000);
     return res.data;
   },
 
@@ -43,7 +43,7 @@ export const taskService = {
 
   getChecklist: async (dateStr?: string) => {
     const endpoint = dateStr ? `/tasks/checklist?date=${dateStr}` : '/tasks/checklist';
-    const res = await api.get<{ status: string; data: DailyChecklistItem[] }>(endpoint);
+    const res = await api.getCached<{ status: string; data: DailyChecklistItem[] }>(endpoint, 10000);
     return res.data;
   },
 

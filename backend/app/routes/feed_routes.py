@@ -1,17 +1,20 @@
 # app/routes/feed_routes.py
 from flask import Blueprint, request, jsonify
 from app.utils.decorators import token_required, roles_allowed
+from app.utils.cache import cached_json
 from app.service import feed_service
 from app.schemas import FeedRestockSchema, FeedSchema, load_or_error
 
 feed_bp = Blueprint('feed_bp', __name__)
 
 @feed_bp.route('', methods=['GET'])
+@cached_json(ttl_seconds=30, public=True, vary_auth=False)
 def get_feeds():
     res, code = feed_service.get_all_feeds()
     return jsonify(res), code
 
 @feed_bp.route('/<feed_id>', methods=['GET'])
+@cached_json(ttl_seconds=30, public=True, vary_auth=False)
 def get_feed(feed_id):
     res, code = feed_service.get_feed_by_id(feed_id)
     return jsonify(res), code
@@ -55,6 +58,7 @@ def restock_feed(current_user, feed_id):
 @feed_bp.route('/transactions', methods=['GET'])
 @token_required
 @roles_allowed('PENGAWAS')
+@cached_json(ttl_seconds=15)
 def get_transactions(current_user):
     feed_id = request.args.get('feed_id')
     res, code = feed_service.get_feed_transactions(feed_id)

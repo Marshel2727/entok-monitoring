@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from app.utils.decorators import token_required
+from app.utils.cache import cached_json
 from app.service import feeding_batch_service
 from app.schemas import (
     FeedingBatchScaleReadingBulkSchema,
@@ -14,6 +15,7 @@ feeding_batch_bp = Blueprint('feeding_batch_bp', __name__)
 
 @feeding_batch_bp.route('/today', methods=['GET'])
 @token_required
+@cached_json(ttl_seconds=5)
 def get_today_batch(current_user):
     date_str = request.args.get('date')
     task_id = request.args.get('task_id')
@@ -36,6 +38,7 @@ def create_batch(current_user):
 
 
 @feeding_batch_bp.route('/scale-map', methods=['GET'])
+@cached_json(ttl_seconds=5, public=True, vary_auth=False)
 def get_scale_map():
     """
     Endpoint perangkat Timbangan 2 untuk mengambil urutan timbang.

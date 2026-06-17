@@ -1,6 +1,7 @@
 # app/routes/activity_routes.py
 from flask import Blueprint, request, jsonify
 from app.utils.decorators import token_required, roles_allowed
+from app.utils.cache import cached_json
 from app.service import activity_service
 
 activity_bp = Blueprint('activity_bp', __name__)
@@ -8,6 +9,7 @@ activity_bp = Blueprint('activity_bp', __name__)
 @activity_bp.route('', methods=['GET'])
 @token_required
 @roles_allowed('PENGAWAS')
+@cached_json(ttl_seconds=10)
 def get_logs(current_user):
     res, code = activity_service.get_all_logs()
     return jsonify(res), code

@@ -1,6 +1,7 @@
 # app/routes/task_routes.py
 from flask import Blueprint, request, jsonify
 from app.utils.decorators import token_required, roles_allowed
+from app.utils.cache import cached_json
 from app.service import task_service
 from app.schemas import ChecklistToggleSchema, DateOnlySchema, TaskSchema, load_or_error
 from app.utils.helpers import get_wita_date_string
@@ -8,6 +9,7 @@ from app.utils.helpers import get_wita_date_string
 task_bp = Blueprint('task_bp', __name__)
 
 @task_bp.route('', methods=['GET'])
+@cached_json(ttl_seconds=30, public=True, vary_auth=False)
 def get_tasks():
     res, code = task_service.get_all_tasks()
     return jsonify(res), code
@@ -37,6 +39,7 @@ def delete_task(current_user, task_id):
 
 @task_bp.route('/checklist', methods=['GET'])
 @token_required
+@cached_json(ttl_seconds=10)
 def get_checklist(current_user):
     # Read date parameter (default to today YYYY-MM-DD)
     date_str = request.args.get('date')

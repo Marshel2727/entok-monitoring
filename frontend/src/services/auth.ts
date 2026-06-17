@@ -42,7 +42,7 @@ export const authService = {
   },
 
   getKeepers: async () => {
-    const res = await api.get<{ status: string; data: User[] }>('/auth/users');
+    const res = await api.getCached<{ status: string; data: User[] }>('/auth/users', 30000);
     return res.data;
   },
 

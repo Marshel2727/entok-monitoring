@@ -5,6 +5,7 @@ from flask_migrate import Migrate
 from flask_cors import CORS
 from flasgger import Swagger
 from app.utils.db import db
+from app.utils.cache import init_cache_headers
 from app.config import Config
 
 migrate = Migrate()
@@ -19,6 +20,7 @@ def create_app(config_class=Config):
 
     # Initialize Swagger
     Swagger(app)
+    init_cache_headers(app)
 
     # Initialize extensions
     db.init_app(app)

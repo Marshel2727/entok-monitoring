@@ -3,7 +3,7 @@ import { FormulasiItem } from '../types';
 
 export const formulationService = {
   getFormulations: async () => {
-    const res = await api.get<{ status: string; data: FormulasiItem[] }>('/formulations');
+    const res = await api.getCached<{ status: string; data: FormulasiItem[] }>('/formulations', 60000);
     return res.data;
   },
 

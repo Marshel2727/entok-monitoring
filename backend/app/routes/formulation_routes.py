@@ -1,17 +1,20 @@
 # app/routes/formulation_routes.py
 from flask import Blueprint, request, jsonify
 from app.utils.decorators import token_required, roles_allowed
+from app.utils.cache import cached_json
 from app.service import formulation_service
 from app.schemas import FormulationSchema, load_or_error
 
 formulation_bp = Blueprint('formulation_bp', __name__)
 
 @formulation_bp.route('', methods=['GET'])
+@cached_json(ttl_seconds=60, public=True, vary_auth=False)
 def get_formulations():
     res, code = formulation_service.get_all_formulations()
     return jsonify(res), code
 
 @formulation_bp.route('/<form_id>', methods=['GET'])
+@cached_json(ttl_seconds=60, public=True, vary_auth=False)
 def get_formulation(form_id):
     res, code = formulation_service.get_formulation_by_id(form_id)
     return jsonify(res), code

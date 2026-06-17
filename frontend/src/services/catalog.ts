@@ -3,7 +3,7 @@ import { KatalogItem } from '../types';
 
 export const catalogService = {
   getCatalogs: async () => {
-    const res = await api.get<{ status: string; data: KatalogItem[] }>('/catalogs');
+    const res = await api.getCached<{ status: string; data: KatalogItem[] }>('/catalogs', 60000);
     return res.data;
   },
 

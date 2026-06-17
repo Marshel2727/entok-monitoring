@@ -1,12 +1,14 @@
 # app/routes/catalog_routes.py
 from flask import Blueprint, request, jsonify
 from app.utils.decorators import token_required, roles_allowed
+from app.utils.cache import cached_json
 from app.service import catalog_service
 from app.schemas import CatalogSchema, load_or_error
 
 catalog_bp = Blueprint('catalog_bp', __name__)
 
 @catalog_bp.route('', methods=['GET'])
+@cached_json(ttl_seconds=60, public=True, vary_auth=False)
 def get_catalog():
     res, code = catalog_service.get_all_catalog()
     return jsonify(res), code

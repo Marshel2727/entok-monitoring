@@ -3,12 +3,12 @@ import { Timbangan, TimbanganReading } from '../types';
 
 export const timbanganService = {
   getTimbangans: async () => {
-    const res = await api.get<{ status: string; data: Timbangan[] }>('/timbangan');
+    const res = await api.getCached<{ status: string; data: Timbangan[] }>('/timbangan', 15000);
     return res.data;
   },
 
   getTimbangan: async (id: string) => {
-    const res = await api.get<{ status: string; data: Timbangan }>(`/timbangan/${id}`);
+    const res = await api.getCached<{ status: string; data: Timbangan }>(`/timbangan/${id}`, 15000);
     return res.data;
   },
 
@@ -17,7 +17,7 @@ export const timbanganService = {
     if (label) {
       endpoint += `&label=${label}`;
     }
-    const res = await api.get<{ status: string; data: TimbanganReading[] }>(endpoint);
+    const res = await api.getCached<{ status: string; data: TimbanganReading[] }>(endpoint, 3000);
     return res.data;
   },
 
@@ -28,7 +28,7 @@ export const timbanganService = {
     if (params.limit) query.set('limit', String(params.limit));
 
     const endpoint = `/timbangan/readings${query.toString() ? `?${query.toString()}` : ''}`;
-    const res = await api.get<{ status: string; data: TimbanganReading[] }>(endpoint);
+    const res = await api.getCached<{ status: string; data: TimbanganReading[] }>(endpoint, 5000);
     return res.data;
   },
 

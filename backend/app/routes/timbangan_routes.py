@@ -1,6 +1,7 @@
 # app/routes/timbangan_routes.py
 from flask import Blueprint, request, jsonify
 from app.utils.decorators import token_required, roles_allowed
+from app.utils.cache import cached_json
 from app.service import timbangan_service
 from app.schemas import (
     TimbanganReadingSchema,
@@ -18,6 +19,7 @@ timbangan_bp = Blueprint('timbangan_bp', __name__)
 
 @timbangan_bp.route('', methods=['GET'])
 @token_required
+@cached_json(ttl_seconds=15)
 def get_all_timbangan(current_user):
     """GET /api/timbangan — Daftar semua timbangan."""
     res, code = timbangan_service.get_all_timbangan()
@@ -26,6 +28,7 @@ def get_all_timbangan(current_user):
 
 @timbangan_bp.route('/<int:timbangan_id>', methods=['GET'])
 @token_required
+@cached_json(ttl_seconds=15)
 def get_timbangan(current_user, timbangan_id):
     """GET /api/timbangan/<id> — Detail satu timbangan."""
     res, code = timbangan_service.get_timbangan_by_id(timbangan_id)
@@ -99,6 +102,7 @@ def add_reading():
 
 @timbangan_bp.route('/readings', methods=['GET'])
 @token_required
+@cached_json(ttl_seconds=5)
 def get_readings(current_user):
     """
     GET /api/timbangan/readings — Ambil data pembacaan sensor.
@@ -118,6 +122,7 @@ def get_readings(current_user):
 
 @timbangan_bp.route('/readings/latest', methods=['GET'])
 @token_required
+@cached_json(ttl_seconds=3)
 def get_latest_readings(current_user):
     """
     GET /api/timbangan/readings/latest — Pembacaan terakhir per label per timbangan.
@@ -133,6 +138,7 @@ def get_latest_readings(current_user):
 
 @timbangan_bp.route('/<int:timbangan_id>/readings/summary', methods=['GET'])
 @token_required
+@cached_json(ttl_seconds=10)
 def get_reading_summary(current_user, timbangan_id):
     """
     GET /api/timbangan/<id>/readings/summary — Ringkasan data untuk grafik.

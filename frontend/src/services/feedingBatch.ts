@@ -63,7 +63,7 @@ export const feedingBatchService = {
     const endpoint = dateStr
       ? `/feeding-batches/today?date=${encodeURIComponent(dateStr)}`
       : '/feeding-batches/today';
-    const res = await api.get<{ status: string; data: FeedingBatch | null }>(endpoint);
+    const res = await api.getCached<{ status: string; data: FeedingBatch | null }>(endpoint, 5000);
     return res.data;
   },
 
@@ -71,7 +71,7 @@ export const feedingBatchService = {
     const endpoint = dateStr
       ? `/feeding-batches/today?date=${encodeURIComponent(dateStr)}&all=1`
       : '/feeding-batches/today?all=1';
-    const res = await api.get<{ status: string; data: FeedingBatch[] }>(endpoint);
+    const res = await api.getCached<{ status: string; data: FeedingBatch[] }>(endpoint, 5000);
     return res.data || [];
   },
 
@@ -80,7 +80,7 @@ export const feedingBatchService = {
     query.set('timbangan_id', String(params.timbanganId || 2));
     if (params.dateStr) query.set('date', params.dateStr);
 
-    return api.get<FeedingBatchScaleMap>(`/feeding-batches/scale-map?${query.toString()}`);
+    return api.getCached<FeedingBatchScaleMap>(`/feeding-batches/scale-map?${query.toString()}`, 5000);
   },
 
   createBatch: async (dateStr?: string, taskId?: string) => {

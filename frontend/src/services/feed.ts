@@ -16,12 +16,12 @@ export interface FeedTransaction {
 
 export const feedService = {
   getFeeds: async () => {
-    const res = await api.get<{ status: string; data: FeedItem[] }>('/feeds');
+    const res = await api.getCached<{ status: string; data: FeedItem[] }>('/feeds', 30000);
     return res.data;
   },
 
   getFeed: async (id: string) => {
-    const res = await api.get<{ status: string; data: FeedItem }>(`/feeds/${id}`);
+    const res = await api.getCached<{ status: string; data: FeedItem }>(`/feeds/${id}`, 30000);
     return res.data;
   },
 
@@ -58,7 +58,7 @@ export const feedService = {
 
   getTransactions: async (feedId?: string) => {
     const endpoint = feedId ? `/feeds/transactions?feed_id=${feedId}` : '/feeds/transactions';
-    const res = await api.get<{ status: string; data: FeedTransaction[] }>(endpoint);
+    const res = await api.getCached<{ status: string; data: FeedTransaction[] }>(endpoint, 15000);
     return res.data;
   },
 };

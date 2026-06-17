@@ -11,7 +11,7 @@ export interface PopulationPhase {
 
 export const populationService = {
   getPopulations: async () => {
-    const res = await api.get<{ status: string; data: { [key: string]: number } }>('/populations');
+    const res = await api.getCached<{ status: string; data: { [key: string]: number } }>('/populations', 30000);
     
     // Convert backend's key-value dict to array of PopulationPhase
     return Object.entries(res.data).map(([phase, total]) => ({
@@ -30,7 +30,7 @@ export const populationService = {
   },
 
   getLogs: async () => {
-    const res = await api.get<{ status: string; data: PopulasiLog[] }>('/populations/logs');
+    const res = await api.getCached<{ status: string; data: PopulasiLog[] }>('/populations/logs', 15000);
     return res.data;
   },
 

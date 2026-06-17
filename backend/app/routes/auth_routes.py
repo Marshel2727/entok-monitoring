@@ -1,6 +1,7 @@
 # app/routes/auth_routes.py
 from flask import Blueprint, request, jsonify
 from app.utils.decorators import token_required, roles_allowed
+from app.utils.cache import cached_json
 from app.service import auth_service
 from app.schemas import LoginSchema, PublicRegisterSchema, UserSchema, UserUpdateSchema, load_or_error
 
@@ -85,6 +86,7 @@ def register_public():
 @auth_bp.route('/users', methods=['GET'])
 @token_required
 @roles_allowed('PENGAWAS')
+@cached_json(ttl_seconds=30)
 def get_users(current_user):
     res, code = auth_service.get_all_users()
     return jsonify(res), code

@@ -1,12 +1,14 @@
 # app/routes/population_routes.py
 from flask import Blueprint, request, jsonify
 from app.utils.decorators import token_required, roles_allowed
+from app.utils.cache import cached_json
 from app.service import population_service
 from app.schemas import PopulationSchema, load_or_error
 
 population_bp = Blueprint('population_bp', __name__)
 
 @population_bp.route('', methods=['GET'])
+@cached_json(ttl_seconds=30, public=True, vary_auth=False)
 def get_populations():
     res, code = population_service.get_current_populations()
     return jsonify(res), code
@@ -28,6 +30,7 @@ def update_population(current_user):
 
 @population_bp.route('/logs', methods=['GET'])
 @token_required
+@cached_json(ttl_seconds=15)
 def get_logs(current_user):
     res, code = population_service.get_population_logs()
     return jsonify(res), code
