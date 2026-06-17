@@ -6,6 +6,7 @@ from app.models.feeding_batch import FeedingBatch
 from app.service.feeding_batch_service import has_finalized_batch, cancel_batch
 from app.service.activity_service import create_log
 from app.utils.uploads import save_base64_image_if_needed
+from app.utils.helpers import format_wita_iso
 
 def get_all_tasks():
     tasks = Task.query.all()
@@ -182,7 +183,7 @@ def get_daily_checklist(date_str):
             'deskripsi': task.description,
             'img': task.main_image,
             'is_completed': exec_item.is_completed,
-            'completed_at': exec_item.completed_at.isoformat() if exec_item.completed_at else None,
+            'completed_at': format_wita_iso(exec_item.completed_at),
             'execution_id': exec_item.id,
             'infoDetail': task.info_detail,
             'langkah': [step.to_dict() for step in task.steps],
@@ -267,7 +268,7 @@ def toggle_task_execution(task_id, date_str, keeper_id, is_completed):
         'data': {
             'task_id': task.id,
             'is_completed': exec_item.is_completed,
-            'completed_at': exec_item.completed_at.isoformat() if exec_item.completed_at else None
+            'completed_at': format_wita_iso(exec_item.completed_at)
         }
     }, 200
 

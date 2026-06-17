@@ -2,6 +2,7 @@
 .env
 .env.*
 !.env.example
+Timbangan2/config.h
 
 # Python
 __pycache__/

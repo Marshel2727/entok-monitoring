@@ -2,6 +2,7 @@
 from flask import Blueprint, request, jsonify
 from app.utils.decorators import token_required, roles_allowed
 from app.service import feed_service
+from app.schemas import FeedRestockSchema, FeedSchema, load_or_error
 
 feed_bp = Blueprint('feed_bp', __name__)
 
@@ -19,7 +20,10 @@ def get_feed(feed_id):
 @token_required
 @roles_allowed('PENGAWAS')
 def save_feed(current_user):
-    data = request.get_json() or {}
+    data, error = load_or_error(FeedSchema(), request.get_json())
+    if error:
+        return jsonify(error[0]), error[1]
+
     data['user_id'] = current_user.id
     
     # Check if id is passed in body for edit mode
@@ -38,8 +42,11 @@ def delete_feed(current_user, feed_id):
 @feed_bp.route('/<feed_id>/restock', methods=['POST'])
 @token_required
 def restock_feed(current_user, feed_id):
-    data = request.get_json() or {}
-    amount = float(data.get('amount', 0.0))
+    data, error = load_or_error(FeedRestockSchema(), request.get_json())
+    if error:
+        return jsonify(error[0]), error[1]
+
+    amount = data.get('amount', 0.0)
     description = data.get('description', '')
     
     res, code = feed_service.restock_feed(feed_id, amount, description, current_user.id)

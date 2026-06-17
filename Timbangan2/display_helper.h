@@ -1,0 +1,72 @@
+#ifndef DISPLAY_HELPER_H
+#define DISPLAY_HELPER_H
+
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+#include "config.h"
+#include "scale_map.h"
+
+LiquidCrystal_I2C lcd(LCD_ADDR, LCD_COLS, LCD_ROWS);
+
+void printLine(int row, String text) {
+  if (text.length() > LCD_COLS) {
+    text = text.substring(0, LCD_COLS);
+  }
+
+  lcd.setCursor(0, row);
+  lcd.print(text);
+
+  for (int i = text.length(); i < LCD_COLS; i++) {
+    lcd.print(" ");
+  }
+}
+
+void showHomeScreen() {
+  printLine(0, "SIAPKAN BATCH");
+  printLine(1, "#=AMBIL TARGET");
+}
+
+void showTargetReadyScreen() {
+  printLine(0, "TARGET SIAP");
+  printLine(1, "#=MULAI " + String(itemCount) + " item");
+}
+
+void showStartPrompt() {
+  if (itemCount == 0) {
+    showHomeScreen();
+  } else {
+    showTargetReadyScreen();
+  }
+}
+
+void displayCurrentItem() {
+  if (itemCount == 0) {
+    showHomeScreen();
+    return;
+  }
+
+  ScaleItem item = scaleItems[currentIndex];
+
+  String line1 = String(item.phaseShort) + " " + String(item.labelShort) + " #" + twoDigit(item.kode);
+
+  if (item.saved) {
+    line1 += " OK";
+  }
+
+  String line2 = "B:" + kgText(currentWeight) + " T:" + kgText(item.target);
+
+  printLine(0, line1);
+  printLine(1, line2);
+}
+
+void setupDisplay() {
+  Wire.begin(LCD_SDA, LCD_SCL);
+  lcd.init();
+  lcd.backlight();
+  lcd.clear();
+
+  printLine(0, "TIMBANGAN 2");
+  printLine(1, "START...");
+}
+
+#endif

@@ -18,6 +18,21 @@ def format_wita_datetime(value):
 
     return value.astimezone(timezone).strftime('%d/%m/%Y, %H:%M WITA')
 
+def format_wita_iso(value):
+    """Formats a UTC datetime as ISO-8601 in Asia/Makassar (WITA)."""
+    if not value:
+        return None
+
+    timezone = pytz.timezone('Asia/Makassar')
+    if value.tzinfo is None:
+        value = pytz.utc.localize(value)
+
+    return value.astimezone(timezone).isoformat(timespec='seconds')
+
+def get_wita_date_string():
+    """Returns today's date in Asia/Makassar as YYYY-MM-DD."""
+    return get_local_time().strftime('%Y-%m-%d')
+
 def format_rupiah(value):
     """Formats a number into Indonesian Rupiah format."""
     return f"Rp {value:,.0f}".replace(",", ".")

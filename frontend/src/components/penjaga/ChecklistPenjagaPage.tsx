@@ -21,6 +21,7 @@ import { FeedItem, FormulasiItem, PenjagaTaskItem, PanduanLangkah } from '@/type
 import { DailyChecklistItem } from '@/services/task';
 import { FeedingBatch } from '@/services/feedingBatch';
 import { resolveAssetUrl } from '@/services/api';
+import { buildFeedingBatchView, isFeedingTaskName, pickBestFeedingBatch, selectFeedingBatchForTask } from '@/domain/feeding/feedingBatchView';
 
 interface ChecklistPenjagaPageProps {
   feedList: FeedItem[];
@@ -178,53 +179,9 @@ export default function ChecklistPenjagaPage({
     }
   };
 
-  const getBatchItemsByPhase = (batch: FeedingBatch | null | undefined = feedingBatch) => {
-    const groups: { phase: string; items: NonNullable<FeedingBatch['ingredients']> }[] = [];
-    const phaseIndex = new Map<string, number>();
-
-    (batch?.ingredients || []).forEach((item) => {
-      const phase = item.phase || 'Gabungan';
-      if (!phaseIndex.has(phase)) {
-        phaseIndex.set(phase, groups.length);
-        groups.push({ phase, items: [] });
-      }
-      groups[phaseIndex.get(phase) as number].items.push(item);
-    });
-
-    return groups;
-  };
-
-  const getBatchTotalsByFeed = (batch: FeedingBatch | null | undefined = feedingBatch) => {
-    const totals = new Map<string, {
-      feedName: string;
-      planned: number;
-      weighed: number;
-      deducted: number;
-    }>();
-
-    (batch?.ingredients || []).forEach((item) => {
-      const key = item.feed_id || item.feed_name.toLowerCase();
-      const current = totals.get(key) || {
-        feedName: item.feed_name,
-        planned: 0,
-        weighed: 0,
-        deducted: 0,
-      };
-
-      current.planned += Number(item.planned_amount || 0);
-      current.weighed += Number(item.weighed_amount || 0);
-      current.deducted += Number(item.deducted_amount || 0);
-      totals.set(key, current);
-    });
-
-    return Array.from(totals.values()).sort((a, b) => a.feedName.localeCompare(b.feedName));
-  };
-
-  const renderFeedingBatchPanel = () => {
-    const isPreparing = feedingBatch?.status === 'PREPARING';
-    const isFinalized = feedingBatch?.status === 'FINALIZED';
-    const groupedItems = getBatchItemsByPhase();
-    const totalItems = getBatchTotalsByFeed();
+  const renderFeedingBatchPanel = (sourceBatch?: FeedingBatch | null) => {
+    const view = buildFeedingBatchView(sourceBatch ?? feedingBatch);
+    const { batch, isPreparing, isFinalized, groupedItems, totalItems } = view;
 
     return (
       <div className="panel" style={{ padding: '24px', backgroundColor: '#ffffff', color: '#1a202c', fontFamily: 'var(--font-sans)' }}>
@@ -237,7 +194,7 @@ export default function ChecklistPenjagaPage({
               Data timbang masuk otomatis dari Timbangan 2. Stok dipotong satu kali saat batch difinalisasi.
             </p>
           </div>
-          {feedingBatch && (
+          {batch && (
             <span style={{
               fontSize: '10px',
               fontWeight: '800',
@@ -248,12 +205,12 @@ export default function ChecklistPenjagaPage({
               padding: '4px 10px',
               whiteSpace: 'nowrap'
             }}>
-              {isFinalized ? 'FINAL' : 'DIRACIK'}
+              {view.statusLabel}
             </span>
           )}
         </div>
 
-        {!feedingBatch && (
+        {!batch && (
           <div style={{
             border: '1px dashed #cbd5e0',
             borderRadius: '10px',
@@ -287,7 +244,7 @@ export default function ChecklistPenjagaPage({
           </div>
         )}
 
-        {feedingBatch && (
+        {batch && (
           <>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               {groupedItems.map((group) => (
@@ -395,12 +352,12 @@ export default function ChecklistPenjagaPage({
 
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', alignItems: 'center', marginTop: '16px', flexWrap: 'wrap' }}>
               <span style={{ fontSize: '11px', color: '#718096' }}>
-                Toleransi selisih: {feedingBatch.tolerance_percent}% per bahan.
+                Toleransi selisih: {batch.tolerance_percent}% per bahan.
               </span>
               {isPreparing && (
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button
-                    onClick={() => handleCancelBatch(feedingBatch.id)}
+                    onClick={() => handleCancelBatch(batch.id)}
                     disabled={!onCancelFeedingBatch}
                     style={{
                       border: '1px solid #e53e3e',
@@ -416,7 +373,7 @@ export default function ChecklistPenjagaPage({
                     BATAL
                   </button>
                   <button
-                    onClick={() => handleFinalizeBatch(feedingBatch.id)}
+                    onClick={() => handleFinalizeBatch(batch.id)}
                     disabled={!onFinalizeFeedingBatch}
                     style={{
                       border: '1px solid #15D36B',
@@ -441,12 +398,8 @@ export default function ChecklistPenjagaPage({
   };
 
   const renderMobileFeedingBatchPanel = (batch: FeedingBatch | null | undefined = feedingBatch, task?: PenjagaTaskItem | null) => {
-    const isPreparing = batch?.status === 'PREPARING';
-    const isFinalized = batch?.status === 'FINALIZED';
-    const mobileBatchStatusLabel = isFinalized ? 'SIAP' : batch ? 'DIRACIK' : 'BELUM ADA';
-    const groupedItems = getBatchItemsByPhase(batch);
-    const totalItems = getBatchTotalsByFeed(batch);
-    const hasBatchItems = Boolean(batch && batch.ingredients.length > 0);
+    const view = buildFeedingBatchView(batch);
+    const { isPreparing, isFinalized, groupedItems, totalItems, hasItems } = view;
 
     return (
       <div style={{
@@ -488,7 +441,7 @@ export default function ChecklistPenjagaPage({
             padding: '5px 10px',
             whiteSpace: 'nowrap'
           }}>
-            {mobileBatchStatusLabel}
+            {view.mobileStatusLabel}
           </span>
         </div>
 
@@ -601,7 +554,7 @@ export default function ChecklistPenjagaPage({
               ))}
             </div>
 
-            {hasBatchItems && (
+            {hasItems && (
               <div style={{ marginTop: '12px', backgroundColor: '#f8faff', border: '1px solid #dfe8f3', borderRadius: '10px', overflow: 'hidden' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '10px', fontWeight: '900', color: '#102033', textTransform: 'uppercase', padding: '10px', borderBottom: '1px solid #e8eef2' }}>
                   <LuClipboardList size={13} color="#15D36B" />
@@ -819,13 +772,15 @@ export default function ChecklistPenjagaPage({
   // Active task is the first uncompleted task
   const activeTaskId = tasksList.find(t => !completedTasks[t.id])?.id || null;
   const activeTask = activeTaskId ? tasksList.find(t => t.id === activeTaskId) : null;
-  const isFeedingTask = (task?: PenjagaTaskItem | null) => Boolean(task?.nama?.toLowerCase().includes("beri pakan"));
+  const isFeedingTask = (task?: PenjagaTaskItem | null) => isFeedingTaskName(task?.nama);
   const getFeedingBatchForTask = (task?: PenjagaTaskItem | null) => {
-    if (!isFeedingTask(task)) return null;
-    return feedingBatches.find((batch) => batch.task_id === task?.id) || null;
+    return selectFeedingBatchForTask(feedingBatches, task);
   };
   const isFeedingBatchFinalForTask = (task?: PenjagaTaskItem | null) => getFeedingBatchForTask(task)?.status === 'FINALIZED';
-  const isFeedingBatchFinal = isFeedingBatchFinalForTask(activeTask);
+  const activeTaskBatch = getFeedingBatchForTask(activeTask);
+  const visibleFeedingBatch = activeTaskBatch || pickBestFeedingBatch(feedingBatches) || feedingBatch || null;
+  const activeTaskBatchView = buildFeedingBatchView(activeTaskBatch);
+  const isFeedingBatchFinal = activeTaskBatchView.isFinalized;
   const needsFeedingFinalization = (task?: PenjagaTaskItem | null) => isFeedingTask(task) && !isFeedingBatchFinalForTask(task);
 
   const tryToggleTask = async (id: string, targetState: boolean): Promise<boolean> => {
@@ -1710,7 +1665,7 @@ export default function ChecklistPenjagaPage({
                         </div>
 
                         {/* If No Batch Target Prepared Yet */}
-                        {!feedingBatch && (
+                        {!activeTaskBatchView.batch && (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                             {renderCompositionDropdown()}
                             <div style={{ fontSize: '10px', color: '#718096', lineHeight: '1.5', backgroundColor: '#f8f9fc', borderRadius: '8px', padding: '10px' }}>
@@ -1737,11 +1692,11 @@ export default function ChecklistPenjagaPage({
                         )}
 
                         {/* If Batch Has Been Prepared */}
-                        {feedingBatch && (
+                        {activeTaskBatchView.batch && (
                           <>
                             {/* Ingredients Progress Table */}
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                              {getBatchItemsByPhase().map((group) => (
+                              {activeTaskBatchView.groupedItems.map((group) => (
                                 <div key={group.phase} style={{ border: '1px solid #edf2f7', borderRadius: '10px', overflow: 'hidden' }}>
                                   <div style={{
                                     display: 'flex',
@@ -1804,12 +1759,12 @@ export default function ChecklistPenjagaPage({
                             </div>
 
                             {/* Total Deducted Weight Box */}
-                            {Boolean(feedingBatch.ingredients.length > 0) && (
+                            {activeTaskBatchView.hasItems && (
                               <div style={{ backgroundColor: '#f8f9fc', border: '1px solid #edf2f7', borderRadius: '10px', padding: '10px' }}>
                                 <div style={{ fontSize: '9px', fontWeight: '900', color: '#718096', textTransform: 'uppercase', marginBottom: '6px' }}>
                                   Total potong saat finalisasi
                                 </div>
-                                {getBatchTotalsByFeed().map((item) => (
+                                {activeTaskBatchView.totalItems.map((item) => (
                                   <div key={item.feedName} style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', fontSize: '10px', color: '#2d3748', padding: '3px 0' }}>
                                     <span style={{ fontWeight: '800' }}>{item.feedName}</span>
                                     <span>{formatBatchKg(isFeedingBatchFinal ? item.deducted : item.weighed)}</span>
@@ -1819,10 +1774,10 @@ export default function ChecklistPenjagaPage({
                             )}
 
                             {/* Batal/Finalisasi Batch Buttons (Only if Status is PREPARING) */}
-                            {feedingBatch.status === 'PREPARING' && (
+                            {activeTaskBatchView.isPreparing && (
                               <div style={{ display: 'grid', gridTemplateColumns: '0.7fr 1.3fr', gap: '8px', marginTop: '4px' }}>
                                 <button
-                                  onClick={() => handleCancelBatch(feedingBatch.id)}
+                                  onClick={() => handleCancelBatch(activeTaskBatchView.batch?.id)}
                                   disabled={!onCancelFeedingBatch}
                                   style={{
                                     border: '1.5px solid #e53e3e',
@@ -1838,7 +1793,7 @@ export default function ChecklistPenjagaPage({
                                   Batal
                                 </button>
                                 <button
-                                  onClick={() => handleFinalizeBatch(feedingBatch.id)}
+                                  onClick={() => handleFinalizeBatch(activeTaskBatchView.batch?.id)}
                                   disabled={!onFinalizeFeedingBatch}
                                   style={{
                                     border: 'none',
@@ -2065,7 +2020,7 @@ export default function ChecklistPenjagaPage({
 
             {tasksList.some((task) => isFeedingTask(task)) && (
               <div style={{ padding: '0 16px 12px 16px' }}>
-                {renderMobileFeedingBatchPanel()}
+                {renderMobileFeedingBatchPanel(visibleFeedingBatch)}
               </div>
             )}
 
@@ -2864,7 +2819,7 @@ export default function ChecklistPenjagaPage({
               </div>
             </div>
 
-            {renderFeedingBatchPanel()}
+            {renderFeedingBatchPanel(visibleFeedingBatch)}
 
             {/* Panduan Mixing Guide Card (LP Screen Bottom section) */}
             <div className="panel" style={{ padding: '24px', backgroundColor: '#ffffff', color: '#1a202c', fontFamily: 'var(--font-sans)' }}>

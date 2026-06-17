@@ -29,6 +29,35 @@ export interface FeedingBatch {
   ingredients: FeedingBatchIngredient[];
 }
 
+export interface FeedingBatchScaleMapItem {
+  kode: number;
+  ingredient_id: number;
+  feed_id: string | null;
+  phase_id?: string | null;
+  phase: string;
+  phase_short: string;
+  label: string;
+  label_short: string;
+  target: number;
+  weighed: number;
+  unit: string;
+  saved: boolean;
+  lcd_title: string;
+  lcd_target: string;
+}
+
+export interface FeedingBatchScaleMap {
+  status: string;
+  message: string;
+  batch_id: string;
+  date: string;
+  timbangan_id: number;
+  tolerance_percent: number;
+  total_items: number;
+  saved_items: number;
+  items: FeedingBatchScaleMapItem[];
+}
+
 export const feedingBatchService = {
   getTodayBatch: async (dateStr?: string) => {
     const endpoint = dateStr
@@ -44,6 +73,14 @@ export const feedingBatchService = {
       : '/feeding-batches/today?all=1';
     const res = await api.get<{ status: string; data: FeedingBatch[] }>(endpoint);
     return res.data || [];
+  },
+
+  getScaleMap: async (params: { timbanganId?: string | number; dateStr?: string } = {}) => {
+    const query = new URLSearchParams();
+    query.set('timbangan_id', String(params.timbanganId || 2));
+    if (params.dateStr) query.set('date', params.dateStr);
+
+    return api.get<FeedingBatchScaleMap>(`/feeding-batches/scale-map?${query.toString()}`);
   },
 
   createBatch: async (dateStr?: string, taskId?: string) => {

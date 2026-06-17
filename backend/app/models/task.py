@@ -2,6 +2,7 @@
 import uuid
 from datetime import datetime
 from app.utils.db import db
+from app.utils.helpers import format_wita_iso
 
 class Task(db.Model):
     __tablename__ = 'tasks'
@@ -69,5 +70,5 @@ class TaskExecution(db.Model):
             'keeper_name': self.keeper.name if self.keeper else None,
             'execution_date': self.execution_date.isoformat(),
             'is_completed': self.is_completed,
-            'completed_at': self.completed_at.isoformat() if self.completed_at else None
+            'completed_at': format_wita_iso(self.completed_at)
         }

@@ -2,6 +2,7 @@
 from flask import Blueprint, request, jsonify
 from app.utils.decorators import token_required, roles_allowed
 from app.service import formulation_service
+from app.schemas import FormulationSchema, load_or_error
 
 formulation_bp = Blueprint('formulation_bp', __name__)
 
@@ -19,7 +20,10 @@ def get_formulation(form_id):
 @token_required
 @roles_allowed('PENGAWAS')
 def save_formulation(current_user):
-    data = request.get_json() or {}
+    data, error = load_or_error(FormulationSchema(), request.get_json())
+    if error:
+        return jsonify(error[0]), error[1]
+
     data['user_id'] = current_user.id
     
     # Check if id is passed in body for edit mode

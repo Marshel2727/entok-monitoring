@@ -31,6 +31,16 @@ export const authService = {
     return api.post<{ status: string; message: string }>('/auth/register', payload);
   },
 
+  registerPublicKeeper: async (data: {
+    name: string;
+    username: string;
+    password: string;
+    email?: string;
+    shift?: 'PAGI' | 'SORE' | 'FULL_TIME';
+  }) => {
+    return api.post<{ status: string; message: string }>('/auth/register-public', data);
+  },
+
   getKeepers: async () => {
     const res = await api.get<{ status: string; data: User[] }>('/auth/users');
     return res.data;

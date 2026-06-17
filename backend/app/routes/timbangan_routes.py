@@ -2,6 +2,12 @@
 from flask import Blueprint, request, jsonify
 from app.utils.decorators import token_required, roles_allowed
 from app.service import timbangan_service
+from app.schemas import (
+    TimbanganReadingSchema,
+    TimbanganSchema,
+    TimbanganStatusSchema,
+    load_or_error,
+)
 
 timbangan_bp = Blueprint('timbangan_bp', __name__)
 
@@ -31,7 +37,10 @@ def get_timbangan(current_user, timbangan_id):
 @roles_allowed('PENGAWAS')
 def save_timbangan(current_user):
     """POST /api/timbangan — Daftarkan timbangan baru atau edit yang ada."""
-    data = request.get_json() or {}
+    data, error = load_or_error(TimbanganSchema(), request.get_json())
+    if error:
+        return jsonify(error[0]), error[1]
+
     data['user_id'] = current_user.id
 
     timbangan_id = data.get('id')
@@ -53,8 +62,13 @@ def delete_timbangan(current_user, timbangan_id):
 @token_required
 def update_status(current_user, timbangan_id):
     """PATCH /api/timbangan/<id>/status — Update status ONLINE/OFFLINE."""
-    data = request.get_json() or {}
-    new_status = data.get('status', '').upper()
+    raw_data = request.get_json() or {}
+    raw_data['status'] = str(raw_data.get('status', '')).upper()
+    data, error = load_or_error(TimbanganStatusSchema(), raw_data)
+    if error:
+        return jsonify(error[0]), error[1]
+
+    new_status = data.get('status')
 
     res, code = timbangan_service.update_timbangan_status(timbangan_id, new_status)
     return jsonify(res), code
@@ -75,7 +89,9 @@ def add_reading():
     karena ESP32 mengirim data secara otomatis.
     Keamanan ditangani di level jaringan (whitelist IP / API key di header).
     """
-    data = request.get_json() or {}
+    data, error = load_or_error(TimbanganReadingSchema(), request.get_json())
+    if error:
+        return jsonify(error[0]), error[1]
 
     res, code = timbangan_service.add_reading(data)
     return jsonify(res), code

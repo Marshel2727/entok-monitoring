@@ -53,6 +53,51 @@ def _phase_rank(phase):
         return len(PHASE_ORDER)
 
 
+def _compact_code(value, fallback):
+    cleaned = ''.join(
+        char if char.isalnum() or char.isspace() else ' '
+        for char in (value or '').upper()
+    )
+    words = [word for word in cleaned.split() if word]
+    if not words:
+        return fallback
+    if len(words) > 1:
+        return ''.join(word[0] for word in words[:3])[:3]
+    return words[0][:3]
+
+
+def _phase_short(phase):
+    key = _phase_key(phase)
+    if key == 'starter':
+        return 'ST'
+    if key == 'grower 1':
+        return 'G1'
+    if key == 'grower 2':
+        return 'G2'
+    if key == 'finisher':
+        return 'FN'
+    return _compact_code(phase, 'FS')
+
+
+def _feed_short(feed_name):
+    normalized = (feed_name or '').strip().lower()
+    aliases = (
+        ('larva bsf', 'BSF'),
+        ('bsf', 'BSF'),
+        ('dedak', 'DDK'),
+        ('jagung', 'JGG'),
+        ('bekicot', 'BKC'),
+        ('ayam', 'AYM'),
+        ('konsentrat', 'KNS'),
+        ('azolla', 'AZL'),
+        ('pur', 'PUR'),
+    )
+    for keyword, short_name in aliases:
+        if keyword in normalized:
+            return short_name
+    return _compact_code(feed_name, 'BHN')
+
+
 def _find_feed_by_name(name):
     normalized = (name or '').strip()
     if not normalized:
@@ -291,6 +336,71 @@ def _get_active_batch_for_scale(date_str, user_id=None):
     return batch, None, 200
 
 
+def _scale_map_items(batch):
+    ingredients = sorted(
+        batch.ingredients,
+        key=lambda item: (_phase_rank(item.phase), item.feed_name.lower())
+    )
+
+    items = []
+    for index, item in enumerate(ingredients, start=1):
+        phase_name = item.growth_phase.name if item.growth_phase else item.phase
+        target = round(float(item.planned_amount or 0), 3)
+        weighed = round(float(item.weighed_amount or 0), 3)
+        phase_short = _phase_short(phase_name)
+        label_short = _feed_short(item.feed_name)
+
+        items.append({
+            'kode': index,
+            'ingredient_id': item.id,
+            'feed_id': item.feed_id,
+            'phase_id': item.phase_id,
+            'phase': phase_name,
+            'phase_short': phase_short,
+            'label': item.feed_name,
+            'label_short': label_short,
+            'target': target,
+            'weighed': weighed,
+            'unit': item.unit,
+            'saved': weighed > 0,
+            'lcd_title': f'{phase_short} {label_short} #{index:02d}',
+            'lcd_target': f'T:{target:.3f}',
+        })
+
+    return items
+
+
+def get_scale_map(timbangan_id=2, date_str=None, user_id=None):
+    """
+    Daftar urutan timbang untuk ESP32 Timbangan 2.
+    ESP32 memakai response ini untuk mode timbang berurutan di LCD.
+    """
+    timbangan = Timbangan.query.get(timbangan_id)
+    if not timbangan:
+        return {'status': 'error', 'message': f'Timbangan dengan ID {timbangan_id} tidak terdaftar'}, 404
+    if timbangan.tipe != 'MULTI':
+        return {'status': 'error', 'message': 'Scale map hanya tersedia untuk timbangan tipe MULTI'}, 400
+
+    batch, error, code = _get_active_batch_for_scale(date_str, user_id)
+    if error:
+        return error, code
+
+    items = _scale_map_items(batch)
+    saved_items = sum(1 for item in items if item['saved'])
+
+    return {
+        'status': 'success',
+        'message': 'Scale map Timbangan 2 siap',
+        'batch_id': batch.id,
+        'date': batch.batch_date.isoformat() if batch.batch_date else None,
+        'timbangan_id': timbangan.id,
+        'tolerance_percent': batch.tolerance_percent,
+        'total_items': len(items),
+        'saved_items': saved_items,
+        'items': items,
+    }, 200
+
+
 def _find_batch_ingredient(batch, feed, label, phase=None, phase_id=None):
     requested_phase = _phase_key(phase)
     label_lower = (label or '').strip().lower()
@@ -317,11 +427,7 @@ def _find_batch_ingredient(batch, feed, label, phase=None, phase_id=None):
     return None, f'Bahan "{label}" ada di beberapa fase. Kirim phase yang jelas: {phase_options}'
 
 
-def record_scale_reading(data, user_id=None):
-    """
-    Terima data tombol bahan dari Timbangan 2.
-    Payload: { timbangan_id, phase, label, value, mode?: SET|ADD, date? }
-    """
+def _normalize_scale_reading_data(data):
     timbangan_id = data.get('timbangan_id', 2)
     label = (data.get('label') or data.get('feed_name') or '').strip()
     phase = (data.get('phase') or data.get('fase') or '').strip()
@@ -331,19 +437,105 @@ def record_scale_reading(data, user_id=None):
     mode = (data.get('mode') or 'SET').strip().upper()
 
     if not label:
-        return {'status': 'error', 'message': 'Label bahan wajib dikirim dari timbangan'}, 400
+        return None, {'status': 'error', 'message': 'Label bahan wajib dikirim dari timbangan'}, 400
 
     try:
         value = float(value)
     except (TypeError, ValueError):
-        return {'status': 'error', 'message': 'Berat timbang harus berupa angka'}, 400
+        return None, {'status': 'error', 'message': 'Berat timbang harus berupa angka'}, 400
 
     if value < 0:
-        return {'status': 'error', 'message': 'Berat timbang tidak boleh negatif'}, 400
+        return None, {'status': 'error', 'message': 'Berat timbang tidak boleh negatif'}, 400
 
     if mode not in ('SET', 'ADD'):
-        return {'status': 'error', 'message': 'Mode harus SET atau ADD'}, 400
+        return None, {'status': 'error', 'message': 'Mode harus SET atau ADD'}, 400
 
+    return {
+        'timbangan_id': timbangan_id,
+        'label': label,
+        'phase': phase,
+        'phase_id': phase_id,
+        'value': value,
+        'unit': unit,
+        'mode': mode,
+    }, None, 200
+
+
+def _apply_scale_reading_to_batch(batch, timbangan, reading_data):
+    label = reading_data['label']
+    phase = reading_data['phase']
+    phase_id = reading_data['phase_id']
+    value = reading_data['value']
+    unit = reading_data['unit']
+    mode = reading_data['mode']
+
+    feed = _find_feed_by_name(label)
+    ingredient, ingredient_error = _find_batch_ingredient(batch, feed, label, phase, phase_id)
+    if ingredient_error:
+        return None, {'status': 'error', 'message': ingredient_error}, 400
+
+    new_amount = value if mode == 'SET' else ingredient.weighed_amount + value
+    ingredient.weighed_amount = round(new_amount, 3)
+    ingredient.variance_amount = round(ingredient.weighed_amount - ingredient.planned_amount, 3)
+
+    timbangan.status = 'ONLINE'
+    reading = TimbanganReading(
+        timbangan_id=timbangan.id,
+        value=round(value, 3),
+        unit=unit,
+        label=f'{ingredient.phase} - {ingredient.feed_name}',
+        feed_id=ingredient.feed_id
+    )
+    db.session.add(reading)
+
+    return {
+        'ingredient_id': ingredient.id,
+        'phase': ingredient.phase,
+        'label': ingredient.feed_name,
+        'value': round(value, 3),
+        'weighed_amount': ingredient.weighed_amount,
+        'variance_amount': ingredient.variance_amount,
+    }, None, 200
+
+
+def record_scale_reading(data, user_id=None):
+    """
+    Terima data tombol bahan dari Timbangan 2.
+    Payload: { timbangan_id, phase, label, value, mode?: SET|ADD, date? }
+    """
+    reading_data, error, code = _normalize_scale_reading_data(data)
+    if error:
+        return error, code
+
+    batch, error, code = _get_active_batch_for_scale(data.get('date'), user_id)
+    if error:
+        return error, code
+
+    timbangan = Timbangan.query.get(reading_data['timbangan_id'])
+    if not timbangan:
+        return {'status': 'error', 'message': f'Timbangan dengan ID {reading_data["timbangan_id"]} tidak terdaftar'}, 404
+    if timbangan.tipe != 'MULTI':
+        return {'status': 'error', 'message': 'Racikan pakan harus dikirim dari timbangan tipe MULTI'}, 400
+
+    _, error, code = _apply_scale_reading_to_batch(batch, timbangan, reading_data)
+    if error:
+        return error, code
+
+    db.session.commit()
+
+    return {
+        'status': 'success',
+        'message': 'Data racikan dari timbangan berhasil masuk ke batch',
+        'data': batch.to_dict()
+    }, 200
+
+
+def record_scale_readings_bulk(data, user_id=None):
+    """
+    Terima beberapa data Timbangan 2 dalam satu request.
+    Payload: { timbangan_id?, date?, mode?, unit?, items: [{ phase, label, value, mode? }] }
+    """
+    timbangan_id = data.get('timbangan_id', 2)
     batch, error, code = _get_active_batch_for_scale(data.get('date'), user_id)
     if error:
         return error, code
@@ -354,30 +546,54 @@ def record_scale_reading(data, user_id=None):
     if timbangan.tipe != 'MULTI':
         return {'status': 'error', 'message': 'Racikan pakan harus dikirim dari timbangan tipe MULTI'}, 400
 
-    feed = _find_feed_by_name(label)
-    ingredient, ingredient_error = _find_batch_ingredient(batch, feed, label, phase, phase_id)
-    if ingredient_error:
-        return {'status': 'error', 'message': ingredient_error}, 400
+    applied_items = []
+    try:
+        for index, item in enumerate(data.get('items') or [], start=1):
+            item_data = {
+                **item,
+                'timbangan_id': item.get('timbangan_id') or timbangan_id,
+                'date': item.get('date') or data.get('date'),
+                'unit': item.get('unit') or data.get('unit') or 'kg',
+                'mode': item.get('mode') or data.get('mode') or 'SET',
+            }
 
-    new_amount = value if mode == 'SET' else ingredient.weighed_amount + value
-    ingredient.weighed_amount = round(new_amount, 3)
-    ingredient.variance_amount = round(ingredient.weighed_amount - ingredient.planned_amount, 3)
+            if item_data['timbangan_id'] != timbangan_id:
+                db.session.rollback()
+                return {
+                    'status': 'error',
+                    'message': f'Item ke-{index} memakai timbangan_id berbeda dari request bulk'
+                }, 400
 
-    timbangan.status = 'ONLINE'
-    db.session.add(TimbanganReading(
-        timbangan_id=timbangan.id,
-        value=round(value, 3),
-        unit=unit,
-        label=f'{ingredient.phase} - {ingredient.feed_name}',
-        feed_id=ingredient.feed_id
-    ))
+            reading_data, error, code = _normalize_scale_reading_data(item_data)
+            if error:
+                db.session.rollback()
+                return {
+                    'status': 'error',
+                    'message': f'Item ke-{index}: {error.get("message", "Data tidak valid")}',
+                    'detail': error,
+                }, code
 
-    db.session.commit()
+            applied, error, code = _apply_scale_reading_to_batch(batch, timbangan, reading_data)
+            if error:
+                db.session.rollback()
+                return {
+                    'status': 'error',
+                    'message': f'Item ke-{index}: {error.get("message", "Data tidak valid")}',
+                    'detail': error,
+                }, code
+
+            applied_items.append(applied)
+
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        raise
 
     return {
         'status': 'success',
-        'message': 'Data racikan dari timbangan berhasil masuk ke batch',
-        'data': batch.to_dict()
+        'message': f'{len(applied_items)} data racikan dari timbangan berhasil masuk ke batch',
+        'data': batch.to_dict(),
+        'applied_items': applied_items,
     }, 200
 
 
@@ -433,7 +649,7 @@ def finalize_batch(batch_id, user_id=None):
     if batch.status != 'PREPARING':
         return {'status': 'error', 'message': 'Batch racikan tidak bisa difinalisasi'}, 400
 
-    missing = [item.feed_name for item in batch.ingredients if item.weighed_amount <= 0]
+    missing = [f'{item.phase} - {item.feed_name}' for item in batch.ingredients if item.weighed_amount <= 0]
     if missing:
         return {'status': 'error', 'message': f'Bahan belum ditimbang: {", ".join(missing)}'}, 400
 
@@ -535,4 +751,10 @@ def has_finalized_batch(date_str, task_id=None):
         batch_date=batch_date,
         status='FINALIZED'
     )
-    return _apply_task_scope(query, task_id).first() is not None
+    if _apply_task_scope(query, task_id).first() is not None:
+        return True
+
+    if task_id:
+        return query.filter(FeedingBatch.task_id.is_(None)).first() is not None
+
+    return False

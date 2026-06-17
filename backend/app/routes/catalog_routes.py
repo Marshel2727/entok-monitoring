@@ -2,6 +2,7 @@
 from flask import Blueprint, request, jsonify
 from app.utils.decorators import token_required, roles_allowed
 from app.service import catalog_service
+from app.schemas import CatalogSchema, load_or_error
 
 catalog_bp = Blueprint('catalog_bp', __name__)
 
@@ -14,7 +15,10 @@ def get_catalog():
 @token_required
 @roles_allowed('PENGAWAS')
 def save_catalog(current_user):
-    data = request.get_json() or {}
+    data, error = load_or_error(CatalogSchema(), request.get_json())
+    if error:
+        return jsonify(error[0]), error[1]
+
     data['user_id'] = current_user.id
     
     # Check if id is passed in body for edit mode

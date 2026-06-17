@@ -2,6 +2,7 @@
 import uuid
 from datetime import datetime
 from app.utils.db import db
+from app.utils.helpers import format_wita_iso
 
 
 class Timbangan(db.Model):
@@ -35,8 +36,8 @@ class Timbangan(db.Model):
             'status': self.status,
             'default_label': self.default_label,
             'last_reading': last_reading.to_dict() if last_reading else None,
-            'created_at': self.created_at.strftime('%Y-%m-%dT%H:%M:%S') if self.created_at else None,
-            'updated_at': self.updated_at.strftime('%Y-%m-%dT%H:%M:%S') if self.updated_at else None
+            'created_at': format_wita_iso(self.created_at),
+            'updated_at': format_wita_iso(self.updated_at)
         }
 
 
@@ -68,5 +69,5 @@ class TimbanganReading(db.Model):
             'unit': self.unit,
             'label': self.label,
             'feed_id': self.feed_id,
-            'recorded_at': self.recorded_at.strftime('%Y-%m-%dT%H:%M:%S') if self.recorded_at else None
+            'recorded_at': format_wita_iso(self.recorded_at)
         }

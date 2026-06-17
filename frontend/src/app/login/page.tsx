@@ -119,6 +119,18 @@ export default function LoginPage() {
                 {isLoading ? 'MEMPROSES...' : 'MASUK'}
               </button>
             </form>
+
+            <p className="pub-login-footer-text">
+              Belum punya akun?{' '}
+              <button
+                type="button"
+                className="pub-login-footer-link"
+                onClick={() => router.push('/register')}
+                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+              >
+                Daftar Di Sini
+              </button>
+            </p>
           </div>
         </div>
       </section>

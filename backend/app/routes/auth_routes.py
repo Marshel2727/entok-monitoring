@@ -2,6 +2,7 @@
 from flask import Blueprint, request, jsonify
 from app.utils.decorators import token_required, roles_allowed
 from app.service import auth_service
+from app.schemas import LoginSchema, PublicRegisterSchema, UserSchema, UserUpdateSchema, load_or_error
 
 auth_bp = Blueprint('auth_bp', __name__)
 
@@ -45,12 +46,12 @@ def login():
       401:
         description: Unauthorized, invalid credentials.
     """
-    data = request.get_json() or {}
+    data, error = load_or_error(LoginSchema(), request.get_json())
+    if error:
+        return jsonify(error[0]), error[1]
+
     username = data.get('username')
     password = data.get('password')
-    
-    if not username or not password:
-        return jsonify({'status': 'error', 'message': 'Username dan password wajib diisi'}), 400
         
     res, code = auth_service.login_user(username, password)
     return jsonify(res), code
@@ -59,10 +60,25 @@ def login():
 @token_required
 @roles_allowed('PENGAWAS')
 def register(current_user):
-    data = request.get_json() or {}
+    data, error = load_or_error(UserSchema(), request.get_json())
+    if error:
+        return jsonify(error[0]), error[1]
+
     # Capture who registered this user
     data['user_id'] = current_user.id
     
+    res, code = auth_service.register_user(data)
+    return jsonify(res), code
+
+@auth_bp.route('/register-public', methods=['POST'])
+def register_public():
+    data, error = load_or_error(PublicRegisterSchema(), request.get_json())
+    if error:
+        return jsonify(error[0]), error[1]
+
+    data['role'] = 'PENJAGA'
+    data['status'] = 'AKTIF'
+
     res, code = auth_service.register_user(data)
     return jsonify(res), code
 
@@ -77,7 +93,10 @@ def get_users(current_user):
 @token_required
 @roles_allowed('PENGAWAS')
 def update_user(current_user, user_id):
-    data = request.get_json() or {}
+    data, error = load_or_error(UserUpdateSchema(partial=True), request.get_json())
+    if error:
+        return jsonify(error[0]), error[1]
+
     res, code = auth_service.update_user(user_id, data)
     return jsonify(res), code
 

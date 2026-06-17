@@ -2,7 +2,7 @@
 import uuid
 from datetime import datetime
 from app.utils.db import db
-from app.utils.helpers import format_wita_datetime
+from app.utils.helpers import format_wita_datetime, format_wita_iso
 
 class Population(db.Model):
     __tablename__ = 'populations'
@@ -22,7 +22,7 @@ class Population(db.Model):
             'phase_id': self.phase_id,
             'fase': phase_name,
             'jumlah_ekor': self.total_ducks,
-            'updated_at': self.updated_at.isoformat()
+            'updated_at': format_wita_iso(self.updated_at)
         }
 
 class PopulationLog(db.Model):

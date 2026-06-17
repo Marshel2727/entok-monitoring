@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime
 from app.utils.db import db
+from app.utils.helpers import format_wita_iso
 
 
 class FeedingBatch(db.Model):
@@ -49,8 +50,8 @@ class FeedingBatch(db.Model):
             'keeper_id': self.keeper_id,
             'status': self.status,
             'tolerance_percent': self.tolerance_percent,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'finalized_at': self.finalized_at.isoformat() if self.finalized_at else None,
+            'created_at': format_wita_iso(self.created_at),
+            'finalized_at': format_wita_iso(self.finalized_at),
             'notes': self.notes,
             'ingredients': [ingredient.to_dict() for ingredient in ingredients],
         }

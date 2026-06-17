@@ -1,6 +1,13 @@
 from flask import Blueprint, request, jsonify
 from app.utils.decorators import token_required
 from app.service import feeding_batch_service
+from app.schemas import (
+    FeedingBatchScaleReadingBulkSchema,
+    FeedingBatchScaleReadingSchema,
+    FeedingBatchSchema,
+    FeedingBatchWeightSchema,
+    load_or_error,
+)
 
 feeding_batch_bp = Blueprint('feeding_batch_bp', __name__)
 
@@ -20,8 +27,24 @@ def get_today_batch(current_user):
 @feeding_batch_bp.route('', methods=['POST'])
 @token_required
 def create_batch(current_user):
-    data = request.get_json() or {}
+    data, error = load_or_error(FeedingBatchSchema(), request.get_json())
+    if error:
+        return jsonify(error[0]), error[1]
+
     res, code = feeding_batch_service.create_batch(current_user.id, data.get('date'), data.get('task_id'))
+    return jsonify(res), code
+
+
+@feeding_batch_bp.route('/scale-map', methods=['GET'])
+def get_scale_map():
+    """
+    Endpoint perangkat Timbangan 2 untuk mengambil urutan timbang.
+    Query: timbangan_id=2&date=YYYY-MM-DD
+    """
+    timbangan_id = request.args.get('timbangan_id', default=2, type=int)
+    date_str = request.args.get('date')
+
+    res, code = feeding_batch_service.get_scale_map(timbangan_id, date_str)
     return jsonify(res), code
 
 
@@ -31,20 +54,37 @@ def record_scale_reading():
     Endpoint perangkat Timbangan 2.
     Body: { timbangan_id, phase/fase, label/feed_name, value/amount, mode?: SET|ADD, date? }
     """
-    data = request.get_json() or {}
+    data, error = load_or_error(FeedingBatchScaleReadingSchema(), request.get_json())
+    if error:
+        return jsonify(error[0]), error[1]
+
     res, code = feeding_batch_service.record_scale_reading(data)
+    return jsonify(res), code
+
+
+@feeding_batch_bp.route('/scale-readings/bulk', methods=['POST'])
+def record_scale_readings_bulk():
+    """
+    Endpoint bulk perangkat Timbangan 2.
+    Body: { timbangan_id?, date?, mode?: SET|ADD, items: [{ phase/fase, label/feed_name, value/amount }] }
+    """
+    data, error = load_or_error(FeedingBatchScaleReadingBulkSchema(), request.get_json())
+    if error:
+        return jsonify(error[0]), error[1]
+
+    res, code = feeding_batch_service.record_scale_readings_bulk(data)
     return jsonify(res), code
 
 
 @feeding_batch_bp.route('/<batch_id>/weights', methods=['POST'])
 @token_required
 def record_weight(current_user, batch_id):
-    data = request.get_json() or {}
+    data, error = load_or_error(FeedingBatchWeightSchema(), request.get_json())
+    if error:
+        return jsonify(error[0]), error[1]
+
     ingredient_id = data.get('ingredient_id')
     amount = data.get('amount')
-
-    if not ingredient_id:
-        return jsonify({'status': 'error', 'message': 'ingredient_id wajib diisi'}), 400
 
     res, code = feeding_batch_service.record_weight(
         batch_id,

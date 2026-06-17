@@ -2,6 +2,7 @@
 import uuid
 from datetime import datetime
 from app.utils.db import db
+from app.utils.helpers import format_wita_iso
 
 class Feed(db.Model):
     __tablename__ = 'feeds'
@@ -59,5 +60,5 @@ class FeedTransaction(db.Model):
             'description': self.description,
             'user_id': self.user_id,
             'user_name': self.user.name if self.user else None,
-            'created_at': self.created_at.isoformat()
+            'created_at': format_wita_iso(self.created_at)
         }

@@ -3,6 +3,7 @@ import uuid
 from datetime import datetime
 from app.utils.db import db
 from werkzeug.security import generate_password_hash, check_password_hash
+from app.utils.helpers import format_wita_iso
 
 class User(db.Model):
     __tablename__ = 'users'
@@ -42,5 +43,5 @@ class User(db.Model):
             'status': self.status,
             'tanggal_bergabung': self.joined_at.strftime('%d/%m/%Y') if self.joined_at else None,
             'joined_at': self.joined_at.strftime('%d/%m/%Y') if self.joined_at else None,
-            'created_at': self.created_at.isoformat() if self.created_at else None
+            'created_at': format_wita_iso(self.created_at)
         }

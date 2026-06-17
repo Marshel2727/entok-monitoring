@@ -8,6 +8,12 @@ import {
 } from 'react-icons/lu';
 import { FeedItem, FormulasiItem, ActivityLog, TimbanganReading } from '@/types';
 import { FeedTransaction } from '@/services/feed';
+import {
+  analyzeNutritionForPeriod,
+  getNutritionPeriodLabel,
+  getNutritionStatusColor,
+  NutritionPeriodTab,
+} from '@/domain/nutrition/nutritionAnalysis';
 
 interface FeedChartsPageProps {
   feedList: FeedItem[];
@@ -91,18 +97,10 @@ export default function FeedChartsPage({
   feedTransactions,
   entokReadings
 }: FeedChartsPageProps) {
-  const [nutritionTab, setNutritionTab] = useState<'HARIAN' | 'MINGGUAN' | 'BULANAN'>('HARIAN');
+  const [nutritionTab, setNutritionTab] = useState<NutritionPeriodTab>('HARIAN');
   const [consumptionTab, setConsumptionTab] = useState<'HARIAN' | 'MINGGUAN' | 'BULANAN'>('HARIAN');
   const [dateRange, setDateRange] = useState('HARI INI');
   const [activeScale, setActiveScale] = useState('SEMUA TIMBANGAN');
-
-  const nutritionTargets = {
-    PROTEIN: 18,
-    KARBOHIDRAT: 55,
-    LEMAK: 5,
-    SERAT: 8,
-    MINERAL: 4
-  };
 
   // Vibrant color helpers for charts
   const getNutritionColor = (name: string) => {
@@ -198,66 +196,6 @@ export default function FeedChartsPage({
     }, 0);
   };
 
-  // Nutrition data is calculated from feed nutrition values and active formulations.
-  const getNutritionData = () => {
-    const feedByName = new Map(feedList.map((feed) => [feed.nama.trim().toLowerCase(), feed]));
-    const totals = {
-      PROTEIN: 0,
-      KARBOHIDRAT: 0,
-      LEMAK: 0,
-      SERAT: 0,
-      MINERAL: 0
-    };
-
-    let totalKg = 0;
-    let hasNutritionData = false;
-
-    formulasiList.forEach((form) => {
-      let pop = 0;
-      if (form.fase.startsWith("Starter")) pop = jumlahStarter;
-      else if (form.fase.startsWith("Grower 1")) pop = jumlahGrower1;
-      else if (form.fase.startsWith("Grower 2")) pop = jumlahGrower2;
-      else if (form.fase.startsWith("Finisher")) pop = jumlahFinisher;
-
-      Object.entries(form.komposisi).forEach(([namaPakan, pct]) => {
-        const feed = feedByName.get(namaPakan.trim().toLowerCase());
-        const nutrisi = feed?.nutrisi;
-        const kg = (form.targetKonsumsi * pop * (pct / 100)) / 1000;
-
-        if (!nutrisi || kg <= 0) return;
-
-        const hasAnyValue = Object.values(nutrisi).some((value) => Number(value) > 0);
-        if (!hasAnyValue) return;
-
-        hasNutritionData = true;
-        totalKg += kg;
-        totals.PROTEIN += kg * ((nutrisi.protein || 0) / 100);
-        totals.KARBOHIDRAT += kg * ((nutrisi.karbohidrat || 0) / 100);
-        totals.LEMAK += kg * ((nutrisi.lemak || 0) / 100);
-        totals.SERAT += kg * ((nutrisi.serat || 0) / 100);
-        totals.MINERAL += kg * ((nutrisi.mineral || 0) / 100);
-      });
-    });
-
-    if (!hasNutritionData || totalKg <= 0) {
-      return [];
-    }
-
-    return (Object.keys(totals) as Array<keyof typeof totals>).map((name) => {
-      const actualPercent = (totals[name] / totalKg) * 100;
-      const targetPercent = nutritionTargets[name];
-      const adequacy = Math.round((actualPercent / targetPercent) * 100);
-
-      return {
-        name,
-        value: adequacy,
-        barValue: Math.min(100, adequacy),
-        actualPercent,
-        targetPercent
-      };
-    });
-  };
-
   // Consumption data depending on active tab
   const getConsumptionData = () => {
     const transactionTotals = getTransactionTotalsForPeriod(consumptionTab);
@@ -329,8 +267,8 @@ export default function FeedChartsPage({
   const latestGrowthReading = normalizedEntokReadings.at(-1);
   const maxStockVal = Math.max(...dedakStockData.map(d => d.stock), 1);
   const maxGrowthVal = Math.max(...growthData.map(d => d.growth), 3);
-  const nutritionData = getNutritionData();
-  const nutritionTargetReached = nutritionData.length > 0 && nutritionData.every((nut) => nut.value >= 100);
+  const nutritionData = analyzeNutritionForPeriod({ feedList, feedTransactions, tab: nutritionTab });
+  const nutritionTargetReached = nutritionData.length > 0 && nutritionData.every((nut) => nut.status === 'IDEAL');
 
   return (
     <div className="content-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: '24px', padding: 0 }}>
@@ -570,29 +508,45 @@ export default function FeedChartsPage({
           <div className="panel-body" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {nutritionData.length === 0 ? (
               <div style={{ padding: '18px', border: '1px dashed var(--border)', borderRadius: '6px', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', fontSize: '11px', lineHeight: 1.7 }}>
-                Data nutrisi belum lengkap. Isi kandungan protein, karbohidrat, lemak, serat, dan mineral pada menu Feed Management.
+                Belum ada konsumsi pakan dengan data nutrisi lengkap untuk periode {getNutritionPeriodLabel(nutritionTab)}.
               </div>
             ) : nutritionData.map((nut) => (
               <div key={nut.name} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>
                   <span style={{ color: 'var(--text-secondary)' }}>{nut.name}</span>
-                  <span style={{ color: 'var(--text-primary)' }}>{nut.value}%</span>
+                  <span style={{ color: getNutritionStatusColor(nut.status) }}>
+                    {nut.status} {nut.difference >= 0 ? '+' : ''}{nut.difference.toFixed(1)}%
+                  </span>
                 </div>
                 <div style={{ fontSize: '9px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                  Aktual {nut.actualPercent.toFixed(1)}% / Target {nut.targetPercent}%
+                  Aktual {nut.actualPercent.toFixed(1)}% / Target ideal {nut.targetPercent}%
                 </div>
-                <div className="retro-progress-bar-bg">
+                <div className="retro-progress-bar-bg" style={{ position: 'relative' }}>
                   <div 
                     className="retro-progress-bar-fill" 
                     style={{ width: `${nut.barValue}%`, backgroundColor: getNutritionColor(nut.name) }}
+                  />
+                  <span
+                    title={`Target ${nut.targetPercent}%`}
+                    style={{
+                      position: 'absolute',
+                      left: `${nut.targetMarker}%`,
+                      top: '-3px',
+                      width: '2px',
+                      height: '14px',
+                      backgroundColor: '#111827',
+                      opacity: 0.65,
+                      borderRadius: '2px',
+                      transform: 'translateX(-1px)'
+                    }}
                   />
                 </div>
               </div>
             ))}
             <div style={{ marginTop: 'auto', paddingTop: '10px', fontSize: '11px', color: 'var(--accent-light)', fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>
               {nutritionData.length === 0
-                ? 'Menunggu data nutrisi bahan pakan'
-                : `Berdasarkan formulasi ${nutritionTab.toLowerCase()} - ${nutritionTargetReached ? 'Target terpenuhi' : 'Perlu penyesuaian'}`}
+                ? 'Menunggu transaksi konsumsi pakan'
+                : `Berdasarkan konsumsi ${getNutritionPeriodLabel(nutritionTab)} - ${nutritionTargetReached ? 'Target terpenuhi' : 'Perlu penyesuaian'}`}
             </div>
             <div style={{ display: 'none' }}>
               Total per ekor/hari - Target terpenuhi ✓
