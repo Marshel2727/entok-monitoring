@@ -1,4 +1,22 @@
-export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const CONFIGURED_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+
+function getBaseUrl() {
+  if (typeof window !== 'undefined') {
+    if (CONFIGURED_BASE_URL?.startsWith('http://') && window.location.protocol === 'https:') {
+      return '/api';
+    }
+
+    if (CONFIGURED_BASE_URL) {
+      return CONFIGURED_BASE_URL;
+    }
+
+    return '/api';
+  }
+
+  return CONFIGURED_BASE_URL || 'http://localhost:5000/api';
+}
+
+export const BASE_URL = getBaseUrl();
 const API_ORIGIN = (() => {
   try {
     return new URL(BASE_URL).origin;
