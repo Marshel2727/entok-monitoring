@@ -15,19 +15,25 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://entok-monitoring.vercel.app"),
   title: "Kelola Komposisi & Formulasi Pakan - Monitoring Entok",
   description: "Sistem Kelola Komposisi & Formulasi Pakan Entok Makmur",
+  applicationName: "Entok Monitoring",
+  alternates: {
+    canonical: "/",
+  },
   openGraph: {
     title: "Kelola Komposisi & Formulasi Pakan - Monitoring Entok",
     description: "Sistem Kelola Komposisi & Formulasi Pakan Entok Makmur",
-    url: "https://entok-monitoring.vercel.app",
+    url: "/",
     siteName: "Entok Monitoring",
     images: [
       {
-        url: "https://entok-monitoring.vercel.app/og-image.png",
+        url: "/og-image.png",
         width: 1200,
         height: 630,
         alt: "Entok Monitoring Preview Banner",
+        type: "image/png",
       },
     ],
     locale: "id_ID",
@@ -37,7 +43,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Kelola Komposisi & Formulasi Pakan - Monitoring Entok",
     description: "Sistem Kelola Komposisi & Formulasi Pakan Entok Makmur",
-    images: ["https://entok-monitoring.vercel.app/og-image.png"],
+    images: ["/og-image.png"],
   },
 };
 
