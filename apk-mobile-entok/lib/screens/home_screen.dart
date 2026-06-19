@@ -61,7 +61,7 @@ class HomeScreen extends StatelessWidget {
                       const SizedBox(height: 16),
                     ],
                     _buildProgressCard(progressPercent, totalSelesai, totalKegiatan),
-                    const SizedBox(height: 42),
+                    const SizedBox(height: 28),
                     _buildChecklistSection(),
                     const SizedBox(height: 24),
                   ],
@@ -129,15 +129,15 @@ class HomeScreen extends StatelessWidget {
           ],
         ),
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(16),
           child: Row(
             children: [
               Stack(
                 alignment: Alignment.center,
                 children: [
                   SizedBox(
-                    width: 74,
-                    height: 74,
+                    width: 64,
+                    height: 64,
                     child: CircularProgressIndicator(
                       value: progress,
                     backgroundColor: const Color(0xFFE2E7F0),
@@ -150,14 +150,14 @@ class HomeScreen extends StatelessWidget {
                   Text(
                     '$progressPercent%',
                     style: const TextStyle(
-                      fontSize: 16,
+                      fontSize: 14,
                       fontWeight: FontWeight.bold,
                       color: Colors.black87,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(width: 20),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -165,7 +165,7 @@ class HomeScreen extends StatelessWidget {
                     const Text(
                       'Progress Hari Ini',
                       style: TextStyle(
-                        fontSize: 19,
+                        fontSize: 17,
                         fontWeight: FontWeight.w900,
                         color: EntokColors.text,
                       ),
@@ -173,7 +173,7 @@ class HomeScreen extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       '${totalKegiatan - totalSelesai} kegiatan belum selesai',
-                      style: const TextStyle(fontSize: 16, color: EntokColors.muted, fontWeight: FontWeight.w600),
+                      style: const TextStyle(fontSize: 14, color: EntokColors.muted, fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 8),
                     const Row(
@@ -183,7 +183,7 @@ class HomeScreen extends StatelessWidget {
                         Expanded(
                           child: Text(
                             'Semangat berkegiatan harian',
-                            style: TextStyle(fontSize: 14, color: EntokColors.greenDark, fontWeight: FontWeight.w800),
+                            style: TextStyle(fontSize: 12, color: EntokColors.greenDark, fontWeight: FontWeight.w800),
                           ),
                         ),
                       ],
@@ -211,7 +211,7 @@ class HomeScreen extends StatelessWidget {
               Text(
                   'CHECKLIST HARI INI',
                   style: TextStyle(
-                  fontSize: 18,
+                  fontSize: 16,
                   fontWeight: FontWeight.w900,
                   color: EntokColors.text,
                 ),
@@ -229,13 +229,13 @@ class HomeScreen extends StatelessWidget {
                 final bool isDone = item['isDone'] ?? false;
 
                 return EntokCard(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(16),
                   radius: 26,
                   child: Row(
                     children: [
                       Container(
-                        width: 62,
-                        height: 62,
+                        width: 54,
+                        height: 54,
                         decoration: BoxDecoration(
                           color: EntokColors.green,
                           borderRadius: BorderRadius.circular(16),
@@ -244,10 +244,10 @@ class HomeScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(16),
                           child: item['imageUrl'] != null
                               ? Image.network(item['imageUrl'], fit: BoxFit.cover)
-                              : Icon(item['icon'] ?? Icons.assignment_rounded, color: Colors.white, size: 34),
+                              : Icon(item['icon'] ?? Icons.assignment_rounded, color: Colors.white, size: 30),
                         ),
                       ),
-                      const SizedBox(width: 18),
+                      const SizedBox(width: 14),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -255,7 +255,7 @@ class HomeScreen extends StatelessWidget {
                             Text(
                               item['title'] ?? '',
                               style: const TextStyle(
-                                fontSize: 23,
+                                fontSize: 19,
                                 fontWeight: FontWeight.w900,
                                 color: EntokColors.text,
                                 decoration: TextDecoration.none,
@@ -265,7 +265,7 @@ class HomeScreen extends StatelessWidget {
                             Text(
                               item['desc'] ?? item['time'] ?? '',
                               style: const TextStyle(
-                                fontSize: 16,
+                                fontSize: 14,
                                 color: EntokColors.muted,
                                 height: 1.35,
                               ),

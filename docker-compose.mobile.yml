@@ -1,0 +1,18 @@
+services:
+  mobile-apk:
+    build:
+      context: ./apk-mobile-entok
+      dockerfile: Dockerfile
+    working_dir: /app
+    volumes:
+      - ./apk-mobile-entok:/app
+      - flutter-pub-cache:/root/.pub-cache
+      - flutter-gradle-cache:/root/.gradle
+    command: >
+      sh -lc "if [ ! -d android ]; then flutter create . --platforms=android --project-name penjaga_entok --org com.entok; fi &&
+      flutter pub get &&
+      flutter build apk --debug"
+
+volumes:
+  flutter-pub-cache:
+  flutter-gradle-cache:

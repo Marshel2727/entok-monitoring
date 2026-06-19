@@ -85,18 +85,18 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               Expanded(
                 child: ListView(
-                  padding: const EdgeInsets.fromLTRB(30, 54, 30, 28),
+                  padding: const EdgeInsets.fromLTRB(24, 36, 24, 24),
                   children: [
                     const Text(
                       'Login Akun',
-                      style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: EntokColors.text),
+                      style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: EntokColors.text),
                     ),
                     const SizedBox(height: 18),
                     const Text(
                       'Kelola kandang entok Anda dengan lebih mudah dan terorganisir.',
-                      style: TextStyle(fontSize: 20, color: EntokColors.muted, height: 1.35, fontWeight: FontWeight.w500),
+                      style: TextStyle(fontSize: 16, color: EntokColors.muted, height: 1.35, fontWeight: FontWeight.w500),
                     ),
-                    const SizedBox(height: 54),
+                    const SizedBox(height: 36),
                     if (_error != null) ...[
                       _ErrorBanner(message: _error!),
                       const SizedBox(height: 18),
@@ -132,7 +132,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           'Lupa Password?',
                           style: TextStyle(
                             color: EntokColors.green.withValues(alpha: 0.65),
-                            fontSize: 16,
+                            fontSize: 14,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
@@ -149,13 +149,13 @@ class _LoginScreenState extends State<LoginScreen> {
                       children: [
                         const Text(
                           'Belum punya akun? ',
-                          style: TextStyle(color: EntokColors.muted, fontSize: 16, fontWeight: FontWeight.w500),
+                          style: TextStyle(color: EntokColors.muted, fontSize: 14, fontWeight: FontWeight.w500),
                         ),
                         GestureDetector(
                           onTap: _isLoading ? null : _openRegisterPage,
                           child: const Text(
                             'Daftar Sekarang',
-                            style: TextStyle(color: EntokColors.green, fontSize: 16, fontWeight: FontWeight.w900),
+                            style: TextStyle(color: EntokColors.green, fontSize: 14, fontWeight: FontWeight.w900),
                           ),
                         ),
                       ],
@@ -240,18 +240,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               Expanded(
                 child: ListView(
-                  padding: const EdgeInsets.fromLTRB(30, 54, 30, 28),
+                  padding: const EdgeInsets.fromLTRB(24, 36, 24, 24),
                   children: [
                     const Text(
                       'Pendaftaran Akun',
-                      style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: EntokColors.text),
+                      style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: EntokColors.text),
                     ),
                     const SizedBox(height: 18),
                     const Text(
                       'Isi formulir di bawah ini untuk mendaftar sebagai penjaga kandang.',
-                      style: TextStyle(fontSize: 20, color: EntokColors.muted, height: 1.35, fontWeight: FontWeight.w500),
+                      style: TextStyle(fontSize: 16, color: EntokColors.muted, height: 1.35, fontWeight: FontWeight.w500),
                     ),
-                    const SizedBox(height: 48),
+                    const SizedBox(height: 34),
                     if (_error != null) ...[
                       _ErrorBanner(message: _error!),
                       const SizedBox(height: 18),
@@ -282,7 +282,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 54),
+                    const SizedBox(height: 38),
                     EntokPrimaryButton(
                       label: _isLoading ? 'MENDAFTAR...' : 'DAFTAR SEKARANG',
                       onPressed: _isLoading ? null : _register,
@@ -309,7 +309,7 @@ class _FieldLabel extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 10),
       child: Text(
         label,
-        style: const TextStyle(fontSize: 18, color: EntokColors.text, fontWeight: FontWeight.w900),
+        style: const TextStyle(fontSize: 15, color: EntokColors.text, fontWeight: FontWeight.w900),
       ),
     );
   }

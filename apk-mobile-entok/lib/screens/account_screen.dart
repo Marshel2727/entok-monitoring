@@ -26,12 +26,12 @@ class AccountScreen extends StatelessWidget {
               const EntokTopHeader(title: 'Kelola Akun', showBack: true),
               Expanded(
                 child: ListView(
-                  padding: const EdgeInsets.fromLTRB(30, 34, 30, 28),
+                  padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
                   children: [
                     Center(
                       child: Container(
-                        width: 142,
-                        height: 142,
+                        width: 118,
+                        height: 118,
                         decoration: BoxDecoration(
                           color: Colors.white,
                           shape: BoxShape.circle,
@@ -44,22 +44,22 @@ class AccountScreen extends StatelessWidget {
                             ),
                           ],
                         ),
-                        child: const Icon(Icons.emoji_nature_rounded, color: EntokColors.green, size: 72),
+                        child: const Icon(Icons.emoji_nature_rounded, color: EntokColors.green, size: 60),
                       ),
                     ),
                     const SizedBox(height: 26),
                     Text(
                       name,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 30, color: EntokColors.text, fontWeight: FontWeight.w900),
+                      style: const TextStyle(fontSize: 24, color: EntokColors.text, fontWeight: FontWeight.w900),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       user?.role == 'PENGAWAS' ? 'Pengawas Kandang' : 'Penjaga Kandang',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 18, color: EntokColors.muted, fontWeight: FontWeight.w500),
+                      style: const TextStyle(fontSize: 15, color: EntokColors.muted, fontWeight: FontWeight.w500),
                     ),
-                    const SizedBox(height: 54),
+                    const SizedBox(height: 36),
                     _AccountMenuTile(
                       icon: Icons.person_outline_rounded,
                       title: 'Edit Profil',
@@ -118,7 +118,7 @@ class EditProfileScreen extends StatelessWidget {
               const EntokTopHeader(title: 'Edit Profil', showBack: true),
               Expanded(
                 child: ListView(
-                  padding: const EdgeInsets.fromLTRB(30, 34, 30, 28),
+                  padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
                   children: [
                     Center(
                       child: Stack(
@@ -142,7 +142,7 @@ class EditProfileScreen extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 52),
+                    const SizedBox(height: 34),
                     const _PageFieldLabel('Nama Lengkap'),
                     TextField(
                       controller: TextEditingController(text: user?.name ?? 'Penjaga Entok'),
@@ -205,7 +205,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
               const EntokTopHeader(title: 'Pengaturan Notifikasi', showBack: true),
               Expanded(
                 child: ListView(
-                  padding: const EdgeInsets.fromLTRB(30, 38, 30, 28),
+                  padding: const EdgeInsets.fromLTRB(24, 30, 24, 24),
                   children: [
                     const _SectionTitle('Aktivitas Kandang'),
                     _SwitchTile(icon: Icons.restaurant_rounded, title: 'Pengingat Pakan', subtitle: 'Notifikasi jadwal pakan pagi & sore', value: _settings['Pengingat Pakan']!, onChanged: _set('Pengingat Pakan')),
@@ -249,7 +249,7 @@ class SecurityScreen extends StatelessWidget {
               const EntokTopHeader(title: 'Keamanan Akun', showBack: true),
               Expanded(
                 child: ListView(
-                  padding: const EdgeInsets.fromLTRB(30, 38, 30, 28),
+                  padding: const EdgeInsets.fromLTRB(24, 30, 24, 24),
                   children: [
                     const _SectionTitle('Identitas Pengguna'),
                     EntokCard(
@@ -261,9 +261,9 @@ class SecurityScreen extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(user?.name ?? 'Penjaga Entok', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: EntokColors.text)),
+                                Text(user?.name ?? 'Penjaga Entok', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: EntokColors.text)),
                                 const SizedBox(height: 4),
-                                Text('ID Karyawan: $employeeId', style: const TextStyle(fontSize: 16, color: EntokColors.muted)),
+                                Text('ID Karyawan: $employeeId', style: const TextStyle(fontSize: 13, color: EntokColors.muted)),
                               ],
                             ),
                           ),
@@ -281,9 +281,9 @@ class SecurityScreen extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Android Device', style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900, color: EntokColors.text)),
+                                Text('Android Device', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: EntokColors.text)),
                                 SizedBox(height: 4),
-                                Text('Aktif saat ini', style: TextStyle(fontSize: 16, color: EntokColors.muted)),
+                                Text('Aktif saat ini', style: TextStyle(fontSize: 13, color: EntokColors.muted)),
                               ],
                             ),
                           ),
@@ -302,9 +302,9 @@ class SecurityScreen extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Lokasi Kandang Terdeteksi', style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900, color: EntokColors.text)),
+                                Text('Lokasi Kandang Terdeteksi', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: EntokColors.text)),
                                 SizedBox(height: 4),
-                                Text('Area Peternakan Entok', style: TextStyle(fontSize: 16, color: EntokColors.muted)),
+                                Text('Area Peternakan Entok', style: TextStyle(fontSize: 13, color: EntokColors.muted)),
                               ],
                             ),
                           ),
@@ -355,11 +355,11 @@ class SupportScreen extends StatelessWidget {
               const EntokTopHeader(title: 'Bantuan & Dukungan', showBack: true),
               Expanded(
                 child: ListView(
-                  padding: const EdgeInsets.fromLTRB(30, 38, 30, 28),
+                  padding: const EdgeInsets.fromLTRB(24, 30, 24, 24),
                   children: [
-                    const Text('Ada kendala di kandang?', style: TextStyle(fontSize: 24, color: EntokColors.text, fontWeight: FontWeight.w900)),
+                    const Text('Ada kendala di kandang?', style: TextStyle(fontSize: 20, color: EntokColors.text, fontWeight: FontWeight.w900)),
                     const SizedBox(height: 14),
-                    const Text('Pilih layanan bantuan di bawah ini agar kami segera membantu Anda.', style: TextStyle(fontSize: 19, color: EntokColors.muted, height: 1.35)),
+                    const Text('Pilih layanan bantuan di bawah ini agar kami segera membantu Anda.', style: TextStyle(fontSize: 15, color: EntokColors.muted, height: 1.35)),
                     const SizedBox(height: 38),
                     _SupportTile(icon: Icons.chat_bubble_rounded, title: 'Hubungi Admin via WhatsApp', subtitle: 'Respon cepat untuk masalah mendesak', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ContactAdminScreen()))),
                     _SupportTile(icon: Icons.menu_book_rounded, title: 'Panduan Penggunaan', subtitle: 'Cara mudah mengelola data entok', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UsageGuideScreen()))),
@@ -391,14 +391,14 @@ class ContactAdminScreen extends StatelessWidget {
               const EntokTopHeader(title: 'Hubungi Admin', showBack: true),
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(30, 120, 30, 28),
+                  padding: const EdgeInsets.fromLTRB(24, 80, 24, 24),
                   child: Column(
                     children: [
-                      const CircleAvatar(radius: 72, backgroundColor: EntokColors.mint, child: Icon(Icons.chat_bubble_rounded, color: EntokColors.green, size: 72)),
+                      const CircleAvatar(radius: 58, backgroundColor: EntokColors.mint, child: Icon(Icons.chat_bubble_rounded, color: EntokColors.green, size: 58)),
                       const SizedBox(height: 56),
-                      const Text('Butuh Bantuan?', textAlign: TextAlign.center, style: TextStyle(fontSize: 32, color: EntokColors.text, fontWeight: FontWeight.w900)),
+                      const Text('Butuh Bantuan?', textAlign: TextAlign.center, style: TextStyle(fontSize: 26, color: EntokColors.text, fontWeight: FontWeight.w900)),
                       const SizedBox(height: 24),
-                      const Text('Tim admin kami siap membantu Anda. Tekan tombol di bawah untuk menyalin nomor WhatsApp kami.', textAlign: TextAlign.center, style: TextStyle(fontSize: 19, color: EntokColors.muted, height: 1.35)),
+                      const Text('Tim admin kami siap membantu Anda. Tekan tombol di bawah untuk menyalin nomor WhatsApp kami.', textAlign: TextAlign.center, style: TextStyle(fontSize: 15, color: EntokColors.muted, height: 1.35)),
                       const Spacer(),
                       EntokPrimaryButton(label: 'SALIN NOMOR WHATSAPP', icon: Icons.phone_android_rounded, onPressed: () => Navigator.pop(context)),
                     ],
@@ -434,9 +434,9 @@ class UsageGuideScreen extends StatelessWidget {
               const EntokTopHeader(title: 'Panduan Penggunaan', showBack: true),
               Expanded(
                 child: ListView(
-                  padding: const EdgeInsets.fromLTRB(30, 38, 30, 28),
+                  padding: const EdgeInsets.fromLTRB(24, 30, 24, 24),
                   children: [
-                    const Text('Cara Mengelola Kandang', style: TextStyle(fontSize: 26, color: EntokColors.text, fontWeight: FontWeight.w900)),
+                    const Text('Cara Mengelola Kandang', style: TextStyle(fontSize: 21, color: EntokColors.text, fontWeight: FontWeight.w900)),
                     const SizedBox(height: 28),
                     for (var i = 0; i < items.length; i++) ...[
                       EntokCard(
@@ -455,9 +455,9 @@ class UsageGuideScreen extends StatelessWidget {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(items[i].$1, style: const TextStyle(fontSize: 22, color: EntokColors.text, fontWeight: FontWeight.w900)),
+                                  Text(items[i].$1, style: const TextStyle(fontSize: 18, color: EntokColors.text, fontWeight: FontWeight.w900)),
                                   const SizedBox(height: 12),
-                                  Text(items[i].$2, style: const TextStyle(fontSize: 18, color: EntokColors.muted, height: 1.45)),
+                                  Text(items[i].$2, style: const TextStyle(fontSize: 14, color: EntokColors.muted, height: 1.45)),
                                 ],
                               ),
                             ),
@@ -489,14 +489,14 @@ class _AccountMenuTile extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 18),
       child: EntokCard(
-        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 15),
         child: InkWell(
           onTap: onTap,
           child: Row(
             children: [
               EntokIconBox(icon: icon),
-              const SizedBox(width: 22),
-              Expanded(child: Text(title, style: const TextStyle(fontSize: 21, color: EntokColors.text, fontWeight: FontWeight.w900))),
+              const SizedBox(width: 16),
+              Expanded(child: Text(title, style: const TextStyle(fontSize: 17, color: EntokColors.text, fontWeight: FontWeight.w900))),
               const Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 34),
             ],
           ),
@@ -519,20 +519,20 @@ class _SupportTile extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 22),
       child: EntokCard(
-        padding: const EdgeInsets.all(22),
+        padding: const EdgeInsets.all(18),
         child: InkWell(
           onTap: onTap,
           child: Row(
             children: [
               EntokIconBox(icon: icon),
-              const SizedBox(width: 22),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: const TextStyle(fontSize: 21, color: EntokColors.text, fontWeight: FontWeight.w900)),
+                    Text(title, style: const TextStyle(fontSize: 17, color: EntokColors.text, fontWeight: FontWeight.w900)),
                     const SizedBox(height: 6),
-                    Text(subtitle, style: const TextStyle(fontSize: 17, color: EntokColors.muted, height: 1.25)),
+                    Text(subtitle, style: const TextStyle(fontSize: 14, color: EntokColors.muted, height: 1.25)),
                   ],
                 ),
               ),
@@ -559,18 +559,18 @@ class _SwitchTile extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 22),
       child: EntokCard(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         child: Row(
           children: [
             EntokIconBox(icon: icon),
-            const SizedBox(width: 22),
+            const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: const TextStyle(fontSize: 22, color: Colors.black, fontWeight: FontWeight.w900)),
+                  Text(title, style: const TextStyle(fontSize: 17, color: Colors.black, fontWeight: FontWeight.w900)),
                   const SizedBox(height: 6),
-                  Text(subtitle, style: const TextStyle(fontSize: 17, color: Colors.black54, height: 1.25)),
+                  Text(subtitle, style: const TextStyle(fontSize: 14, color: Colors.black54, height: 1.25)),
                 ],
               ),
             ),
@@ -591,7 +591,7 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 18),
-      child: Text(title, style: const TextStyle(fontSize: 22, color: EntokColors.muted, fontWeight: FontWeight.w900)),
+      child: Text(title, style: const TextStyle(fontSize: 18, color: EntokColors.muted, fontWeight: FontWeight.w900)),
     );
   }
 }
@@ -605,7 +605,7 @@ class _PageFieldLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: Text(label, style: const TextStyle(fontSize: 18, color: EntokColors.text, fontWeight: FontWeight.w900)),
+      child: Text(label, style: const TextStyle(fontSize: 15, color: EntokColors.text, fontWeight: FontWeight.w900)),
     );
   }
 }

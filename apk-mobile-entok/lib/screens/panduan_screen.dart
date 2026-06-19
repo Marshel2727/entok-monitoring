@@ -49,13 +49,13 @@ class _PanduanScreenState extends State<PanduanScreen> {
           ),
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(24, 26, 24, 28),
+              padding: const EdgeInsets.fromLTRB(20, 22, 20, 24),
               children: [
                 _SegmentedTabs(
                   selectedIndex: _selectedTab,
                   onChanged: (index) => setState(() => _selectedTab = index),
                 ),
-                const SizedBox(height: 36),
+                const SizedBox(height: 26),
                 if (_selectedTab == 0) ...[
                   for (var i = 0; i < listPanduan.length; i++)
                     _GuideTile(
@@ -162,7 +162,7 @@ class _SegmentedTabs extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 72,
+      height: 62,
       padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
         color: const Color(0xFFF0F3F8),
@@ -201,7 +201,7 @@ class _SegmentedTabs extends StatelessWidget {
             label,
             style: TextStyle(
               color: active ? Colors.white : const Color(0xFF9CA8B8),
-              fontSize: 18,
+              fontSize: 15,
               fontWeight: FontWeight.w900,
             ),
           ),
@@ -226,32 +226,32 @@ class _GuideTile extends StatelessWidget {
         color: const Color(0xFFEAF8F1),
         borderColor: const Color(0xFFC8F0DC),
         radius: 24,
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         elevated: false,
         child: InkWell(
           onTap: onTap,
           child: Row(
             children: [
               Container(
-                width: 72,
-                height: 72,
+                width: 60,
+                height: 60,
                 decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
-                child: Icon(data.iconTopik, color: EntokColors.green, size: 38),
+                child: Icon(data.iconTopik, color: EntokColors.green, size: 32),
               ),
-              const SizedBox(width: 22),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('PANDUAN $number', style: const TextStyle(color: EntokColors.green, fontSize: 17, fontWeight: FontWeight.w900)),
+                    Text('PANDUAN $number', style: const TextStyle(color: EntokColors.green, fontSize: 13, fontWeight: FontWeight.w900)),
                     const SizedBox(height: 8),
-                    Text(data.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: EntokColors.text, fontSize: 26, fontWeight: FontWeight.w900)),
+                    Text(data.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: EntokColors.text, fontSize: 20, fontWeight: FontWeight.w900)),
                   ],
                 ),
               ),
               Container(
-                width: 54,
-                height: 54,
+                width: 46,
+                height: 46,
                 decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: const Color(0xFFE2EFE8))),
                 child: const Icon(Icons.arrow_forward_rounded, color: EntokColors.green, size: 30),
               ),
@@ -281,7 +281,7 @@ class _RecipeCard extends StatelessWidget {
         color: const Color(0xFFEAF8F1),
         borderColor: const Color(0xFFC8F0DC),
         radius: 24,
-        padding: const EdgeInsets.all(22),
+        padding: const EdgeInsets.all(18),
         elevated: false,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -291,20 +291,20 @@ class _RecipeCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     formulation.fase.toUpperCase(),
-                    style: const TextStyle(color: EntokColors.green, fontSize: 18, fontWeight: FontWeight.w900),
+                    style: const TextStyle(color: EntokColors.green, fontSize: 14, fontWeight: FontWeight.w900),
                   ),
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
                   decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
-                  child: Text('Total: ${_fmt(totalKg)} kg', style: const TextStyle(color: EntokColors.green, fontSize: 16, fontWeight: FontWeight.w900)),
+                  child: Text('Total: ${_fmt(totalKg)} kg', style: const TextStyle(color: EntokColors.green, fontSize: 13, fontWeight: FontWeight.w900)),
                 ),
               ],
             ),
             const SizedBox(height: 22),
-            Text(formulation.kategori, style: const TextStyle(color: EntokColors.text, fontSize: 23, fontWeight: FontWeight.w900)),
+            Text(formulation.kategori, style: const TextStyle(color: EntokColors.text, fontSize: 18, fontWeight: FontWeight.w900)),
             const SizedBox(height: 10),
-            Text('Target: ${_fmt(formulation.targetKonsumsi)} g/ekor ($population Ekor)', style: const TextStyle(color: EntokColors.muted, fontSize: 17, fontWeight: FontWeight.w700)),
+            Text('Target: ${_fmt(formulation.targetKonsumsi)} g/ekor ($population Ekor)', style: const TextStyle(color: EntokColors.muted, fontSize: 14, fontWeight: FontWeight.w700)),
             const SizedBox(height: 26),
             const Divider(color: Color(0xFF9CE0BE)),
             const SizedBox(height: 16),
@@ -343,12 +343,12 @@ class _IngredientLine extends StatelessWidget {
         children: [
           const Icon(Icons.check_circle_outline_rounded, color: EntokColors.green, size: 24),
           const SizedBox(width: 14),
-          Expanded(child: Text(name, style: const TextStyle(color: EntokColors.text, fontSize: 20, fontWeight: FontWeight.w900))),
+          Expanded(child: Text(name, style: const TextStyle(color: EntokColors.text, fontSize: 16, fontWeight: FontWeight.w900))),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text('${_fmt(kg)} kg', style: const TextStyle(color: EntokColors.text, fontSize: 20, fontWeight: FontWeight.w900)),
-              if (feed != null) Text('Sisa: ${_fmt(feed.stok)} kg', style: const TextStyle(color: Color(0xFF9CA8B8), fontSize: 14, fontWeight: FontWeight.w700)),
+              Text('${_fmt(kg)} kg', style: const TextStyle(color: EntokColors.text, fontSize: 16, fontWeight: FontWeight.w900)),
+              if (feed != null) Text('Sisa: ${_fmt(feed.stok)} kg', style: const TextStyle(color: Color(0xFF9CA8B8), fontSize: 11, fontWeight: FontWeight.w700)),
             ],
           ),
         ],

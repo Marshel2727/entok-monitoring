@@ -18,7 +18,6 @@ class EntokTheme {
     return ThemeData(
       scaffoldBackgroundColor: EntokColors.background,
       colorScheme: ColorScheme.fromSeed(seedColor: EntokColors.green),
-      fontFamily: 'Sans-Serif',
       useMaterial3: true,
       textTheme: const TextTheme(
         headlineLarge: TextStyle(color: EntokColors.text, fontWeight: FontWeight.w900),
@@ -54,7 +53,7 @@ class EntokTopHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(28, MediaQuery.of(context).padding.top + 26, 28, 34),
+      padding: EdgeInsets.fromLTRB(24, MediaQuery.of(context).padding.top + 22, 24, 28),
       decoration: BoxDecoration(
         color: EntokColors.green,
         borderRadius: const BorderRadius.only(
@@ -88,7 +87,7 @@ class EntokTopHeader extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 30,
+                    fontSize: 26,
                     height: 1.12,
                     fontWeight: FontWeight.w900,
                   ),
@@ -101,7 +100,7 @@ class EntokTopHeader extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Color(0xE9FFFFFF),
-                      fontSize: 17,
+                      fontSize: 15,
                       height: 1.28,
                       fontWeight: FontWeight.w600,
                     ),
@@ -111,12 +110,12 @@ class EntokTopHeader extends StatelessWidget {
             ),
           ),
           if (actionIcon != null || badgeIcon != null) ...[
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
             GestureDetector(
               onTap: onAction,
               child: Container(
-                width: 58,
-                height: 58,
+                width: 52,
+                height: 52,
                 decoration: BoxDecoration(
                   color: EntokColors.mint,
                   shape: BoxShape.circle,
@@ -128,7 +127,7 @@ class EntokTopHeader extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: Icon(actionIcon ?? badgeIcon, color: EntokColors.green, size: 31),
+                child: Icon(actionIcon ?? badgeIcon, color: EntokColors.green, size: 28),
               ),
             ),
           ],
@@ -186,7 +185,7 @@ InputDecoration entokInputDecoration(String label, IconData icon, {Widget? suffi
     suffixIcon: suffixIcon,
     filled: true,
     fillColor: Colors.white,
-    contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 22),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
     border: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: const BorderSide(color: EntokColors.border)),
     enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: const BorderSide(color: EntokColors.border)),
     focusedBorder: OutlineInputBorder(
@@ -214,7 +213,7 @@ class EntokPrimaryButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: 58,
+      height: 54,
       child: ElevatedButton.icon(
         onPressed: onPressed,
         icon: icon == null ? const SizedBox.shrink() : Icon(icon, size: 22),
@@ -223,8 +222,8 @@ class EntokPrimaryButton extends StatelessWidget {
           style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.w900,
-            fontSize: 16,
-            letterSpacing: 1.3,
+            fontSize: 14,
+            letterSpacing: 1.0,
           ),
         ),
         style: ElevatedButton.styleFrom(

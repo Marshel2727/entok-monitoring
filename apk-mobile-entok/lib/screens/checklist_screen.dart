@@ -74,7 +74,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                           padding: EdgeInsets.symmetric(horizontal: 20),
                           child: Text(
                             'LIST KEGIATAN HARI INI',
-                            style: TextStyle(fontSize: 20, color: EntokColors.text, fontWeight: FontWeight.w900),
+                            style: TextStyle(fontSize: 16, color: EntokColors.text, fontWeight: FontWeight.w900),
                           ),
                         ),
                         const SizedBox(height: 22),
@@ -132,7 +132,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
         decoration: BoxDecoration(
           color: EntokColors.mint,
           borderRadius: BorderRadius.circular(24),
@@ -151,8 +151,8 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
               alignment: Alignment.center,
               children: [
                 SizedBox(
-                  width: 74,
-                  height: 74,
+                  width: 64,
+                  height: 64,
                   child: CircularProgressIndicator(
                     value: widget.progress,
                     backgroundColor: const Color(0xFFE2E7F0),
@@ -163,11 +163,11 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                 ),
                 Text(
                   '$progressPercent%',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87),
                 ),
               ],
             ),
-            const SizedBox(width: 20),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -175,12 +175,12 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                 children: [
                   const Text(
                     'Progress Harian',
-                    style: TextStyle(fontSize: 20, color: EntokColors.text, fontWeight: FontWeight.w900),
+                    style: TextStyle(fontSize: 17, color: EntokColors.text, fontWeight: FontWeight.w900),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     '$totalSelesai/$totalKegiatan selesai',
-                    style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: EntokColors.muted),
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: EntokColors.muted),
                   ),
                   const SizedBox(height: 8),
                   const Row(
@@ -264,7 +264,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                   });
                 },
                 child: Container(
-                  padding: const EdgeInsets.all(18),
+                  padding: const EdgeInsets.all(15),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(28),
@@ -290,7 +290,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                           Text(
                             item['time'] ?? '',
                             style: const TextStyle(
-                              fontSize: 16,
+                              fontSize: 13,
                               color: Color(0xFFD05D62),
                               fontWeight: FontWeight.w900,
                             ),
@@ -302,19 +302,19 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _taskAvatar(item),
-                          const SizedBox(width: 16),
+                          const SizedBox(width: 12),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   item['title'] ?? '',
-                                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 26, color: EntokColors.text),
+                                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: EntokColors.text),
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
                                   item['desc'] ?? '',
-                                  style: const TextStyle(fontSize: 17, height: 1.35, color: EntokColors.muted, fontWeight: FontWeight.w600),
+                                  style: const TextStyle(fontSize: 14, height: 1.35, color: EntokColors.muted, fontWeight: FontWeight.w600),
                                 ),
                               ],
                             ),
@@ -367,8 +367,8 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
   Widget _taskAvatar(Map<String, dynamic> item) {
     final imageUrl = '${item['imageUrl'] ?? ''}';
     return Container(
-      width: 64,
-      height: 64,
+      width: 54,
+      height: 54,
       decoration: BoxDecoration(color: EntokColors.green, borderRadius: BorderRadius.circular(16)),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
@@ -376,9 +376,9 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
             ? Image.network(
                 imageUrl,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Icon(item['icon'] ?? Icons.assignment, color: Colors.white, size: 34),
+                errorBuilder: (_, __, ___) => Icon(item['icon'] ?? Icons.assignment, color: Colors.white, size: 30),
               )
-            : Icon(item['icon'] ?? Icons.assignment, color: Colors.white, size: 34),
+            : Icon(item['icon'] ?? Icons.assignment, color: Colors.white, size: 30),
       ),
     );
   }

@@ -17,6 +17,22 @@ class MyApp extends StatelessWidget {
       title: 'Dashboard Penjaga Entok',
       debugShowCheckedModeBanner: false,
       theme: EntokTheme.data(),
+      builder: (context, child) {
+        final media = MediaQuery.of(context);
+        final width = media.size.width;
+        final scale = width < 360
+            ? 0.82
+            : width < 390
+                ? 0.88
+                : width < 430
+                    ? 0.92
+                    : 0.96;
+
+        return MediaQuery(
+          data: media.copyWith(textScaler: TextScaler.linear(scale)),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       home: const AuthGate(),
     );
   }
