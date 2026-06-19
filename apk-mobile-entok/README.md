@@ -35,26 +35,20 @@ Kalau belum ingin install Flutter lokal, APK bisa dibuild lewat Docker dari root
 
 ```bash
 cd "C:\PROJECT WEB\ENTOK"
-docker compose -f docker-compose.mobile.yml run --rm mobile-apk
+docker compose --profile apk run --rm apk-mobile
 ```
 
 Perintah itu akan membuat folder Android jika belum ada, mengambil dependency Flutter, lalu build APK debug.
 Hasil APK ada di:
 
 ```text
-C:\PROJECT WEB\ENTOK\apk-mobile-entok\build\app\outputs\flutter-apk\app-debug.apk
+C:\PROJECT WEB\ENTOK\apk-mobile-entok\build-output\penjaga-entok-debug.apk
 ```
 
-Untuk build release:
-
-```bash
-docker compose -f docker-compose.mobile.yml run --rm mobile-apk sh -lc "flutter pub get && flutter build apk --release"
-```
-
-Hasil release ada di:
+Kalau ingin mengambil APK dari folder build Flutter asli, file debug juga ada di dalam container path:
 
 ```text
-C:\PROJECT WEB\ENTOK\apk-mobile-entok\build\app\outputs\flutter-apk\app-release.apk
+build/app/outputs/flutter-apk/app-debug.apk
 ```
 
 ## Catatan

@@ -11,4 +11,4 @@ RUN flutter pub get
 
 COPY . .
 
-CMD ["sh", "-lc", "if [ ! -d android ]; then flutter create . --platforms=android --project-name penjaga_entok --org com.entok; fi && flutter pub get && flutter build apk --debug"]
+CMD ["sh", "-lc", "if [ ! -d android ]; then flutter create . --platforms=android --project-name penjaga_entok --org com.entok; fi && flutter pub get && flutter build apk --debug && mkdir -p /output && cp build/app/outputs/flutter-apk/app-debug.apk /output/penjaga-entok-debug.apk"]

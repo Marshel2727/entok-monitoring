@@ -56,6 +56,15 @@ services:
     depends_on:
       - backend
 
+  apk-mobile:
+    profiles:
+      - apk
+    build:
+      context: ./apk-mobile-entok
+    container_name: entok_apk_mobile_builder
+    volumes:
+      - ./apk-mobile-entok/build-output:/output
+
 volumes:
   entok_mysql_data:
   entok_uploads:
