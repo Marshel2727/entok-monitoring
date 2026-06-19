@@ -274,6 +274,7 @@ class FeedingBatchIngredientSchema(BaseSchema):
 
 
 class FeedingBatchScaleReadingSchema(BaseSchema):
+    batch_id = UUIDString(allow_none=True)
     timbangan_id = fields.Int(load_default=2, validate=validate.Range(min=1))
     label = fields.Str(validate=validate.Length(min=1, max=100))
     feed_name = fields.Str(validate=validate.Length(min=1, max=100))
@@ -298,6 +299,7 @@ class FeedingBatchScaleReadingSchema(BaseSchema):
 
 
 class FeedingBatchScaleReadingBulkItemSchema(BaseSchema):
+    batch_id = UUIDString(allow_none=True)
     timbangan_id = fields.Int(validate=validate.Range(min=1))
     label = fields.Str(validate=validate.Length(min=1, max=100))
     feed_name = fields.Str(validate=validate.Length(min=1, max=100))
@@ -323,6 +325,7 @@ class FeedingBatchScaleReadingBulkItemSchema(BaseSchema):
 
 
 class FeedingBatchScaleReadingBulkSchema(BaseSchema):
+    batch_id = UUIDString(allow_none=True)
     timbangan_id = fields.Int(load_default=2, validate=validate.Range(min=1))
     date = fields.Str(allow_none=True, validate=validate.Regexp(r'^\d{4}-\d{2}-\d{2}$', error='Format tanggal harus YYYY-MM-DD.'))
     unit = fields.Str(load_default='kg', validate=validate.Length(min=1, max=20))

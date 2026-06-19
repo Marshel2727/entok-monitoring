@@ -52,8 +52,9 @@ def get_scale_map():
     """
     timbangan_id = request.args.get('timbangan_id', default=2, type=int)
     date_str = request.args.get('date')
+    batch_id = request.args.get('batch_id')
 
-    res, code = feeding_batch_service.get_scale_map(timbangan_id, date_str)
+    res, code = feeding_batch_service.get_scale_map(timbangan_id, date_str, batch_id=batch_id)
     return jsonify(res), code
 
 
@@ -61,7 +62,7 @@ def get_scale_map():
 def record_scale_reading():
     """
     Endpoint perangkat Timbangan 2.
-    Body: { timbangan_id, phase/fase, label/feed_name, value/amount, mode?: SET|ADD, date? }
+    Body: { batch_id?, timbangan_id, phase/fase, label/feed_name, value/amount, mode?: SET|ADD, date? }
     """
     data, error = load_or_error(FeedingBatchScaleReadingSchema(), request.get_json())
     if error:
@@ -75,7 +76,7 @@ def record_scale_reading():
 def record_scale_readings_bulk():
     """
     Endpoint bulk perangkat Timbangan 2.
-    Body: { timbangan_id?, date?, mode?: SET|ADD, items: [{ phase/fase, label/feed_name, value/amount }] }
+    Body: { batch_id?, timbangan_id?, date?, mode?: SET|ADD, items: [{ phase/fase, label/feed_name, value/amount }] }
     """
     data, error = load_or_error(FeedingBatchScaleReadingBulkSchema(), request.get_json())
     if error:

@@ -97,6 +97,7 @@ bool loadScaleMap(bool showMessage) {
 
   JsonArray arr = doc["items"].as<JsonArray>();
   itemCount = 0;
+  setText(activeBatchId, sizeof(activeBatchId), doc["batch_id"] | "");
 
   for (JsonObject obj : arr) {
     if (itemCount >= MAX_ITEMS) {
@@ -134,6 +135,7 @@ bool loadScaleMap(bool showMessage) {
 }
 
 void resetLocalDataAfterSend() {
+  activeBatchId[0] = '\0';
   itemCount = 0;
   currentIndex = 0;
   jumpInput = "";
@@ -175,6 +177,10 @@ void sendBulkData() {
   doc["timbangan_id"] = TIMBANGAN_ID;
   doc["mode"] = "SET";
   doc["unit"] = "kg";
+
+  if (strlen(activeBatchId) > 0) {
+    doc["batch_id"] = activeBatchId;
+  }
 
   JsonArray arr = doc.createNestedArray("items");
 

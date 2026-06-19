@@ -385,6 +385,37 @@ def _get_active_batch_for_scale(date_str, user_id=None):
     return batch, None, 200
 
 
+def _get_batch_for_scale(date_str=None, user_id=None, batch_id=None):
+    if not batch_id:
+        return _get_active_batch_for_scale(date_str, user_id)
+
+    batch = FeedingBatch.query.get(batch_id)
+    if not batch:
+        return None, {'status': 'error', 'message': 'Batch racikan dari timbangan tidak ditemukan'}, 404
+    if batch.status != 'PREPARING':
+        return None, {'status': 'error', 'message': 'Batch racikan sudah tidak bisa menerima data timbangan'}, 400
+
+    if date_str:
+        batch_date, error = _parse_date(date_str)
+        if error:
+            return None, error, 400
+        if batch.batch_date != batch_date:
+            return None, {'status': 'error', 'message': 'Tanggal data timbangan tidak cocok dengan batch racikan'}, 400
+
+    response, code = create_batch(
+        user_id,
+        batch.batch_date.isoformat() if batch.batch_date else date_str,
+        batch.task_id,
+        batch.task_execution_id
+    )
+    if code not in (200, 201):
+        return None, response, code
+
+    resolved_batch_id = response.get('data', {}).get('id') or batch.id
+    batch = FeedingBatch.query.get(resolved_batch_id) or batch
+    return batch, None, 200
+
+
 def _scale_map_items(batch):
     ingredients = sorted(
         batch.ingredients,
@@ -419,7 +450,7 @@ def _scale_map_items(batch):
     return items
 
 
-def get_scale_map(timbangan_id=2, date_str=None, user_id=None):
+def get_scale_map(timbangan_id=2, date_str=None, user_id=None, batch_id=None):
     """
     Daftar urutan timbang untuk ESP32 Timbangan 2.
     ESP32 memakai response ini untuk mode timbang berurutan di LCD.
@@ -430,7 +461,7 @@ def get_scale_map(timbangan_id=2, date_str=None, user_id=None):
     if timbangan.tipe != 'MULTI':
         return {'status': 'error', 'message': 'Scale map hanya tersedia untuk timbangan tipe MULTI'}, 400
 
-    batch, error, code = _get_active_batch_for_scale(date_str, user_id)
+    batch, error, code = _get_batch_for_scale(date_str, user_id, batch_id)
     if error:
         return error, code
 
@@ -550,13 +581,13 @@ def _apply_scale_reading_to_batch(batch, timbangan, reading_data):
 def record_scale_reading(data, user_id=None):
     """
     Terima data tombol bahan dari Timbangan 2.
-    Payload: { timbangan_id, phase, label, value, mode?: SET|ADD, date? }
+    Payload: { batch_id?, timbangan_id, phase, label, value, mode?: SET|ADD, date? }
     """
     reading_data, error, code = _normalize_scale_reading_data(data)
     if error:
         return error, code
 
-    batch, error, code = _get_active_batch_for_scale(data.get('date'), user_id)
+    batch, error, code = _get_batch_for_scale(data.get('date'), user_id, data.get('batch_id'))
     if error:
         return error, code
 
@@ -582,10 +613,15 @@ def record_scale_reading(data, user_id=None):
 def record_scale_readings_bulk(data, user_id=None):
     """
     Terima beberapa data Timbangan 2 dalam satu request.
-    Payload: { timbangan_id?, date?, mode?, unit?, items: [{ phase, label, value, mode? }] }
+    Payload: { batch_id?, timbangan_id?, date?, mode?, unit?, items: [{ phase, label, value, mode? }] }
     """
     timbangan_id = data.get('timbangan_id', 2)
-    batch, error, code = _get_active_batch_for_scale(data.get('date'), user_id)
+    items = data.get('items') or []
+    batch_id = data.get('batch_id')
+    if not batch_id and items:
+        batch_id = items[0].get('batch_id')
+
+    batch, error, code = _get_batch_for_scale(data.get('date'), user_id, batch_id)
     if error:
         return error, code
 
@@ -597,9 +633,10 @@ def record_scale_readings_bulk(data, user_id=None):
 
     applied_items = []
     try:
-        for index, item in enumerate(data.get('items') or [], start=1):
+        for index, item in enumerate(items, start=1):
             item_data = {
                 **item,
+                'batch_id': item.get('batch_id') or batch_id,
                 'timbangan_id': item.get('timbangan_id') or timbangan_id,
                 'date': item.get('date') or data.get('date'),
                 'unit': item.get('unit') or data.get('unit') or 'kg',

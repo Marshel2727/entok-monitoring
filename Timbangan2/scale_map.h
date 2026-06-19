@@ -16,6 +16,7 @@ struct ScaleItem {
 };
 
 ScaleItem scaleItems[MAX_ITEMS];
+char activeBatchId[60] = "";
 
 int itemCount = 0;
 int currentIndex = 0;

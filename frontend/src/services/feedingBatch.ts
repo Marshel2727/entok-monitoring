@@ -76,10 +76,11 @@ export const feedingBatchService = {
     return res.data || [];
   },
 
-  getScaleMap: async (params: { timbanganId?: string | number; dateStr?: string } = {}) => {
+  getScaleMap: async (params: { timbanganId?: string | number; dateStr?: string; batchId?: string } = {}) => {
     const query = new URLSearchParams();
     query.set('timbangan_id', String(params.timbanganId || 2));
     if (params.dateStr) query.set('date', params.dateStr);
+    if (params.batchId) query.set('batch_id', params.batchId);
 
     return api.getCached<FeedingBatchScaleMap>(`/feeding-batches/scale-map?${query.toString()}`, 5000);
   },
@@ -105,6 +106,7 @@ export const feedingBatchService = {
   },
 
   recordScaleReading: async (payload: {
+    batch_id?: string;
     timbangan_id?: string | number;
     phase: string;
     label: string;

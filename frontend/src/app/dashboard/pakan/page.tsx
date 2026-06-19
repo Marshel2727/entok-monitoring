@@ -75,6 +75,24 @@ export default function PakanPage() {
     }
   };
 
+  const resolveScaleTargetBatch = async (dateStr: string) => {
+    const batches = await feedingBatchService.getTodayBatches(dateStr);
+    const preparingBatches = batches
+      .filter((batch) => batch.status === 'PREPARING')
+      .sort((a, b) => {
+        const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return bTime - aTime;
+      });
+
+    return (
+      preparingBatches.find((batch) => batch.task_execution_id) ||
+      preparingBatches.find((batch) => batch.task_id) ||
+      preparingBatches.find((batch) => !batch.task_id && !batch.task_execution_id) ||
+      null
+    );
+  };
+
   const handleScaleReading = async (
     timbanganId: string | number,
     value: number,
@@ -84,13 +102,17 @@ export default function PakanPage() {
   ) => {
     try {
       const selectedScale = timbangans.find((item) => String(item.id) === String(timbanganId));
+      const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Makassar' });
+      const targetBatch = selectedScale?.tipe === 'MULTI' ? await resolveScaleTargetBatch(today) : null;
       const res = selectedScale?.tipe === 'MULTI'
         ? await feedingBatchService.recordScaleReading({
+            batch_id: targetBatch?.id,
             timbangan_id: timbanganId,
             phase: phase || '',
             label: label || '',
             value,
             mode: 'SET',
+            date: today,
           })
         : await timbanganService.postReading(timbanganId, value, label, feedId, 'kg');
 
@@ -105,7 +127,7 @@ export default function PakanPage() {
   const handleScaleComposition = async (timbanganId: string | number, phase: string) => {
     try {
       const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Makassar' });
-      const batch = await feedingBatchService.createBatch(today);
+      const batch = await resolveScaleTargetBatch(today) || await feedingBatchService.createBatch(today);
       if (batch.status !== 'PREPARING') {
         throw new Error('Batch racikan hari ini sudah final. Buat hari baru atau batalkan batch yang masih diracik.');
       }
@@ -129,6 +151,7 @@ export default function PakanPage() {
 
       for (const item of phaseItems) {
         await feedingBatchService.recordScaleReading({
+          batch_id: batch.id,
           timbangan_id: timbanganId,
           phase: item.phase,
           label: item.feed_name,
