@@ -58,6 +58,7 @@ bool loadScaleMap(bool showMessage) {
     printLine(1, "Tunggu...");
   }
 
+  activeBatchId[0] = '\0';
   String url = String(API_BASE_URL) + "/feeding-batches/scale-map?timbangan_id=" + String(TIMBANGAN_ID);
 
   Serial.print("GET URL: ");
@@ -98,6 +99,17 @@ bool loadScaleMap(bool showMessage) {
   JsonArray arr = doc["items"].as<JsonArray>();
   itemCount = 0;
   setText(activeBatchId, sizeof(activeBatchId), doc["batch_id"] | "");
+
+  Serial.print("Active batch ID: ");
+  Serial.println(activeBatchId);
+
+  if (strlen(activeBatchId) == 0) {
+    printLine(0, "BATCH ID KOSONG");
+    printLine(1, "Ambil ulang #");
+    delay(2500);
+    showHomeScreen();
+    return false;
+  }
 
   for (JsonObject obj : arr) {
     if (itemCount >= MAX_ITEMS) {
@@ -167,6 +179,14 @@ void sendBulkData() {
     printLine(0, "WIFI GAGAL");
     printLine(1, "Data aman");
     delay(1500);
+    return;
+  }
+
+  if (strlen(activeBatchId) == 0) {
+    printLine(0, "BATCH BELUM ADA");
+    printLine(1, "Tekan # dulu");
+    delay(1800);
+    showHomeScreen();
     return;
   }
 
