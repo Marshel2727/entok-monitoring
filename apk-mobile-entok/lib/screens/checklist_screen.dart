@@ -419,80 +419,140 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
   Widget _buildFeedingBatchPanel(String taskId, FeedingBatch? batch) {
     final hasBatch = batch != null;
     final ingredients = batch?.ingredients ?? const <FeedingBatchIngredient>[];
-    final totalPlanned = ingredients.fold<double>(0, (sum, item) => sum + item.plannedAmount);
-    final totalWeighed = ingredients.fold<double>(0, (sum, item) => sum + item.weighedAmount);
+    final groupedItems = _groupIngredientsByPhase(ingredients);
+    final totalItems = _totalIngredientsByFeed(ingredients);
+    final isFinalized = batch?.isFinalized == true;
+    final isPreparing = batch?.isPreparing == true;
+    final currentBatch = batch;
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0x33000000),
-        borderRadius: BorderRadius.circular(10),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFDCE8E2)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.07),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFFFF5),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFD8F3E4)),
+                ),
+                child: const Icon(Icons.auto_awesome_rounded, color: Color(0xFF15D36B), size: 20),
+              ),
+              const SizedBox(width: 10),
               const Expanded(
-                child: Text(
-                  'Racikan pakan hari ini',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF0F3E11)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Batch Racikan',
+                      style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Color(0xFF102033)),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'Data Timbangan 2 masuk ke sini. Stok dipotong saat finalisasi.',
+                      style: TextStyle(fontSize: 9, color: Color(0xFF68758F), height: 1.4),
+                    ),
+                  ],
                 ),
               ),
+              const SizedBox(width: 10),
               _batchStatusBadge(batch),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           if (!hasBatch)
-            const Text(
-              'Batch racikan belum dibuat dari backend.',
-              style: TextStyle(fontSize: 12, color: Colors.black54),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8F9FC),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    'Target racikan belum disiapkan. Data Timbangan 2 akan masuk ke batch setelah target tersedia.',
+                    style: TextStyle(fontSize: 10, color: Color(0xFF718096), height: 1.5),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                _primaryActionButton(
+                  'Siapkan Target Racikan',
+                  Icons.add_rounded,
+                  () => widget.onCreateFeedingBatch(taskId),
+                ),
+              ],
             )
           else if (ingredients.isEmpty)
-            const Text(
-              'Batch ada, tapi belum ada detail komposisi.',
-              style: TextStyle(fontSize: 12, color: Colors.black54),
-            )
+            const _BatchNotice(message: 'Batch ada, tapi belum ada detail komposisi.')
           else
-            ...ingredients.take(6).map((item) {
-              final phase = item.phase.isEmpty ? '' : ' (${item.phase})';
-              return _pakanRow(
-                '${item.feedName}$phase',
-                '${_fmt(item.weighedAmount)}/${_fmt(item.plannedAmount)} ${item.unit}',
-              );
-            }),
-          if (ingredients.length > 6)
-            Text(
-              '+${ingredients.length - 6} item lainnya',
-              style: const TextStyle(fontSize: 11, color: Colors.black54, fontWeight: FontWeight.w600),
-            ),
-          const Divider(color: Colors.black12, height: 14),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Total', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF0F3E11))),
-              Text(
-                '${_fmt(totalWeighed)}/${_fmt(totalPlanned)} kg',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey.shade900),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          if (!hasBatch)
-            _smallActionButton('Buat Racikan', Icons.add_rounded, () => widget.onCreateFeedingBatch(taskId))
-          else
-            Row(
+            Column(
               children: [
-                if (!batch.isFinalized)
-                  Expanded(
-                    child: _smallActionButton('Finalisasi', Icons.done_all_rounded, () => widget.onFinalizeFeedingBatch(batch.id)),
+                for (final group in groupedItems) ...[
+                  _phaseGroupCard(group),
+                  const SizedBox(height: 12),
+                ],
+                _stockSummaryCard(totalItems, isFinalized),
+                if (currentBatch != null && isPreparing) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    'Toleransi selisih: ${_fmt(currentBatch.tolerancePercent)}% per bahan.',
+                    style: const TextStyle(fontSize: 10, color: Color(0xFF68758F), fontWeight: FontWeight.w600),
                   ),
-                if (!batch.isFinalized) const SizedBox(width: 8),
-                Expanded(
-                  child: _smallActionButton('Batalkan', Icons.close_rounded, () => widget.onCancelFeedingBatch(batch.id), danger: true),
-                ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 9,
+                        child: _outlineActionButton(
+                          'Batal',
+                          Icons.close_rounded,
+                          () => _confirmBatchAction(
+                            title: 'Batalkan batch?',
+                            message: 'Batch racikan hari ini akan dibatalkan.',
+                            action: () => widget.onCancelFeedingBatch(currentBatch.id),
+                          ),
+                          danger: true,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 13,
+                        child: _primaryActionButton(
+                          'Finalisasi',
+                          Icons.done_all_rounded,
+                          () => _confirmBatchAction(
+                            title: 'Finalisasi batch?',
+                            message: 'Stok pakan akan dipotong sesuai data timbang yang masuk.',
+                            action: () => widget.onFinalizeFeedingBatch(currentBatch.id),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+                if (currentBatch != null && isFinalized) ...[
+                  const SizedBox(height: 10),
+                  const _BatchNotice(message: 'Batch sudah final. Data timbang tersimpan dan stok sudah dipotong.'),
+                ],
               ],
             ),
         ],
@@ -501,35 +561,274 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
   }
 
   Widget _batchStatusBadge(FeedingBatch? batch) {
-    final label = batch == null ? 'BELUM ADA' : batch.status;
+    final label = batch == null
+        ? 'BELUM ADA'
+        : batch.isFinalized
+            ? 'SIAP'
+            : 'DIRACIK';
     final color = batch == null
         ? const Color(0xFF757575)
         : batch.isFinalized
             ? const Color(0xFF1B5E20)
             : const Color(0xFFC79121);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(color: color.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(8)),
-      child: Text(label, style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.bold)),
+    final borderColor = batch?.isFinalized == true ? const Color(0xFF15D36B) : const Color(0xFFF59E0B);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: batch == null ? Colors.black12 : borderColor),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        child: Text(label, style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.w900)),
+      ),
     );
   }
 
-  Widget _smallActionButton(String label, IconData icon, Future<void> Function() onPressed, {bool danger = false}) {
+  Widget _phaseGroupCard(_BatchPhaseGroup group) {
+    final first = group.items.isEmpty ? null : group.items.first;
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFDCEFE4)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+            color: const Color(0xFFEFFFF5),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    group.phase,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF15D36B),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                Text(
+                  '${first?.populationCount ?? 0} ekor - target ${_fmt(first?.targetConsumption ?? 0)} gr/ekor',
+                  style: const TextStyle(color: Color(0xFF68758F), fontSize: 9, fontWeight: FontWeight.w700),
+                ),
+              ],
+            ),
+          ),
+          for (final item in group.items) _batchIngredientTile(item),
+        ],
+      ),
+    );
+  }
+
+  Widget _batchIngredientTile(FeedingBatchIngredient item) {
+    final hasScaleData = item.weighedAmount > 0 || item.deductedAmount > 0;
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: Color(0xFFE8EEF2))),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: const BoxDecoration(color: Color(0xFFEEF8F1), shape: BoxShape.circle),
+            child: Icon(_feedIcon(item.feedName), color: const Color(0xFF1B5E20), size: 20),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        item.feedName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 12, color: Color(0xFF102033), fontWeight: FontWeight.w900),
+                      ),
+                    ),
+                    _scaleDataBadge(hasScaleData),
+                  ],
+                ),
+                const SizedBox(height: 9),
+                Row(
+                  children: [
+                    Expanded(child: _batchMetric('Target', _formatKg(item.plannedAmount, item.unit))),
+                    const SizedBox(width: 7),
+                    Expanded(child: _batchMetric('Timbang', _formatKg(item.weighedAmount, item.unit), color: hasScaleData ? const Color(0xFF102033) : const Color(0xFFA8B6C8))),
+                    const SizedBox(width: 7),
+                    Expanded(child: _batchMetric('Terpotong', _formatKg(item.deductedAmount, item.unit))),
+                    const SizedBox(width: 7),
+                    Expanded(
+                      child: _batchMetric(
+                        'Selisih',
+                        '${item.varianceAmount > 0 ? '+' : ''}${_formatKg(item.varianceAmount, item.unit)}',
+                        color: _varianceColor(item.varianceAmount),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _scaleDataBadge(bool hasScaleData) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: hasScaleData ? const Color(0xFFD4EDDA) : const Color(0xFFFFF3CD),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        hasScaleData ? 'MASUK' : 'MENUNGGU',
+        style: TextStyle(
+          color: hasScaleData ? const Color(0xFF155724) : const Color(0xFF856404),
+          fontSize: 8,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
+
+  Widget _batchMetric(String label, String value, {Color color = const Color(0xFF102033)}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 8, color: Color(0xFF7C8AA1), fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 2),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            value,
+            style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w900),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _stockSummaryCard(List<_FeedBatchTotal> totalItems, bool isFinalized) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFF),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFDFE8F3)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: Color(0xFFE8EEF2)))),
+            child: const Row(
+              children: [
+                Icon(Icons.inventory_2_outlined, color: Color(0xFF15D36B), size: 13),
+                SizedBox(width: 7),
+                Expanded(
+                  child: Text(
+                    'Total Pemotongan Stok Saat Finalisasi',
+                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF102033)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          for (final item in totalItems)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+              decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: Color(0xFFEEF2F5)))),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      item.feedName,
+                      style: const TextStyle(fontSize: 10, color: Color(0xFF102033), fontWeight: FontWeight.w900),
+                    ),
+                  ),
+                  Text(
+                    'Target ${_formatKg(item.planned)}\nPotong ${_formatKg(isFinalized ? item.deducted : item.weighed)}',
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(fontSize: 10, color: Color(0xFF68758F), height: 1.35, fontWeight: FontWeight.w700),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _primaryActionButton(String label, IconData icon, Future<void> Function() onPressed) {
     return SizedBox(
-      height: 34,
+      height: 38,
       child: ElevatedButton.icon(
         onPressed: widget.isSyncing ? null : () => onPressed(),
         icon: Icon(icon, size: 15),
-        label: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+        label: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900)),
         style: ElevatedButton.styleFrom(
-          backgroundColor: danger ? const Color(0xFFFFEBEE) : Colors.white,
-          foregroundColor: danger ? const Color(0xFFC62828) : const Color(0xFF1B5E20),
+          backgroundColor: const Color(0xFF15D36B),
+          foregroundColor: Colors.white,
           elevation: 0,
-          side: BorderSide(color: danger ? const Color(0xFFFFCDD2) : Colors.black12),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
       ),
     );
+  }
+
+  Widget _outlineActionButton(String label, IconData icon, Future<void> Function() onPressed, {bool danger = false}) {
+    final color = danger ? const Color(0xFFE53E3E) : const Color(0xFF1B5E20);
+    return SizedBox(
+      height: 38,
+      child: OutlinedButton.icon(
+        onPressed: widget.isSyncing ? null : () => onPressed(),
+        icon: Icon(icon, size: 15),
+        label: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900)),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: color,
+          side: BorderSide(color: color),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmBatchAction({
+    required String title,
+    required String message,
+    required Future<void> Function() action,
+  }) async {
+    final allowed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Batal')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Lanjut')),
+        ],
+      ),
+    );
+    if (allowed == true) await action();
   }
 
   Widget _buildErrorBox(String message) {
@@ -616,30 +915,88 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
     return const Color(0xFF26D057);
   }
 
-  Widget _pakanRow(String nama, String bobot) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(child: Text(nama, style: const TextStyle(fontSize: 12, color: Colors.black87))),
-          const SizedBox(width: 10),
-          Text(bobot, style: TextStyle(fontSize: 12, color: Colors.grey.shade900, fontWeight: FontWeight.w600)),
-        ],
-      ),
-    );
-  }
-
   FeedingBatch? _batchForTask(String taskId) {
-    if (widget.batchByTaskId.containsKey(taskId)) return widget.batchByTaskId[taskId];
-    for (final batch in widget.feedingBatches) {
-      if (batch.taskId == null || batch.taskId!.isEmpty) return batch;
-    }
-    return widget.feedingBatches.isNotEmpty ? widget.feedingBatches.first : null;
+    final directBatch = widget.batchByTaskId[taskId];
+    final candidates = <FeedingBatch>[
+      if (directBatch != null) directBatch,
+      ...widget.feedingBatches.where((batch) => batch.taskId == taskId),
+      ...widget.feedingBatches.where((batch) => batch.taskId == null || batch.taskId!.isEmpty),
+    ].fold<List<FeedingBatch>>([], (unique, batch) {
+      if (!unique.any((item) => item.id == batch.id)) unique.add(batch);
+      return unique;
+    });
+    if (candidates.isEmpty) return _pickBestBatch(widget.feedingBatches);
+    return _pickBestBatch(candidates);
   }
 
   bool _isFeedingTask(String title) => title.toLowerCase().contains('pakan');
+
+  FeedingBatch? _pickBestBatch(List<FeedingBatch> batches) {
+    if (batches.isEmpty) return null;
+    final sorted = [...batches];
+    sorted.sort((a, b) {
+      final rankDiff = _batchRank(b) - _batchRank(a);
+      if (rankDiff != 0) return rankDiff;
+      return _batchTime(b).compareTo(_batchTime(a));
+    });
+    return sorted.first;
+  }
+
+  int _batchRank(FeedingBatch batch) {
+    if (batch.isFinalized) return 4;
+    if (batch.isPreparing && batch.hasScaleData) return 3;
+    if (batch.isPreparing) return 2;
+    return 1;
+  }
+
+  DateTime _batchTime(FeedingBatch batch) {
+    return DateTime.tryParse(batch.finalizedAt ?? '') ??
+        DateTime.tryParse(batch.createdAt ?? '') ??
+        DateTime.tryParse(batch.tanggal) ??
+        DateTime.fromMillisecondsSinceEpoch(0);
+  }
+
+  List<_BatchPhaseGroup> _groupIngredientsByPhase(List<FeedingBatchIngredient> ingredients) {
+    final groups = <String, List<FeedingBatchIngredient>>{};
+    for (final item in ingredients) {
+      final phase = item.phase.isEmpty ? 'Gabungan' : item.phase;
+      groups.putIfAbsent(phase, () => <FeedingBatchIngredient>[]).add(item);
+    }
+    return groups.entries.map((entry) => _BatchPhaseGroup(entry.key, entry.value)).toList();
+  }
+
+  List<_FeedBatchTotal> _totalIngredientsByFeed(List<FeedingBatchIngredient> ingredients) {
+    final totals = <String, _FeedBatchTotal>{};
+    for (final item in ingredients) {
+      final key = item.feedId?.isNotEmpty == true ? item.feedId! : item.feedName.toLowerCase();
+      final current = totals[key] ?? _FeedBatchTotal(feedName: item.feedName);
+      totals[key] = current.copyWith(
+        planned: current.planned + item.plannedAmount,
+        weighed: current.weighed + item.weighedAmount,
+        deducted: current.deducted + item.deductedAmount,
+      );
+    }
+    final values = totals.values.toList();
+    values.sort((a, b) => a.feedName.compareTo(b.feedName));
+    return values;
+  }
+
+  Color _varianceColor(double value) {
+    if (value.abs() <= 0.01) return const Color(0xFF155724);
+    if (value > 0) return const Color(0xFFE53E3E);
+    return const Color(0xFFD69E2E);
+  }
+
+  IconData _feedIcon(String name) {
+    final lower = name.toLowerCase();
+    if (lower.contains('jagung')) return Icons.grain_rounded;
+    if (lower.contains('azolla') || lower.contains('rumput') || lower.contains('hijau')) return Icons.grass_rounded;
+    if (lower.contains('dedak') || lower.contains('bekatul')) return Icons.rice_bowl_rounded;
+    if (lower.contains('protein') || lower.contains('bsf') || lower.contains('ikan')) return Icons.egg_alt_rounded;
+    return Icons.restaurant_menu_rounded;
+  }
+
+  String _formatKg(double value, [String unit = 'kg']) => '${_fmt(value)} $unit';
 
   String _fmt(double value) {
     if (value == value.roundToDouble()) return value.toStringAsFixed(0);
@@ -651,5 +1008,61 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
     const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
     return '${days[now.weekday - 1]}, ${now.day} ${months[now.month - 1]} ${now.year}';
+  }
+}
+
+class _BatchPhaseGroup {
+  final String phase;
+  final List<FeedingBatchIngredient> items;
+
+  const _BatchPhaseGroup(this.phase, this.items);
+}
+
+class _FeedBatchTotal {
+  final String feedName;
+  final double planned;
+  final double weighed;
+  final double deducted;
+
+  const _FeedBatchTotal({
+    required this.feedName,
+    this.planned = 0,
+    this.weighed = 0,
+    this.deducted = 0,
+  });
+
+  _FeedBatchTotal copyWith({
+    double? planned,
+    double? weighed,
+    double? deducted,
+  }) {
+    return _FeedBatchTotal(
+      feedName: feedName,
+      planned: planned ?? this.planned,
+      weighed: weighed ?? this.weighed,
+      deducted: deducted ?? this.deducted,
+    );
+  }
+}
+
+class _BatchNotice extends StatelessWidget {
+  final String message;
+
+  const _BatchNotice({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F9FC),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        message,
+        style: const TextStyle(fontSize: 10, color: Color(0xFF718096), height: 1.5),
+      ),
+    );
   }
 }

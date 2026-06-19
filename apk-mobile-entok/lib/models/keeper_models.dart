@@ -217,34 +217,46 @@ class PopulationPhase {
 
 class FeedingBatchIngredient {
   final int id;
+  final String? feedId;
+  final String? phaseId;
   final String feedName;
   final String phase;
   final int populationCount;
   final double targetConsumption;
   final double plannedAmount;
   final double weighedAmount;
+  final double deductedAmount;
+  final double varianceAmount;
   final String unit;
 
   const FeedingBatchIngredient({
     required this.id,
+    this.feedId,
+    this.phaseId,
     required this.feedName,
     required this.phase,
     required this.populationCount,
     required this.targetConsumption,
     required this.plannedAmount,
     required this.weighedAmount,
+    required this.deductedAmount,
+    required this.varianceAmount,
     required this.unit,
   });
 
   factory FeedingBatchIngredient.fromJson(Map<String, dynamic> json) {
     return FeedingBatchIngredient(
       id: _asInt(json['id']),
+      feedId: json['feed_id']?.toString(),
+      phaseId: json['phase_id']?.toString(),
       feedName: '${json['feed_name'] ?? ''}',
       phase: '${json['phase'] ?? ''}',
       populationCount: _asInt(json['population_count']),
       targetConsumption: _asDouble(json['target_consumption']),
       plannedAmount: _asDouble(json['planned_amount']),
       weighedAmount: _asDouble(json['weighed_amount']),
+      deductedAmount: _asDouble(json['deducted_amount']),
+      varianceAmount: _asDouble(json['variance_amount']),
       unit: '${json['unit'] ?? 'kg'}',
     );
   }
@@ -254,28 +266,42 @@ class FeedingBatch {
   final String id;
   final String tanggal;
   final String? taskId;
+  final String? keeperId;
   final String status;
   final double tolerancePercent;
+  final String? createdAt;
+  final String? finalizedAt;
+  final String? notes;
   final List<FeedingBatchIngredient> ingredients;
 
   const FeedingBatch({
     required this.id,
     required this.tanggal,
     this.taskId,
+    this.keeperId,
     required this.status,
     required this.tolerancePercent,
+    this.createdAt,
+    this.finalizedAt,
+    this.notes,
     required this.ingredients,
   });
 
   bool get isFinalized => status == 'FINALIZED';
+  bool get isPreparing => status == 'PREPARING';
+  bool get hasScaleData => ingredients.any((item) => item.weighedAmount > 0 || item.deductedAmount > 0);
 
   factory FeedingBatch.fromJson(Map<String, dynamic> json) {
     return FeedingBatch(
       id: '${json['id'] ?? ''}',
       tanggal: '${json['tanggal'] ?? ''}',
       taskId: json['task_id']?.toString(),
+      keeperId: json['keeper_id']?.toString(),
       status: '${json['status'] ?? 'PREPARING'}',
       tolerancePercent: _asDouble(json['tolerance_percent']),
+      createdAt: json['created_at']?.toString(),
+      finalizedAt: json['finalized_at']?.toString(),
+      notes: json['notes']?.toString(),
       ingredients: _asList(json['ingredients'])
           .whereType<Map>()
           .map((item) => FeedingBatchIngredient.fromJson(Map<String, dynamic>.from(item)))

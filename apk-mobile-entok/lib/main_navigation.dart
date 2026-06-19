@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'models/keeper_models.dart';
@@ -21,10 +23,13 @@ class MainNavigationScreen extends StatefulWidget {
 }
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
+  static const int _checklistTabIndex = 1;
+
   int _currentIndex = 1;
   bool _isLoading = true;
   bool _isSyncing = false;
   String? _error;
+  Timer? _batchRefreshTimer;
 
   List<DailyChecklistItem> _checklist = [];
   List<KeeperTask> _tasks = [];
@@ -37,6 +42,16 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   void initState() {
     super.initState();
     _loadDailyData();
+    _batchRefreshTimer = Timer.periodic(const Duration(seconds: 8), (_) {
+      if (!mounted || _currentIndex != _checklistTabIndex || _isLoading || _isSyncing) return;
+      _loadDailyData(showLoading: false);
+    });
+  }
+
+  @override
+  void dispose() {
+    _batchRefreshTimer?.cancel();
+    super.dispose();
   }
 
   String get _today {
