@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'main_navigation.dart';
 import 'screens/login_screen.dart';
 import 'services/api_service.dart';
+import 'theme/app_theme.dart';
 
 void main() {
   runApp(const MyApp());
@@ -15,11 +16,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Dashboard Penjaga Entok',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        scaffoldBackgroundColor: const Color(0xFFF4FDF4),
-        fontFamily: 'Sans-Serif',
-        useMaterial3: true,
-      ),
+      theme: EntokTheme.data(),
       home: const AuthGate(),
     );
   }

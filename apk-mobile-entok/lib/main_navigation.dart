@@ -3,10 +3,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'models/keeper_models.dart';
+import 'screens/account_screen.dart';
 import 'screens/checklist_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/panduan_screen.dart';
 import 'services/api_service.dart';
+import 'theme/app_theme.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   final ApiService api;
@@ -216,6 +218,18 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     return Icons.assignment_turned_in_rounded;
   }
 
+  Future<void> _openAccount() async {
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AccountScreen(
+          user: widget.api.user,
+          onLogout: widget.onLogout,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final pages = [
@@ -226,7 +240,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         isSyncing: _isSyncing,
         error: _error,
         onRefresh: () => _loadDailyData(showLoading: false),
-        onLogout: widget.onLogout,
+        onOpenAccount: _openAccount,
       ),
       ChecklistScreen(
         kegiatanList: _kegiatanList,
@@ -241,6 +255,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         onCancelFeedingBatch: _cancelFeedingBatch,
         onResetDaily: _resetDailyChecklist,
         onRefresh: () => _loadDailyData(showLoading: false),
+        onOpenAccount: _openAccount,
       ),
       PanduanScreen(
         api: widget.api,
@@ -249,6 +264,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         formulations: _formulations,
         populations: _populations,
         onTabSwitch: (index) => setState(() => _currentIndex = index),
+        onOpenAccount: _openAccount,
       ),
     ];
 
@@ -257,7 +273,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 450),
           child: Container(
-            color: Colors.white,
+            color: EntokColors.background,
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator(color: Color(0xFF26D057)))
                 : Column(
@@ -274,10 +290,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   Widget _buildBottomNavigationBar() {
     return Container(
-      height: 58,
+      height: 74,
       padding: const EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(
-        color: const Color(0xFF26D057),
+        color: Colors.white,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.08),
@@ -299,23 +315,23 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   Widget _buildNavItem(IconData outlineIcon, IconData solidIcon, String label, int index) {
     final isActive = _currentIndex == index;
-    final color = isActive ? const Color(0xFF1B5E20) : Colors.white;
+    final color = isActive ? EntokColors.green : const Color(0xFF697281);
     return InkWell(
       onTap: () => setState(() => _currentIndex = index),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(isActive ? solidIcon : outlineIcon, color: color, size: 22),
-            const SizedBox(height: 2),
+            Icon(isActive ? solidIcon : outlineIcon, color: color, size: 30),
+            const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
                 color: color,
-                fontSize: 10,
-                fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+                fontSize: 15,
+                fontWeight: isActive ? FontWeight.w800 : FontWeight.w500,
               ),
             ),
           ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';
+import '../theme/app_theme.dart';
 
 class LoginScreen extends StatefulWidget {
   final ApiService api;
@@ -19,19 +20,14 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _registerNameController = TextEditingController();
-  final _registerUsernameController = TextEditingController();
-  final _registerPasswordController = TextEditingController();
   bool _isLoading = false;
+  bool _hidePassword = true;
   String? _error;
 
   @override
   void dispose() {
     _usernameController.dispose();
     _passwordController.dispose();
-    _registerNameController.dispose();
-    _registerUsernameController.dispose();
-    _registerPasswordController.dispose();
     super.dispose();
   }
 
@@ -52,250 +48,295 @@ class _LoginScreenState extends State<LoginScreen> {
       await widget.api.login(username, password);
       if (mounted) widget.onLoggedIn();
     } on ApiException catch (err) {
-      setState(() => _error = err.message);
+      if (mounted) setState(() => _error = err.message);
     } catch (_) {
-      setState(() => _error = 'Login gagal. Coba lagi sebentar.');
+      if (mounted) setState(() => _error = 'Login gagal. Coba lagi sebentar.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  Future<void> _openRegisterDialog() async {
-    _registerNameController.clear();
-    _registerUsernameController.clear();
-    _registerPasswordController.clear();
-    String? dialogError;
-    var isSubmitting = false;
-
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            Future<void> submit() async {
-              final name = _registerNameController.text.trim();
-              final username = _registerUsernameController.text.trim();
-              final password = _registerPasswordController.text;
-              if (name.isEmpty || username.isEmpty || password.isEmpty) {
-                setDialogState(() => dialogError = 'Semua field wajib diisi.');
-                return;
-              }
-
-              setDialogState(() {
-                isSubmitting = true;
-                dialogError = null;
-              });
-
-              try {
-                await widget.api.registerPublic(
-                  name: name,
-                  username: username,
-                  password: password,
-                );
-                if (!dialogContext.mounted) return;
-                Navigator.pop(dialogContext);
-                _usernameController.text = username;
-                _passwordController.text = password;
-                setState(() => _error = null);
-                await _login();
-              } on ApiException catch (err) {
-                setDialogState(() => dialogError = err.message);
-              } catch (_) {
-                setDialogState(() => dialogError = 'Gagal daftar akun.');
-              } finally {
-                if (dialogContext.mounted) {
-                  setDialogState(() => isSubmitting = false);
-                }
-              }
-            }
-
-            return AlertDialog(
-              title: const Text('Daftar Akun Penjaga'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (dialogError != null) ...[
-                      Text(dialogError!, style: const TextStyle(color: Color(0xFFC62828), fontSize: 12)),
-                      const SizedBox(height: 10),
-                    ],
-                    TextField(
-                      controller: _registerNameController,
-                      decoration: _inputDecoration('Nama lengkap', Icons.badge_outlined),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _registerUsernameController,
-                      decoration: _inputDecoration('Username', Icons.person_outline_rounded),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _registerPasswordController,
-                      obscureText: true,
-                      decoration: _inputDecoration('Kata sandi', Icons.lock_outline_rounded),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: isSubmitting ? null : () => Navigator.pop(dialogContext),
-                  child: const Text('Batal'),
-                ),
-                TextButton(
-                  onPressed: isSubmitting ? null : submit,
-                  child: Text(isSubmitting ? 'Mendaftar...' : 'Daftar'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+  Future<void> _openRegisterPage() async {
+    final credentials = await Navigator.push<_RegisterResult>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => RegisterScreen(api: widget.api),
+      ),
     );
+    if (credentials == null || !mounted) return;
+    _usernameController.text = credentials.username;
+    _passwordController.text = credentials.password;
+    await _login();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: EntokColors.background,
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 450),
-          child: Container(
-            color: Colors.white,
-            child: ListView(
-              padding: EdgeInsets.fromLTRB(
-                24,
-                MediaQuery.of(context).padding.top + 44,
-                24,
-                24,
+          child: Column(
+            children: [
+              const EntokTopHeader(
+                title: 'Selamat Datang!',
+                subtitle: 'Silakan login ke akun Anda',
+                badgeIcon: Icons.lock_open_rounded,
               ),
-              children: [
-                Container(
-                  height: 190,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(24),
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF1B5E20), Color(0xFF26D057)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(30, 54, 30, 28),
+                  children: [
+                    const Text(
+                      'Login Akun',
+                      style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: EntokColors.text),
                     ),
-                  ),
-                  child: const Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.assignment_turned_in_rounded, color: Colors.white, size: 58),
-                      SizedBox(height: 14),
-                      Text(
-                        'Portal Penjaga Entok',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22),
-                      ),
-                      SizedBox(height: 6),
-                      Text(
-                        'Masuk untuk checklist dan panduan harian',
-                        style: TextStyle(color: Color(0xDDFFFFFF), fontSize: 13),
-                      ),
+                    const SizedBox(height: 18),
+                    const Text(
+                      'Kelola kandang entok Anda dengan lebih mudah dan terorganisir.',
+                      style: TextStyle(fontSize: 20, color: EntokColors.muted, height: 1.35, fontWeight: FontWeight.w500),
+                    ),
+                    const SizedBox(height: 54),
+                    if (_error != null) ...[
+                      _ErrorBanner(message: _error!),
+                      const SizedBox(height: 18),
                     ],
-                  ),
-                ),
-                const SizedBox(height: 28),
-                const Text(
-                  'Selamat Datang',
-                  style: TextStyle(
-                    color: Color(0xFF1B5E20),
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Gunakan akun penjaga atau pengawas yang sudah ada di database.',
-                  style: TextStyle(color: Colors.black54, height: 1.4),
-                ),
-                const SizedBox(height: 22),
-                if (_error != null) ...[
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFEBEE),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFFFCDD2)),
+                    TextField(
+                      controller: _usernameController,
+                      textInputAction: TextInputAction.next,
+                      decoration: entokInputDecoration('Username', Icons.person_outline_rounded),
                     ),
-                    child: Text(
-                      _error!,
-                      style: const TextStyle(color: Color(0xFFC62828), fontWeight: FontWeight.w600),
+                    const SizedBox(height: 20),
+                    TextField(
+                      controller: _passwordController,
+                      obscureText: _hidePassword,
+                      onSubmitted: (_) => _login(),
+                      decoration: entokInputDecoration(
+                        'Password',
+                        Icons.lock_outline_rounded,
+                        suffixIcon: IconButton(
+                          onPressed: () => setState(() => _hidePassword = !_hidePassword),
+                          icon: Icon(
+                            _hidePassword ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                            color: Colors.grey,
+                            size: 28,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                ],
-                TextField(
-                  controller: _usernameController,
-                  textInputAction: TextInputAction.next,
-                  decoration: _inputDecoration('Username', Icons.person_outline_rounded),
-                ),
-                const SizedBox(height: 14),
-                TextField(
-                  controller: _passwordController,
-                  obscureText: true,
-                  onSubmitted: (_) => _login(),
-                  decoration: _inputDecoration('Kata sandi', Icons.lock_outline_rounded),
-                ),
-                const SizedBox(height: 22),
-                SizedBox(
-                  height: 52,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _login,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1B5E20),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: null,
+                        child: Text(
+                          'Lupa Password?',
+                          style: TextStyle(
+                            color: EntokColors.green.withValues(alpha: 0.65),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
                     ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white),
-                          )
-                        : const Text('MASUK', style: TextStyle(fontWeight: FontWeight.bold)),
-                  ),
+                    const SizedBox(height: 26),
+                    EntokPrimaryButton(
+                      label: _isLoading ? 'MEMPROSES...' : 'MASUK',
+                      onPressed: _isLoading ? null : _login,
+                    ),
+                    const SizedBox(height: 46),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text(
+                          'Belum punya akun? ',
+                          style: TextStyle(color: EntokColors.muted, fontSize: 16, fontWeight: FontWeight.w500),
+                        ),
+                        GestureDetector(
+                          onTap: _isLoading ? null : _openRegisterPage,
+                          child: const Text(
+                            'Daftar Sekarang',
+                            style: TextStyle(color: EntokColors.green, fontSize: 16, fontWeight: FontWeight.w900),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 12),
-                TextButton(
-                  onPressed: _isLoading ? null : _openRegisterDialog,
-                  child: const Text(
-                    'Belum punya akun? Daftar Di Sini',
-                    style: TextStyle(color: Color(0xFF8B5A24), fontWeight: FontWeight.bold),
-                  ),
-                ),
-                const SizedBox(height: 18),
-                const Text(
-                  'API: https://api-entok.marshelportfolio.me/api',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.black38, fontSize: 11),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
+}
 
-  InputDecoration _inputDecoration(String label, IconData icon) {
-    return InputDecoration(
-      labelText: label,
-      prefixIcon: Icon(icon, color: const Color(0xFF1B5E20)),
-      filled: true,
-      fillColor: const Color(0xFFF8FAF8),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Color(0xFFE0E7E0)),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Color(0xFF26D057), width: 1.6),
+class RegisterScreen extends StatefulWidget {
+  final ApiService api;
+
+  const RegisterScreen({super.key, required this.api});
+
+  @override
+  State<RegisterScreen> createState() => _RegisterScreenState();
+}
+
+class _RegisterScreenState extends State<RegisterScreen> {
+  final _nameController = TextEditingController();
+  final _usernameController = TextEditingController();
+  final _whatsappController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _isLoading = false;
+  bool _hidePassword = true;
+  String? _error;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _usernameController.dispose();
+    _whatsappController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _register() async {
+    final name = _nameController.text.trim();
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text;
+    if (name.isEmpty || username.isEmpty || password.isEmpty) {
+      setState(() => _error = 'Nama, username, dan password wajib diisi.');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      await widget.api.registerPublic(name: name, username: username, password: password);
+      if (mounted) Navigator.pop(context, _RegisterResult(username, password));
+    } on ApiException catch (err) {
+      if (mounted) setState(() => _error = err.message);
+    } catch (_) {
+      if (mounted) setState(() => _error = 'Gagal daftar akun.');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: EntokColors.background,
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 450),
+          child: Column(
+            children: [
+              const EntokTopHeader(
+                title: 'Buat Akun Baru',
+                showBack: true,
+                badgeIcon: Icons.person_add_alt_1_rounded,
+              ),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(30, 54, 30, 28),
+                  children: [
+                    const Text(
+                      'Pendaftaran Akun',
+                      style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: EntokColors.text),
+                    ),
+                    const SizedBox(height: 18),
+                    const Text(
+                      'Isi formulir di bawah ini untuk mendaftar sebagai penjaga kandang.',
+                      style: TextStyle(fontSize: 20, color: EntokColors.muted, height: 1.35, fontWeight: FontWeight.w500),
+                    ),
+                    const SizedBox(height: 48),
+                    if (_error != null) ...[
+                      _ErrorBanner(message: _error!),
+                      const SizedBox(height: 18),
+                    ],
+                    _FieldLabel('Nama Lengkap'),
+                    TextField(controller: _nameController, decoration: entokInputDecoration('Pak Joko', Icons.person_outline_rounded)),
+                    const SizedBox(height: 24),
+                    _FieldLabel('Username'),
+                    TextField(controller: _usernameController, decoration: entokInputDecoration('joko', Icons.badge_outlined)),
+                    const SizedBox(height: 24),
+                    _FieldLabel('Nomor WhatsApp'),
+                    TextField(
+                      controller: _whatsappController,
+                      keyboardType: TextInputType.phone,
+                      decoration: entokInputDecoration('081234567890', Icons.phone_android_rounded),
+                    ),
+                    const SizedBox(height: 24),
+                    _FieldLabel('Password'),
+                    TextField(
+                      controller: _passwordController,
+                      obscureText: _hidePassword,
+                      decoration: entokInputDecoration(
+                        'Password',
+                        Icons.lock_outline_rounded,
+                        suffixIcon: IconButton(
+                          onPressed: () => setState(() => _hidePassword = !_hidePassword),
+                          icon: Icon(_hidePassword ? Icons.visibility_off_rounded : Icons.visibility_rounded, color: Colors.grey, size: 28),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 54),
+                    EntokPrimaryButton(
+                      label: _isLoading ? 'MENDAFTAR...' : 'DAFTAR SEKARANG',
+                      onPressed: _isLoading ? null : _register,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
+}
+
+class _FieldLabel extends StatelessWidget {
+  final String label;
+
+  const _FieldLabel(this.label);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Text(
+        label,
+        style: const TextStyle(fontSize: 18, color: EntokColors.text, fontWeight: FontWeight.w900),
+      ),
+    );
+  }
+}
+
+class _ErrorBanner extends StatelessWidget {
+  final String message;
+
+  const _ErrorBanner({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFEBEE),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFFFCDD2)),
+      ),
+      child: Text(message, style: const TextStyle(color: Color(0xFFC62828), fontWeight: FontWeight.w700)),
+    );
+  }
+}
+
+class _RegisterResult {
+  final String username;
+  final String password;
+
+  const _RegisterResult(this.username, this.password);
 }

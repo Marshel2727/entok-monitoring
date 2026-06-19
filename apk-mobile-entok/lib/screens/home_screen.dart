@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/keeper_models.dart';
+import '../theme/app_theme.dart';
 
 class HomeScreen extends StatelessWidget {
   final AppUser? user;
@@ -9,7 +10,7 @@ class HomeScreen extends StatelessWidget {
   final bool isSyncing;
   final String? error;
   final Future<void> Function() onRefresh;
-  final Future<void> Function() onLogout;
+  final Future<void> Function() onOpenAccount;
 
   const HomeScreen({
     super.key,
@@ -19,7 +20,7 @@ class HomeScreen extends StatelessWidget {
     required this.isSyncing,
     required this.error,
     required this.onRefresh,
-    required this.onLogout,
+    required this.onOpenAccount,
   });
 
   Color _getProgressColor(int percent) {
@@ -41,27 +42,30 @@ class HomeScreen extends StatelessWidget {
     int progressPercent = (progress * 100).toInt();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: EntokColors.background,
       body: Column(
         children: [
           _buildHeader(context),
           Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 16),
-                  if (error != null) ...[
-                    _buildErrorBox(error!),
+            child: RefreshIndicator(
+              color: EntokColors.green,
+              onRefresh: onRefresh,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     const SizedBox(height: 16),
+                    if (error != null) ...[
+                      _buildErrorBox(error!),
+                      const SizedBox(height: 16),
+                    ],
+                    _buildProgressCard(progressPercent, totalSelesai, totalKegiatan),
+                    const SizedBox(height: 42),
+                    _buildChecklistSection(),
+                    const SizedBox(height: 24),
                   ],
-                  _buildProgressCard(progressPercent, totalSelesai, totalKegiatan),
-                  const SizedBox(height: 16),
-                  _buildKegiatanDilakukanCard(),
-                  const SizedBox(height: 24),
-                  _buildChecklistSection(),
-                  const SizedBox(height: 24),
-                ],
+                ),
               ),
             ),
           ),
@@ -71,80 +75,11 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      color: const Color(0xFF26D057),
-      padding: EdgeInsets.fromLTRB(
-        20, 
-        MediaQuery.of(context).padding.top + 16, 
-        20, 
-        20,
-      ), 
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: const BoxDecoration(
-              color: Color(0xFFFF5722),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.face_rounded, color: Colors.white, size: 24),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Selamat Pagi, ${user?.name ?? 'Penjaga'}!',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  isSyncing ? 'Menyinkronkan data...' : 'Berikut kegiatan hari ini',
-                  style: const TextStyle(
-                    color: Color(0xCCFFFFFF),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(
-            width: 72,
-            height: 32,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                IconButton(
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  icon: Icon(
-                    isSyncing ? Icons.sync_rounded : Icons.refresh_rounded,
-                    color: Colors.white,
-                    size: 22,
-                  ),
-                  onPressed: isSyncing ? null : () => onRefresh(),
-                ),
-                const SizedBox(width: 10),
-                IconButton(
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  icon: const Icon(Icons.logout_rounded, color: Colors.white, size: 21),
-                  onPressed: () => onLogout(),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+    return EntokTopHeader(
+      title: 'Selamat Pagi, ${user?.name ?? 'Penjaga'}!',
+      subtitle: isSyncing ? 'Menyinkronkan data...' : 'Berikut kegiatan hari ini',
+      actionIcon: Icons.person_rounded,
+      onAction: onOpenAccount,
     );
   }
 
@@ -182,13 +117,14 @@ class HomeScreen extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
+          color: EntokColors.mint,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: const Color(0xFFD9F5E4)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
+              color: EntokColors.green.withValues(alpha: 0.08),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
             )
           ],
         ),
@@ -204,7 +140,7 @@ class HomeScreen extends StatelessWidget {
                     height: 74,
                     child: CircularProgressIndicator(
                       value: progress,
-                      backgroundColor: const Color(0xFFE8F5E9),
+                    backgroundColor: const Color(0xFFE2E7F0),
                       valueColor: AlwaysStoppedAnimation<Color>(dynamicColor),
                       strokeWidth: 8,
                       strokeCap: StrokeCap.round,
@@ -227,31 +163,27 @@ class HomeScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Progress Hari ini',
+                      'Progress Hari Ini',
                       style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.black54,
+                        fontSize: 19,
+                        fontWeight: FontWeight.w900,
+                        color: EntokColors.text,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '$totalSelesai/$totalKegiatan kegiatan sudah selesai',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: dynamicColor,
-                      ),
+                      '${totalKegiatan - totalSelesai} kegiatan belum selesai',
+                      style: const TextStyle(fontSize: 16, color: EntokColors.muted, fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 8),
-                    Row(
+                    const Row(
                       children: [
-                        const Icon(Icons.check_circle, size: 16, color: Color(0xFF26D057)),
-                        const SizedBox(width: 6),
+                        Icon(Icons.check_rounded, size: 18, color: EntokColors.green),
+                        SizedBox(width: 6),
                         Expanded(
                           child: Text(
-                            'Semangat! Melakukan kegiatan hari ini',
-                            style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
+                            'Semangat berkegiatan harian',
+                            style: TextStyle(fontSize: 14, color: EntokColors.greenDark, fontWeight: FontWeight.w800),
                           ),
                         ),
                       ],
@@ -261,110 +193,6 @@ class HomeScreen extends StatelessWidget {
               )
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildKegiatanDilakukanCard() {
-    final belumSelesaiList = kegiatanList.where((item) => item['isDone'] != true).toList();
-
-    Map<String, dynamic> kegiatan;
-    if (belumSelesaiList.isNotEmpty) {
-      kegiatan = belumSelesaiList.first;
-    } else {
-      if (kegiatanList.isNotEmpty) {
-        kegiatan = kegiatanList.last;
-      } else {
-        return const SizedBox.shrink();
-      }
-    }
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: const Color(0xFFB9F6CA),
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF26D057).withValues(alpha: 0.12),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            )
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Row(
-              children: [
-                Icon(Icons.access_time_filled_rounded, color: Colors.black87, size: 18),
-                SizedBox(width: 8),
-                Text(
-                  'Item Kegiatan Sedang Berjalan',
-                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87, fontSize: 13),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              kegiatan['title'] ?? '',
-                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.fromLTRB(8, 3, 8, 4),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.6),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              kegiatan['time'] ?? '',
-                              style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                            ),
-                          )
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        kegiatan['desc'] ?? '',
-                        style: const TextStyle(fontSize: 13, color: Colors.black54, height: 1.4),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Container(
-                  width: 76,
-                  height: 76,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(14),
-                    child: kegiatan['imageUrl'] != null 
-                        ? Image.network(kegiatan['imageUrl'], fit: BoxFit.cover)
-                        : const Icon(Icons.assignment, color: Color(0xFF1B5E20), size: 36),
-                  ),
-                )
-              ],
-            )
-          ],
         ),
       ),
     );
@@ -381,53 +209,45 @@ class HomeScreen extends StatelessWidget {
               Icon(Icons.edit_note_rounded, color: Color(0xFF1B5E20), size: 24),
               SizedBox(width: 8),
               Text(
-                'Checklist Hari Ini',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1B5E20),
+                  'CHECKLIST HARI INI',
+                  style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  color: EntokColors.text,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFF99FFAB),
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: ListView.separated(
+          ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: kegiatanList.length,
-              separatorBuilder: (context, index) => Container(
-                height: 1,
-                color: Colors.white.withValues(alpha: 0.4),
-              ),
+              separatorBuilder: (context, index) => const SizedBox(height: 20),
               itemBuilder: (context, index) {
                 final item = kegiatanList[index];
-                final bool isWaktunya = item['isWaktunya'] ?? false;
                 final bool isDone = item['isDone'] ?? false;
 
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                return EntokCard(
+                  padding: const EdgeInsets.all(20),
+                  radius: 26,
                   child: Row(
                     children: [
                       Container(
-                        width: 46,
-                        height: 46,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white24,
+                        width: 62,
+                        height: 62,
+                        decoration: BoxDecoration(
+                          color: EntokColors.green,
+                          borderRadius: BorderRadius.circular(16),
                         ),
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(23),
+                          borderRadius: BorderRadius.circular(16),
                           child: item['imageUrl'] != null
                               ? Image.network(item['imageUrl'], fit: BoxFit.cover)
-                              : const Icon(Icons.fiber_manual_record, color: Colors.white),
+                              : Icon(item['icon'] ?? Icons.assignment_rounded, color: Colors.white, size: 34),
                         ),
                       ),
-                      const SizedBox(width: 14),
+                      const SizedBox(width: 18),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -435,63 +255,42 @@ class HomeScreen extends StatelessWidget {
                             Text(
                               item['title'] ?? '',
                               style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF1B5E20),
+                                fontSize: 23,
+                                fontWeight: FontWeight.w900,
+                                color: EntokColors.text,
                                 decoration: TextDecoration.none,
                               ),
                             ),
-                            const SizedBox(height: 2),
+                            const SizedBox(height: 8),
                             Text(
-                              item['time'] ?? '',
+                              item['desc'] ?? item['time'] ?? '',
                               style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.black45,
+                                fontSize: 16,
+                                color: EntokColors.muted,
+                                height: 1.35,
                               ),
                             ),
                           ],
                         ),
                       ),
+                      const SizedBox(width: 12),
                       Container(
-                        padding: const EdgeInsets.fromLTRB(10, 4, 10, 5),
-                        decoration: BoxDecoration(
-                          color: isDone 
-                              ? const Color(0xFF26D057) 
-                              : (isWaktunya ? const Color(0xFFC79121) : const Color(0xFF757575)),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          isDone 
-                              ? 'Selesai' 
-                              : (isWaktunya ? 'Waktunya' : 'Belum Waktunya'),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Container(
-                        width: 24,
-                        height: 24,
+                        width: 30,
+                        height: 30,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: isDone ? const Color(0xFF00E676) : Colors.white.withValues(alpha: 0.4),
+                          color: isDone ? EntokColors.green : Colors.white,
                           border: Border.all(
-                            color: isDone ? const Color(0xFF00E676) : const Color(0xFF1B5E20).withValues(alpha: 0.5), 
-                            width: 2,
+                            color: isDone ? EntokColors.green : Colors.black54,
+                            width: 2.5,
                           ),
                         ),
-                        child: isDone
-                            ? const Icon(Icons.check, size: 16, color: Colors.white)
-                            : null,
+                        child: isDone ? const Icon(Icons.check, size: 18, color: Colors.white) : null,
                       ),
                     ],
                   ),
                 );
               },
-            ),
           ),
         ],
       ),

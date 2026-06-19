@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/keeper_models.dart';
+import '../theme/app_theme.dart';
 
 class ChecklistScreen extends StatefulWidget {
   final List<Map<String, dynamic>> kegiatanList;
@@ -15,6 +16,7 @@ class ChecklistScreen extends StatefulWidget {
   final Future<void> Function(String batchId) onCancelFeedingBatch;
   final Future<void> Function() onResetDaily;
   final Future<void> Function() onRefresh;
+  final Future<void> Function() onOpenAccount;
 
   const ChecklistScreen({
     super.key,
@@ -30,6 +32,7 @@ class ChecklistScreen extends StatefulWidget {
     required this.onCancelFeedingBatch,
     required this.onResetDaily,
     required this.onRefresh,
+    required this.onOpenAccount,
   });
 
   @override
@@ -46,7 +49,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
     final progressPercent = (widget.progress * 100).toInt();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: EntokColors.background,
       body: Column(
         children: [
           _buildHeader(context),
@@ -66,7 +69,15 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                           const SizedBox(height: 16),
                         ],
                         _buildProgressCard(progressPercent, totalSelesai, totalKegiatan),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 34),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 20),
+                          child: Text(
+                            'LIST KEGIATAN HARI INI',
+                            style: TextStyle(fontSize: 20, color: EntokColors.text, fontWeight: FontWeight.w900),
+                          ),
+                        ),
+                        const SizedBox(height: 22),
                       ],
                     ),
                   ),
@@ -109,52 +120,11 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
   }
 
   Widget _buildHeader(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      color: const Color(0xFF26D057),
-      padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 16, 20, 20),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: const BoxDecoration(color: Color(0xFFFF5722), shape: BoxShape.circle),
-            child: const Icon(Icons.face_rounded, color: Colors.white, size: 24),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Checklist Kegiatan',
-                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  widget.isSyncing ? 'Sinkronisasi data server...' : _todayLabel(),
-                  style: const TextStyle(color: Color(0xCCFFFFFF), fontSize: 12, fontWeight: FontWeight.w500),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(
-            width: 32,
-            height: 32,
-            child: IconButton(
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              icon: Icon(
-                widget.isSyncing ? Icons.sync_rounded : Icons.refresh_rounded,
-                color: Colors.white,
-                size: 22,
-              ),
-              onPressed: widget.isSyncing ? null : () => widget.onRefresh(),
-            ),
-          ),
-        ],
-      ),
+    return EntokTopHeader(
+      title: 'Checklist Kegiatan',
+      subtitle: widget.isSyncing ? 'Sinkronisasi data server...' : _todayLabel(),
+      actionIcon: widget.isSyncing ? Icons.sync_rounded : Icons.person_rounded,
+      onAction: widget.isSyncing ? null : widget.onOpenAccount,
     );
   }
 
@@ -164,8 +134,9 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
+          color: EntokColors.mint,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: const Color(0xFFD9F5E4)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.06),
@@ -184,7 +155,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                   height: 74,
                   child: CircularProgressIndicator(
                     value: widget.progress,
-                    backgroundColor: const Color(0xFFE8F5E9),
+                    backgroundColor: const Color(0xFFE2E7F0),
                     valueColor: AlwaysStoppedAnimation<Color>(_getProgressColor(progressPercent)),
                     strokeWidth: 8,
                     strokeCap: StrokeCap.round,
@@ -203,13 +174,13 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Text(
-                    'Progress Hari ini',
-                    style: TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.w500),
+                    'Progress Harian',
+                    style: TextStyle(fontSize: 20, color: EntokColors.text, fontWeight: FontWeight.w900),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '$totalSelesai/$totalKegiatan kegiatan sudah selesai',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: _getProgressColor(progressPercent)),
+                    '$totalSelesai/$totalKegiatan selesai',
+                    style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: EntokColors.muted),
                   ),
                   const SizedBox(height: 8),
                   const Row(
@@ -218,8 +189,8 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                       SizedBox(width: 6),
                       Expanded(
                         child: Text(
-                          'Data checklist tersimpan di server',
-                          style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500),
+                          'Pantau pakan entok hari ini',
+                          style: TextStyle(fontSize: 14, color: EntokColors.greenDark, fontWeight: FontWeight.w800),
                         ),
                       ),
                     ],
@@ -293,39 +264,62 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                   });
                 },
                 child: Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(18),
                   decoration: BoxDecoration(
-                    color: isDone ? const Color(0xFFC8E6C9) : const Color(0xFFC2F8C4),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: isSelected ? const Color(0xFF26D057) : Colors.transparent, width: 2),
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(28),
+                    border: Border.all(
+                      color: isSelected || isWaktunya ? EntokColors.green : EntokColors.border,
+                      width: isSelected || isWaktunya ? 2 : 1,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.045),
+                        blurRadius: 16,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
+                        children: [
+                          _statusBadge(isDone, isWaktunya),
+                          const Spacer(),
+                          Text(
+                            item['time'] ?? '',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              color: Color(0xFFD05D62),
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 18),
+                      Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _taskAvatar(item),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: 16),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   item['title'] ?? '',
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF0F3E11)),
+                                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 26, color: EntokColors.text),
                                 ),
-                                const SizedBox(height: 2),
+                                const SizedBox(height: 8),
                                 Text(
-                                  item['time'] ?? '',
-                                  style: const TextStyle(fontSize: 12, color: Color(0xFF2E5A30)),
+                                  item['desc'] ?? '',
+                                  style: const TextStyle(fontSize: 17, height: 1.35, color: EntokColors.muted, fontWeight: FontWeight.w600),
                                 ),
                               ],
                             ),
                           ),
-                          const SizedBox(width: 4),
-                          _statusBadge(isDone, isWaktunya),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 12),
                           _checkBubble(isDone),
                         ],
                       ),
@@ -373,46 +367,46 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
   Widget _taskAvatar(Map<String, dynamic> item) {
     final imageUrl = '${item['imageUrl'] ?? ''}';
     return Container(
-      width: 40,
-      height: 40,
-      decoration: const BoxDecoration(color: Colors.white60, shape: BoxShape.circle),
+      width: 64,
+      height: 64,
+      decoration: BoxDecoration(color: EntokColors.green, borderRadius: BorderRadius.circular(16)),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         child: imageUrl.isNotEmpty
             ? Image.network(
                 imageUrl,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Icon(item['icon'] ?? Icons.assignment, color: const Color(0xFF1B5E20), size: 20),
+                errorBuilder: (_, __, ___) => Icon(item['icon'] ?? Icons.assignment, color: Colors.white, size: 34),
               )
-            : Icon(item['icon'] ?? Icons.assignment, color: const Color(0xFF1B5E20), size: 20),
+            : Icon(item['icon'] ?? Icons.assignment, color: Colors.white, size: 34),
       ),
     );
   }
 
   Widget _statusBadge(bool isDone, bool isWaktunya) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: isDone ? const Color(0xFF26D057) : (isWaktunya ? const Color(0xFFC79121) : const Color(0xFF757575)),
-        borderRadius: BorderRadius.circular(10),
-      ),
+      padding: EdgeInsets.zero,
       child: Text(
-        isDone ? 'Selesai' : (isWaktunya ? 'Waktunya' : 'Belum'),
-        style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+        isDone ? 'SELESAI' : (isWaktunya ? 'WAKTUNYA' : 'BELUM WAKTUNYA'),
+        style: TextStyle(
+          color: isDone ? EntokColors.green : (isWaktunya ? EntokColors.warning : EntokColors.muted),
+          fontSize: 14,
+          fontWeight: FontWeight.w900,
+        ),
       ),
     );
   }
 
   Widget _checkBubble(bool isDone) {
     return Container(
-      width: 20,
-      height: 20,
+      width: 34,
+      height: 34,
       decoration: BoxDecoration(
         color: isDone ? const Color(0xFF26D057) : Colors.white,
         shape: BoxShape.circle,
-        border: Border.all(color: const Color(0xFF2E7D32), width: 2),
+        border: Border.all(color: isDone ? EntokColors.green : const Color(0xFFD8DEE7), width: 3),
       ),
-      child: isDone ? const Icon(Icons.check, color: Colors.white, size: 12) : null,
+      child: isDone ? const Icon(Icons.check, color: Colors.white, size: 18) : null,
     );
   }
 
