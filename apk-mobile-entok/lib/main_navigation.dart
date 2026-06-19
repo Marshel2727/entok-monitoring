@@ -76,6 +76,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       return {
         'id': item.id,
         'taskId': isChecklist ? item.taskId : item.id,
+        'executionId': isChecklist ? item.executionId : '',
         'title': item.nama,
         'time': item.waktu,
         'desc': item.deskripsi,
@@ -94,8 +95,20 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     final map = <String, FeedingBatch>{};
     for (final batch in _feedingBatches) {
       final taskId = batch.taskId;
-      if (taskId != null && taskId.isNotEmpty) {
+      final executionId = batch.taskExecutionId;
+      if (taskId != null && taskId.isNotEmpty && (executionId == null || executionId.isEmpty)) {
         map[taskId] = batch;
+      }
+    }
+    return map;
+  }
+
+  Map<String, FeedingBatch> get _batchByExecutionId {
+    final map = <String, FeedingBatch>{};
+    for (final batch in _feedingBatches) {
+      final executionId = batch.taskExecutionId;
+      if (executionId != null && executionId.isNotEmpty) {
+        map[executionId] = batch;
       }
     }
     return map;
@@ -165,9 +178,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     });
   }
 
-  Future<void> _createFeedingBatch(String taskId) async {
+  Future<void> _createFeedingBatch(String taskId, [String? taskExecutionId]) async {
     await _runAction(() async {
-      await widget.api.createFeedingBatch(_today, taskId);
+      await widget.api.createFeedingBatch(_today, taskId, taskExecutionId);
       await _loadDailyData(showLoading: false);
     });
   }
@@ -249,6 +262,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         error: _error,
         feedingBatches: _feedingBatches,
         batchByTaskId: _batchByTaskId,
+        batchByExecutionId: _batchByExecutionId,
         onStatusChanged: _toggleTask,
         onCreateFeedingBatch: _createFeedingBatch,
         onFinalizeFeedingBatch: _finalizeFeedingBatch,

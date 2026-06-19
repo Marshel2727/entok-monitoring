@@ -10,8 +10,9 @@ class ChecklistScreen extends StatefulWidget {
   final String? error;
   final List<FeedingBatch> feedingBatches;
   final Map<String, FeedingBatch> batchByTaskId;
+  final Map<String, FeedingBatch> batchByExecutionId;
   final Future<void> Function(String taskId, bool status) onStatusChanged;
-  final Future<void> Function(String taskId) onCreateFeedingBatch;
+  final Future<void> Function(String taskId, [String? taskExecutionId]) onCreateFeedingBatch;
   final Future<void> Function(String batchId) onFinalizeFeedingBatch;
   final Future<void> Function(String batchId) onCancelFeedingBatch;
   final Future<void> Function() onResetDaily;
@@ -26,6 +27,7 @@ class ChecklistScreen extends StatefulWidget {
     required this.error,
     required this.feedingBatches,
     required this.batchByTaskId,
+    required this.batchByExecutionId,
     required this.onStatusChanged,
     required this.onCreateFeedingBatch,
     required this.onFinalizeFeedingBatch,
@@ -208,7 +210,8 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
     final item = widget.kegiatanList[index];
     final isDone = item['isDone'] == true;
     final taskId = '${item['taskId'] ?? item['id'] ?? ''}';
-    final feedingBatch = _batchForTask(taskId);
+    final executionId = '${item['executionId'] ?? ''}';
+    final feedingBatch = _batchForTask(taskId, executionId: executionId);
 
     var isWaktunya = false;
     if (!isDone) {
@@ -325,7 +328,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                       ),
                       if (_isFeedingTask(item['title'] ?? '')) ...[
                         const SizedBox(height: 12),
-                        _buildFeedingBatchPanel(taskId, feedingBatch),
+                        _buildFeedingBatchPanel(taskId, feedingBatch, executionId: executionId),
                       ],
                       if (isSelected && !isDone) ...[
                         const SizedBox(height: 12),
@@ -410,7 +413,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
     );
   }
 
-  Widget _buildFeedingBatchPanel(String taskId, FeedingBatch? batch) {
+  Widget _buildFeedingBatchPanel(String taskId, FeedingBatch? batch, {String? executionId}) {
     final hasBatch = batch != null;
     final ingredients = batch?.ingredients ?? const <FeedingBatchIngredient>[];
     final groupedItems = _groupIngredientsByPhase(ingredients);
@@ -491,7 +494,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                 _primaryActionButton(
                   'Siapkan Target Racikan',
                   Icons.add_rounded,
-                  () => widget.onCreateFeedingBatch(taskId),
+                  () => widget.onCreateFeedingBatch(taskId, executionId),
                 ),
               ],
             )
@@ -909,17 +912,24 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
     return const Color(0xFF26D057);
   }
 
-  FeedingBatch? _batchForTask(String taskId) {
+  FeedingBatch? _batchForTask(String taskId, {String? executionId}) {
+    if (executionId != null && executionId.isNotEmpty) {
+      final executionBatch = widget.batchByExecutionId[executionId];
+      if (executionBatch != null) return executionBatch;
+
+      final exactExecutionBatches = widget.feedingBatches.where((batch) => batch.taskExecutionId == executionId).toList();
+      if (exactExecutionBatches.isNotEmpty) return _pickBestBatch(exactExecutionBatches);
+    }
+
     final directBatch = widget.batchByTaskId[taskId];
     final candidates = <FeedingBatch>[
       if (directBatch != null) directBatch,
-      ...widget.feedingBatches.where((batch) => batch.taskId == taskId),
-      ...widget.feedingBatches.where((batch) => batch.taskId == null || batch.taskId!.isEmpty),
+      ...widget.feedingBatches.where((batch) => batch.taskId == taskId && (batch.taskExecutionId == null || batch.taskExecutionId!.isEmpty)),
     ].fold<List<FeedingBatch>>([], (unique, batch) {
       if (!unique.any((item) => item.id == batch.id)) unique.add(batch);
       return unique;
     });
-    if (candidates.isEmpty) return _pickBestBatch(widget.feedingBatches);
+    if (candidates.isEmpty) return null;
     return _pickBestBatch(candidates);
   }
 

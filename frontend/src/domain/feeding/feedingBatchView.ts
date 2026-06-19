@@ -54,13 +54,21 @@ export function pickBestFeedingBatch(batches: FeedingBatch[]) {
 
 export function selectFeedingBatchForTask(
   batches: FeedingBatch[],
-  task?: { id?: string; nama?: string } | null
+  task?: { id?: string; task_id?: string; execution_id?: string; nama?: string } | null
 ) {
   if (!isFeedingTaskName(task?.nama)) return null;
 
-  const taskBatches = batches.filter((batch) => batch.task_id === task?.id);
-  const globalBatches = batches.filter((batch) => !batch.task_id);
-  return pickBestFeedingBatch([...taskBatches, ...globalBatches]);
+  const taskId = task?.task_id || task?.id;
+  const executionId = task?.execution_id || task?.id;
+  const executionBatches = executionId
+    ? batches.filter((batch) => batch.task_execution_id === executionId)
+    : [];
+  if (executionBatches.length > 0) return pickBestFeedingBatch(executionBatches);
+
+  const legacyTaskBatches = taskId
+    ? batches.filter((batch) => batch.task_id === taskId && !batch.task_execution_id)
+    : [];
+  return pickBestFeedingBatch(legacyTaskBatches);
 }
 
 export function groupBatchItemsByPhase(batch?: FeedingBatch | null) {

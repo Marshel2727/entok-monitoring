@@ -10,6 +10,7 @@ class FeedingBatch(db.Model):
     id = db.Column(db.String(50), primary_key=True, default=lambda: str(uuid.uuid4()))
     batch_date = db.Column(db.Date, nullable=False, index=True)
     task_id = db.Column(db.String(50), db.ForeignKey('tasks.id', ondelete='SET NULL'), nullable=True, index=True)
+    task_execution_id = db.Column(db.String(50), db.ForeignKey('task_executions.id', ondelete='SET NULL'), nullable=True, index=True)
     keeper_id = db.Column(db.String(50), db.ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
     status = db.Column(db.Enum('PREPARING', 'FINALIZED', 'CANCELLED', name='feeding_batch_status'), nullable=False, default='PREPARING')
     tolerance_percent = db.Column(db.Float, nullable=False, default=10.0)
@@ -47,6 +48,7 @@ class FeedingBatch(db.Model):
             'id': self.id,
             'tanggal': self.batch_date.isoformat() if self.batch_date else None,
             'task_id': self.task_id,
+            'task_execution_id': self.task_execution_id,
             'keeper_id': self.keeper_id,
             'status': self.status,
             'tolerance_percent': self.tolerance_percent,

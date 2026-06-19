@@ -67,7 +67,7 @@ export default function PenjagaPortal() {
       setTasks(tasksRes.status === 'fulfilled' ? tasksRes.value || [] : []);
       const loadedBatches = batchRes.status === 'fulfilled' ? batchRes.value || [] : [];
       setFeedingBatches(loadedBatches);
-      setFeedingBatch(loadedBatches.find((batch) => !batch.task_id) || loadedBatches[0] || null);
+      setFeedingBatch(loadedBatches.find((batch) => !batch.task_id && !batch.task_execution_id) || null);
 
       [checkRes, feedsRes, formulationRes, populationRes, tasksRes, batchRes].forEach((result) => {
         if (result.status === 'rejected') {
@@ -87,9 +87,9 @@ export default function PenjagaPortal() {
     await fetchDailyData();
   };
 
-  const handleCreateFeedingBatch = async (taskId?: string) => {
+  const handleCreateFeedingBatch = async (taskId?: string, taskExecutionId?: string) => {
     const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Makassar' });
-    await feedingBatchService.createBatch(today, taskId);
+    await feedingBatchService.createBatch(today, taskId, taskExecutionId);
     await fetchDailyData();
   };
 

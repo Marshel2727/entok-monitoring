@@ -42,7 +42,7 @@ interface ChecklistPenjagaPageProps {
   feedingBatch?: FeedingBatch | null;
   feedingBatches?: FeedingBatch[];
   onToggleTask?: (taskId: string, isCompleted: boolean) => Promise<void>;
-  onCreateFeedingBatch?: (taskId?: string) => Promise<void>;
+  onCreateFeedingBatch?: (taskId?: string, taskExecutionId?: string) => Promise<void>;
   onFinalizeFeedingBatch?: (batchId?: string) => Promise<void>;
   onCancelFeedingBatch?: (batchId?: string) => Promise<void>;
   onResetDaily?: () => Promise<void>;
@@ -89,10 +89,11 @@ export default function ChecklistPenjagaPage({
       }
       return 0;
     };
-    const sourceTasks: PenjagaTaskItem[] = rawTasksList.length > 0
-      ? rawTasksList
-      : (checklist ?? []).map((item) => ({
-          id: item.task_id,
+    const sourceTasks: PenjagaTaskItem[] = (checklist && checklist.length > 0)
+      ? checklist.map((item) => ({
+          id: item.execution_id || item.task_id,
+          task_id: item.task_id,
+          execution_id: item.execution_id,
           nama: item.nama,
           waktu: item.waktu,
           deskripsi: item.deskripsi,
@@ -101,7 +102,8 @@ export default function ChecklistPenjagaPage({
           langkah: item.langkah,
           perhatikan: item.perhatikan,
           catatan: item.catatan,
-        }));
+        }))
+      : rawTasksList;
 
     return [...sourceTasks].sort((a, b) => parseTimeToMinutes(a.waktu) - parseTimeToMinutes(b.waktu));
   }, [rawTasksList, checklist]);
@@ -147,9 +149,9 @@ export default function ChecklistPenjagaPage({
     return '#e53e3e';
   };
 
-  const handleCreateBatch = async (taskId?: string) => {
+  const handleCreateBatch = async (taskId?: string, taskExecutionId?: string) => {
     try {
-      await onCreateFeedingBatch?.(taskId);
+      await onCreateFeedingBatch?.(taskId, taskExecutionId);
     } catch (err: any) {
       alert(err.message || 'Gagal membuat batch racikan.');
     }
@@ -451,7 +453,7 @@ export default function ChecklistPenjagaPage({
               Target racikan belum disiapkan. Data Timbangan 2 akan masuk ke batch setelah target tersedia.
             </div>
             <button
-              onClick={() => handleCreateBatch(task?.id)}
+              onClick={() => handleCreateBatch(task?.task_id || task?.id, task?.execution_id)}
               disabled={!onCreateFeedingBatch}
               style={{
                 width: '100%',
@@ -718,7 +720,7 @@ export default function ChecklistPenjagaPage({
     if (checklist && checklist.length > 0) {
       const apiState = { ...defaultState };
       checklist.forEach(item => {
-        apiState[item.task_id] = item.is_completed;
+        apiState[item.execution_id || item.task_id] = item.is_completed;
       });
       setCompletedTasks(apiState);
     } else if (savedDate !== todayISO) {
@@ -778,7 +780,9 @@ export default function ChecklistPenjagaPage({
   };
   const isFeedingBatchFinalForTask = (task?: PenjagaTaskItem | null) => getFeedingBatchForTask(task)?.status === 'FINALIZED';
   const activeTaskBatch = getFeedingBatchForTask(activeTask);
-  const visibleFeedingBatch = activeTaskBatch || pickBestFeedingBatch(feedingBatches) || feedingBatch || null;
+  const visibleFeedingBatch = isFeedingTask(activeTask)
+    ? activeTaskBatch
+    : pickBestFeedingBatch(feedingBatches) || feedingBatch || null;
   const activeTaskBatchView = buildFeedingBatchView(activeTaskBatch);
   const isFeedingBatchFinal = activeTaskBatchView.isFinalized;
   const needsFeedingFinalization = (task?: PenjagaTaskItem | null) => isFeedingTask(task) && !isFeedingBatchFinalForTask(task);
@@ -816,7 +820,7 @@ export default function ChecklistPenjagaPage({
 
     try {
       if (onToggleTask) {
-        await onToggleTask(id, targetState);
+        await onToggleTask(task?.task_id || id, targetState);
       }
     } catch (err: any) {
       alert(err.message || 'Gagal mengubah status tugas.');
@@ -859,7 +863,7 @@ export default function ChecklistPenjagaPage({
         } else if (!isPublic) {
           const completedTaskIds = tasksList
             .filter((task) => completedTasks[task.id])
-            .map((task) => task.id);
+            .map((task) => task.task_id || task.id);
 
           if (onToggleTask && completedTaskIds.length > 0) {
             for (const taskId of completedTaskIds) {
@@ -1653,14 +1657,14 @@ export default function ChecklistPenjagaPage({
                           <span style={{
                             fontSize: '8px',
                             fontWeight: '950',
-                            color: isFeedingBatchFinal ? '#155724' : feedingBatch ? '#856404' : '#718096',
-                            backgroundColor: isFeedingBatchFinal ? '#d4edda' : feedingBatch ? '#fff3cd' : '#f8f9fc',
-                            border: `1px solid ${isFeedingBatchFinal ? '#15D36B' : feedingBatch ? '#f59e0b' : '#cbd5e0'}`,
+                            color: isFeedingBatchFinal ? '#155724' : activeTaskBatchView.batch ? '#856404' : '#718096',
+                            backgroundColor: isFeedingBatchFinal ? '#d4edda' : activeTaskBatchView.batch ? '#fff3cd' : '#f8f9fc',
+                            border: `1px solid ${isFeedingBatchFinal ? '#15D36B' : activeTaskBatchView.batch ? '#f59e0b' : '#cbd5e0'}`,
                             borderRadius: '999px',
                             padding: '2px 8px',
                             whiteSpace: 'nowrap'
                           }}>
-                            {isFeedingBatchFinal ? 'FINAL' : feedingBatch ? 'DIRACIK' : 'BELUM ADA'}
+                            {isFeedingBatchFinal ? 'FINAL' : activeTaskBatchView.batch ? 'DIRACIK' : 'BELUM ADA'}
                           </span>
                         </div>
 
@@ -1672,7 +1676,7 @@ export default function ChecklistPenjagaPage({
                               Target racikan belum disiapkan. Data Timbangan 2 akan masuk ke batch setelah target tersedia.
                             </div>
                             <button
-                              onClick={() => handleCreateBatch(activeTask?.id)}
+                              onClick={() => handleCreateBatch(activeTask?.task_id || activeTask?.id, activeTask?.execution_id)}
                               disabled={!onCreateFeedingBatch}
                               style={{
                                 width: '100%',

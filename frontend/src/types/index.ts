@@ -72,6 +72,8 @@ export interface PanduanLangkah {
 
 export interface PenjagaTaskItem {
   id: string;
+  task_id?: string;
+  execution_id?: string;
   nama: string;
   waktu: string; // e.g. "07:00 WITA"
   deskripsi: string;

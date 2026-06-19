@@ -250,6 +250,7 @@ class FeedingBatchSchema(BaseSchema):
     id = UUIDString(dump_only=True)
     date = fields.Str(load_default=None, allow_none=True, validate=validate.Regexp(r'^\d{4}-\d{2}-\d{2}$', error='Format tanggal harus YYYY-MM-DD.'))
     task_id = UUIDString(allow_none=True)
+    task_execution_id = UUIDString(allow_none=True)
     keeper_id = UUIDString(dump_only=True)
     status = fields.Str(dump_only=True, validate=validate.OneOf(['PREPARING', 'FINALIZED', 'CANCELLED']))
     tolerance_percent = fields.Float(load_default=10.0, validate=validate.Range(min=0, max=100))

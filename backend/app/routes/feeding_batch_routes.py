@@ -19,10 +19,11 @@ feeding_batch_bp = Blueprint('feeding_batch_bp', __name__)
 def get_today_batch(current_user):
     date_str = request.args.get('date')
     task_id = request.args.get('task_id')
+    task_execution_id = request.args.get('task_execution_id')
     if request.args.get('all') in ('1', 'true', 'TRUE', 'yes'):
         res, code = feeding_batch_service.get_today_batches(date_str)
     else:
-        res, code = feeding_batch_service.get_today_batch(date_str, task_id)
+        res, code = feeding_batch_service.get_today_batch(date_str, task_id, task_execution_id)
     return jsonify(res), code
 
 
@@ -33,7 +34,12 @@ def create_batch(current_user):
     if error:
         return jsonify(error[0]), error[1]
 
-    res, code = feeding_batch_service.create_batch(current_user.id, data.get('date'), data.get('task_id'))
+    res, code = feeding_batch_service.create_batch(
+        current_user.id,
+        data.get('date'),
+        data.get('task_id'),
+        data.get('task_execution_id')
+    )
     return jsonify(res), code
 
 

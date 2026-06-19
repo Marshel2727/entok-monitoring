@@ -239,7 +239,7 @@ def toggle_task_execution(task_id, date_str, keeper_id, is_completed):
     # If it is being marked completed
     if is_completed and not exec_item.is_completed:
         if "beri pakan" in task.title.lower():
-            if not has_finalized_batch(date_str, task_id):
+            if not has_finalized_batch(date_str, task_id, exec_item.id):
                 return {
                     'status': 'error',
                     'message': 'Finalisasi racikan pakan terlebih dahulu sebelum menyelesaikan tugas Beri Pakan.'

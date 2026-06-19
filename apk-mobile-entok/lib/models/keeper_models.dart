@@ -104,6 +104,7 @@ class DailyChecklistItem extends KeeperTask {
   final String executionId;
 
   const DailyChecklistItem({
+    required super.id,
     required this.taskId,
     required super.nama,
     required super.waktu,
@@ -116,18 +117,21 @@ class DailyChecklistItem extends KeeperTask {
     super.perhatikan,
     super.catatan,
     super.langkah,
-  }) : super(id: taskId);
+  });
 
   factory DailyChecklistItem.fromJson(Map<String, dynamic> json) {
+    final taskId = '${json['task_id'] ?? json['id'] ?? ''}';
+    final executionId = '${json['execution_id'] ?? ''}';
     return DailyChecklistItem(
-      taskId: '${json['task_id'] ?? json['id'] ?? ''}',
+      id: executionId.isNotEmpty ? executionId : taskId,
+      taskId: taskId,
       nama: '${json['nama'] ?? ''}',
       waktu: '${json['waktu'] ?? ''}',
       deskripsi: '${json['deskripsi'] ?? ''}',
       img: '${json['img'] ?? ''}',
       isCompleted: json['is_completed'] == true,
       completedAt: json['completed_at']?.toString(),
-      executionId: '${json['execution_id'] ?? ''}',
+      executionId: executionId,
       infoDetail: '${json['infoDetail'] ?? ''}',
       perhatikan: '${json['perhatikan'] ?? ''}',
       catatan: '${json['catatan'] ?? ''}',
@@ -266,6 +270,7 @@ class FeedingBatch {
   final String id;
   final String tanggal;
   final String? taskId;
+  final String? taskExecutionId;
   final String? keeperId;
   final String status;
   final double tolerancePercent;
@@ -278,6 +283,7 @@ class FeedingBatch {
     required this.id,
     required this.tanggal,
     this.taskId,
+    this.taskExecutionId,
     this.keeperId,
     required this.status,
     required this.tolerancePercent,
@@ -296,6 +302,7 @@ class FeedingBatch {
       id: '${json['id'] ?? ''}',
       tanggal: '${json['tanggal'] ?? ''}',
       taskId: json['task_id']?.toString(),
+      taskExecutionId: json['task_execution_id']?.toString(),
       keeperId: json['keeper_id']?.toString(),
       status: '${json['status'] ?? 'PREPARING'}',
       tolerancePercent: _asDouble(json['tolerance_percent']),

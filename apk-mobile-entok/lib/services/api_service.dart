@@ -140,13 +140,14 @@ class ApiService {
     return _dataList(response).map((item) => FeedingBatch.fromJson(item)).toList();
   }
 
-  Future<FeedingBatch?> createFeedingBatch(String date, String? taskId) async {
+  Future<FeedingBatch?> createFeedingBatch(String date, String? taskId, [String? taskExecutionId]) async {
     final response = await _send(
       'POST',
       '/feeding-batches',
       body: {
         'date': date,
         if (taskId != null && taskId.isNotEmpty) 'task_id': taskId,
+        if (taskExecutionId != null && taskExecutionId.isNotEmpty) 'task_execution_id': taskExecutionId,
       },
     );
     final data = response['data'];

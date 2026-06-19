@@ -8,6 +8,7 @@ from app.models.population import Population
 from app.models.growth_phase import GrowthPhase, normalize_phase_key
 from app.models.timbangan import Timbangan, TimbanganReading
 from app.models.feeding_batch import FeedingBatch, FeedingBatchIngredient
+from app.models.task import TaskExecution
 from app.service.activity_service import create_log
 
 PHASE_ORDER = ('starter', 'grower 1', 'grower 2', 'finisher')
@@ -26,10 +27,44 @@ def _parse_date(date_str=None):
         return None, {'status': 'error', 'message': 'Format tanggal tidak valid. Gunakan YYYY-MM-DD.'}
 
 
-def _apply_task_scope(query, task_id=None):
+def _apply_task_scope(query, task_id=None, task_execution_id=None):
+    if task_execution_id:
+        return query.filter(FeedingBatch.task_execution_id == task_execution_id)
     if task_id:
-        return query.filter(FeedingBatch.task_id == task_id)
-    return query.filter(FeedingBatch.task_id.is_(None))
+        return query.filter(
+            FeedingBatch.task_id == task_id,
+            FeedingBatch.task_execution_id.is_(None)
+        )
+    return query.filter(
+        FeedingBatch.task_id.is_(None),
+        FeedingBatch.task_execution_id.is_(None)
+    )
+
+
+def _resolve_task_scope(batch_date, task_id=None, task_execution_id=None):
+    if not task_execution_id:
+        return task_id, None, None, 200
+
+    execution = TaskExecution.query.get(task_execution_id)
+    if not execution:
+        return None, None, {
+            'status': 'error',
+            'message': 'Eksekusi tugas tidak ditemukan untuk batch racikan.'
+        }, 404
+
+    if execution.execution_date != batch_date:
+        return None, None, {
+            'status': 'error',
+            'message': 'Tanggal batch racikan tidak cocok dengan tanggal eksekusi tugas.'
+        }, 400
+
+    if task_id and execution.task_id != task_id:
+        return None, None, {
+            'status': 'error',
+            'message': 'task_id tidak cocok dengan task_execution_id.'
+        }, 400
+
+    return execution.task_id, execution.id, None, 200
 
 
 def _phase_population(form_phase, populations):
@@ -226,16 +261,20 @@ def _sync_preparing_batch_plan(batch, ingredients):
     return None
 
 
-def get_today_batch(date_str=None, task_id=None):
+def get_today_batch(date_str=None, task_id=None, task_execution_id=None):
     batch_date, error = _parse_date(date_str)
     if error:
         return error, 400
+
+    resolved_task_id, resolved_execution_id, error, code = _resolve_task_scope(batch_date, task_id, task_execution_id)
+    if error:
+        return error, code
 
     query = FeedingBatch.query.filter(
         FeedingBatch.batch_date == batch_date,
         FeedingBatch.status.in_(('PREPARING', 'FINALIZED'))
     )
-    batch = _apply_task_scope(query, task_id).order_by(FeedingBatch.created_at.desc()).first()
+    batch = _apply_task_scope(query, resolved_task_id, resolved_execution_id).order_by(FeedingBatch.created_at.desc()).first()
     return {
         'status': 'success',
         'data': batch.to_dict() if batch else None
@@ -258,16 +297,20 @@ def get_today_batches(date_str=None):
     }, 200
 
 
-def create_batch(user_id, date_str=None, task_id=None):
+def create_batch(user_id, date_str=None, task_id=None, task_execution_id=None):
     batch_date, error = _parse_date(date_str)
     if error:
         return error, 400
+
+    resolved_task_id, resolved_execution_id, error, code = _resolve_task_scope(batch_date, task_id, task_execution_id)
+    if error:
+        return error, code
 
     query = FeedingBatch.query.filter(
         FeedingBatch.batch_date == batch_date,
         FeedingBatch.status.in_(('PREPARING', 'FINALIZED'))
     )
-    existing = _apply_task_scope(query, task_id).order_by(FeedingBatch.created_at.desc()).first()
+    existing = _apply_task_scope(query, resolved_task_id, resolved_execution_id).order_by(FeedingBatch.created_at.desc()).first()
     if existing:
         if existing.status == 'PREPARING':
             ingredients, error, code = _build_planned_ingredients()
@@ -288,14 +331,20 @@ def create_batch(user_id, date_str=None, task_id=None):
     if error:
         return error, code
 
-    batch = FeedingBatch(batch_date=batch_date, task_id=task_id, keeper_id=user_id, status='PREPARING')
+    batch = FeedingBatch(
+        batch_date=batch_date,
+        task_id=resolved_task_id,
+        task_execution_id=resolved_execution_id,
+        keeper_id=user_id,
+        status='PREPARING'
+    )
     db.session.add(batch)
     db.session.flush()
 
     _add_batch_ingredients(batch, ingredients)
 
     db.session.commit()
-    task_label = f" untuk tugas {task_id}" if task_id else ""
+    task_label = f" untuk tugas {resolved_task_id}" if resolved_task_id else ""
     create_log("SISTEM", f"Membuat batch racikan pakan tanggal {batch_date.isoformat()}{task_label}.", user_id)
 
     return {
@@ -316,7 +365,7 @@ def _get_active_batch_for_scale(date_str, user_id=None):
     ).order_by(FeedingBatch.created_at.desc()).first()
 
     if batch:
-        response, code = create_batch(user_id, batch_date.isoformat(), batch.task_id)
+        response, code = create_batch(user_id, batch_date.isoformat(), batch.task_id, batch.task_execution_id)
         if code not in (200, 201):
             return None, response, code
 
@@ -742,8 +791,12 @@ def cancel_batch(batch_id, user_id=None):
     }, 200
 
 
-def has_finalized_batch(date_str, task_id=None):
+def has_finalized_batch(date_str, task_id=None, task_execution_id=None):
     batch_date, error = _parse_date(date_str)
+    if error:
+        return False
+
+    resolved_task_id, resolved_execution_id, error, _ = _resolve_task_scope(batch_date, task_id, task_execution_id)
     if error:
         return False
 
@@ -751,10 +804,16 @@ def has_finalized_batch(date_str, task_id=None):
         batch_date=batch_date,
         status='FINALIZED'
     )
-    if _apply_task_scope(query, task_id).first() is not None:
+    if _apply_task_scope(query, resolved_task_id, resolved_execution_id).first() is not None:
         return True
 
-    if task_id:
-        return query.filter(FeedingBatch.task_id.is_(None)).first() is not None
+    if resolved_execution_id:
+        return False
+
+    if resolved_task_id:
+        return query.filter(
+            FeedingBatch.task_id.is_(None),
+            FeedingBatch.task_execution_id.is_(None)
+        ).first() is not None
 
     return False

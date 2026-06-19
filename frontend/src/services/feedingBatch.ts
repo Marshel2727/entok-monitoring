@@ -20,6 +20,7 @@ export interface FeedingBatch {
   id: string;
   tanggal: string;
   task_id?: string | null;
+  task_execution_id?: string | null;
   keeper_id: string | null;
   status: 'PREPARING' | 'FINALIZED' | 'CANCELLED';
   tolerance_percent: number;
@@ -83,10 +84,10 @@ export const feedingBatchService = {
     return api.getCached<FeedingBatchScaleMap>(`/feeding-batches/scale-map?${query.toString()}`, 5000);
   },
 
-  createBatch: async (dateStr?: string, taskId?: string) => {
+  createBatch: async (dateStr?: string, taskId?: string, taskExecutionId?: string) => {
     const res = await api.post<{ status: string; message: string; data: FeedingBatch }>(
       '/feeding-batches',
-      { date: dateStr, task_id: taskId }
+      { date: dateStr, task_id: taskId, task_execution_id: taskExecutionId }
     );
     return res.data;
   },
