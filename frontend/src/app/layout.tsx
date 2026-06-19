@@ -15,7 +15,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://entok-monitoring.vercel.app"),
+  metadataBase: new URL("https://api-entok.marshelportfolio.me"),
   title: "Kelola Komposisi & Formulasi Pakan - Monitoring Entok",
   description: "Sistem Kelola Komposisi & Formulasi Pakan Entok Makmur",
   applicationName: "Entok Monitoring",
