@@ -9,13 +9,15 @@ export const formulationService = {
 
   saveFormulation: async (formulasi: Partial<FormulasiItem>) => {
     const payload = {
-      id: formulasi.id,
       fase: formulasi.fase,
       kategori: formulasi.kategori,
       targetKonsumsi: formulasi.targetKonsumsi,
       komposisi: formulasi.komposisi,
       pakanAlternatif: formulasi.pakanAlternatif || [],
     };
+    if (formulasi.id) {
+      Object.assign(payload, { id: formulasi.id });
+    }
     return api.post<{ status: string; message: string; data: FormulasiItem }>('/formulations', payload);
   },
 
