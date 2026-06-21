@@ -4,34 +4,104 @@ import React, { useEffect, useState } from 'react';
 import { feedService, FeedTransaction } from '@/services/feed';
 import { formulationService } from '@/services/formulation';
 import { populationService, type PopulationPhase } from '@/services/population';
-import { activityService } from '@/services/activity';
 import { timbanganService } from '@/services/timbangan';
 import FeedChartsPage from '@/components/dashboard/FeedChartsPage';
-import { FeedItem, FormulasiItem, ActivityLog, TimbanganReading } from '@/types';
+import { FeedItem, FormulasiItem, TimbanganReading } from '@/types';
+
+interface FeedChartsCachePayload {
+  cachedAt: number;
+  feeds: FeedItem[];
+  formulations: FormulasiItem[];
+  populations: PopulationPhase[];
+  transactions: FeedTransaction[];
+  entokReadings: TimbanganReading[];
+}
+
+const FEED_CHARTS_CACHE_KEY = 'entok_feed_charts_cache_v2';
+const FEED_CHARTS_CACHE_MAX_AGE_MS = 6 * 60 * 60 * 1000;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isFeedChartsCachePayload(value: unknown): value is FeedChartsCachePayload {
+  if (!isRecord(value)) return false;
+
+  return typeof value.cachedAt === 'number'
+    && Array.isArray(value.feeds)
+    && Array.isArray(value.formulations)
+    && Array.isArray(value.populations)
+    && Array.isArray(value.transactions)
+    && Array.isArray(value.entokReadings);
+}
+
+function readFeedChartsCache() {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const raw = window.localStorage.getItem(FEED_CHARTS_CACHE_KEY);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw) as unknown;
+    if (!isFeedChartsCachePayload(parsed)) return null;
+    if (Date.now() - parsed.cachedAt > FEED_CHARTS_CACHE_MAX_AGE_MS) return null;
+
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeFeedChartsCache(payload: FeedChartsCachePayload) {
+  if (typeof window === 'undefined') return;
+
+  try {
+    window.localStorage.setItem(FEED_CHARTS_CACHE_KEY, JSON.stringify(payload));
+  } catch {
+    // Cache is an optimization only; storage quota/privacy mode should not break the page.
+  }
+}
 
 export default function FeedChartsRoute() {
   const [feeds, setFeeds] = useState<FeedItem[]>([]);
   const [formulations, setFormulations] = useState<FormulasiItem[]>([]);
   const [populations, setPopulations] = useState<PopulationPhase[]>([]);
-  const [activities, setActivities] = useState<ActivityLog[]>([]);
   const [transactions, setTransactions] = useState<FeedTransaction[]>([]);
   const [entokReadings, setEntokReadings] = useState<TimbanganReading[]>([]);
+  const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
     let active = true;
+    let hasVisibleData = false;
+
+    function applyPayload(payload: FeedChartsCachePayload) {
+      if (!active) return;
+
+      hasVisibleData = true;
+      setFeeds(payload.feeds);
+      setFormulations(payload.formulations);
+      setPopulations(payload.populations);
+      setTransactions(payload.transactions);
+      setEntokReadings(payload.entokReadings);
+      setLastSyncedAt(payload.cachedAt);
+      setError('');
+      setLoading(false);
+    }
 
     async function fetchData(isInitial = false) {
-      if (isInitial) setLoading(true);
+      if (isInitial && !hasVisibleData) setLoading(true);
+      if (!isInitial || hasVisibleData) setIsRefreshing(true);
+
       try {
-        const [feedsRes, formsRes, popRes, txRes, entokRes, actRes] = await Promise.allSettled([
+        const [feedsRes, formsRes, popRes, txRes, entokRes] = await Promise.allSettled([
           feedService.getFeeds(),
           formulationService.getFormulations(),
           populationService.getPopulations(),
           feedService.getTransactions(),
           timbanganService.getReadings({ label: 'Entok', limit: 100 }),
-          activityService.getActivities(),
         ]);
         
         if (feedsRes.status === 'rejected') throw feedsRes.reason;
@@ -41,26 +111,32 @@ export default function FeedChartsRoute() {
 
         if (!active) return;
 
-        setFeeds(feedsRes.value || []);
-        setFormulations(formsRes.value || []);
-        setPopulations(popRes.value || []);
-        setTransactions(txRes.value || []);
-        setEntokReadings(entokRes.status === 'fulfilled' ? entokRes.value || [] : []);
-        setActivities(actRes.status === 'fulfilled' ? actRes.value || [] : []);
+        const payload: FeedChartsCachePayload = {
+          cachedAt: Date.now(),
+          feeds: feedsRes.value || [],
+          formulations: formsRes.value || [],
+          populations: popRes.value || [],
+          transactions: txRes.value || [],
+          entokReadings: entokRes.status === 'fulfilled' ? entokRes.value || [] : [],
+        };
+
+        applyPayload(payload);
+        writeFeedChartsCache(payload);
 
         if (entokRes.status === 'rejected') {
           console.error('Failed to load entok weight readings:', entokRes.reason);
         }
-        if (actRes.status === 'rejected') {
-          console.error('Failed to load activity data:', actRes.reason);
-        }
       } catch (err: unknown) {
         console.error('Failed to load charts data:', err);
-        if (active) setError('Gagal memuat data grafik dari database');
+        if (active && !hasVisibleData) setError('Gagal memuat data grafik dari database');
       } finally {
         if (active) setLoading(false);
+        if (active) setIsRefreshing(false);
       }
     }
+
+    const cached = readFeedChartsCache();
+    if (cached) applyPayload(cached);
 
     fetchData(true);
     const refreshTimer = window.setInterval(() => fetchData(false), 15000);
@@ -103,9 +179,10 @@ export default function FeedChartsRoute() {
       feedList={feeds}
       formulasiList={formulations}
       jumlahBebek={totalBebek}
-      activityHistory={activities}
       feedTransactions={transactions}
       entokReadings={entokReadings}
+      lastSyncedAt={lastSyncedAt}
+      isRefreshing={isRefreshing}
     />
   );
 }

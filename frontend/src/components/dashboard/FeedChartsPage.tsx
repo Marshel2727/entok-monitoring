@@ -6,7 +6,7 @@ import {
   LuDownload, 
   LuScale
 } from 'react-icons/lu';
-import { FeedItem, FormulasiItem, ActivityLog, TimbanganReading } from '@/types';
+import { FeedItem, FormulasiItem, TimbanganReading } from '@/types';
 import { FeedTransaction } from '@/services/feed';
 import {
   analyzeNutritionForPeriod,
@@ -19,9 +19,10 @@ interface FeedChartsPageProps {
   feedList: FeedItem[];
   formulasiList: FormulasiItem[];
   jumlahBebek: number;
-  activityHistory: ActivityLog[];
   feedTransactions: FeedTransaction[];
   entokReadings: TimbanganReading[];
+  lastSyncedAt?: number | null;
+  isRefreshing?: boolean;
 }
 
 type PeriodTab = 'HARIAN' | 'MINGGUAN' | 'BULANAN';
@@ -151,7 +152,9 @@ export default function FeedChartsPage({
   formulasiList,
   jumlahBebek,
   feedTransactions,
-  entokReadings
+  entokReadings,
+  lastSyncedAt,
+  isRefreshing = false
 }: FeedChartsPageProps) {
   const [nutritionTab, setNutritionTab] = useState<NutritionPeriodTab>('HARIAN');
   const [consumptionTab, setConsumptionTab] = useState<'HARIAN' | 'MINGGUAN' | 'BULANAN'>('HARIAN');
@@ -419,6 +422,12 @@ export default function FeedChartsPage({
           <p style={{ fontSize: '11px', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', marginTop: '4px' }}>
             GRAFIK PANGAN - ANALISIS PERANGKAT IOT
           </p>
+          {lastSyncedAt && (
+            <p style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', marginTop: '6px' }}>
+              DATA TERAKHIR: {formatWitaDateTime(new Date(lastSyncedAt))}
+              {isRefreshing ? ' - SINKRONISASI...' : ''}
+            </p>
+          )}
         </div>
 
         
