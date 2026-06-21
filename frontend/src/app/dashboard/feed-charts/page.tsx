@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { feedService, FeedTransaction } from '@/services/feed';
 import { formulationService } from '@/services/formulation';
-import { populationService } from '@/services/population';
+import { populationService, type PopulationPhase } from '@/services/population';
 import { activityService } from '@/services/activity';
 import { timbanganService } from '@/services/timbangan';
 import FeedChartsPage from '@/components/dashboard/FeedChartsPage';
@@ -12,7 +12,7 @@ import { FeedItem, FormulasiItem, ActivityLog, TimbanganReading } from '@/types'
 export default function FeedChartsRoute() {
   const [feeds, setFeeds] = useState<FeedItem[]>([]);
   const [formulations, setFormulations] = useState<FormulasiItem[]>([]);
-  const [populations, setPopulations] = useState<any[]>([]);
+  const [populations, setPopulations] = useState<PopulationPhase[]>([]);
   const [activities, setActivities] = useState<ActivityLog[]>([]);
   const [transactions, setTransactions] = useState<FeedTransaction[]>([]);
   const [entokReadings, setEntokReadings] = useState<TimbanganReading[]>([]);
@@ -54,7 +54,7 @@ export default function FeedChartsRoute() {
         if (actRes.status === 'rejected') {
           console.error('Failed to load activity data:', actRes.reason);
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Failed to load charts data:', err);
         if (active) setError('Gagal memuat data grafik dari database');
       } finally {
@@ -74,7 +74,7 @@ export default function FeedChartsRoute() {
   if (loading) {
     return (
       <div style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>
-        [ MEMUAT DATA GRAFIK PANGAN... ]
+        Memuat data grafik pangan...
       </div>
     );
   }
@@ -82,7 +82,7 @@ export default function FeedChartsRoute() {
   if (error) {
     return (
       <div style={{ fontFamily: 'var(--font-mono)', color: 'var(--danger)', padding: '24px' }}>
-        [ ERROR: {error} ]
+        Error: {error}
       </div>
     );
   }
@@ -102,10 +102,6 @@ export default function FeedChartsRoute() {
     <FeedChartsPage 
       feedList={feeds}
       formulasiList={formulations}
-      jumlahStarter={jumlahStarter}
-      jumlahGrower1={jumlahGrower1}
-      jumlahGrower2={jumlahGrower2}
-      jumlahFinisher={jumlahFinisher}
       jumlahBebek={totalBebek}
       activityHistory={activities}
       feedTransactions={transactions}

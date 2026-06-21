@@ -18,10 +18,6 @@ import {
 interface FeedChartsPageProps {
   feedList: FeedItem[];
   formulasiList: FormulasiItem[];
-  jumlahStarter: number;
-  jumlahGrower1: number;
-  jumlahGrower2: number;
-  jumlahFinisher: number;
   jumlahBebek: number;
   activityHistory: ActivityLog[];
   feedTransactions: FeedTransaction[];
@@ -29,6 +25,9 @@ interface FeedChartsPageProps {
 }
 
 type PeriodTab = 'HARIAN' | 'MINGGUAN' | 'BULANAN';
+type DateRangeFilter = 'HARI INI' | '7D' | '30D';
+type ScaleFilter = 'SEMUA TIMBANGAN' | 'T1' | 'T3';
+type CsvCell = string | number | null | undefined;
 
 const WITA_TIME_ZONE = 'Asia/Makassar';
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -38,6 +37,18 @@ const getPeriodDays = (tab: PeriodTab) => {
   if (tab === 'MINGGUAN') return 7;
   if (tab === 'BULANAN') return 30;
   return 1;
+};
+
+const getDateRangeDays = (range: DateRangeFilter) => {
+  if (range === '30D') return 30;
+  if (range === '7D') return 7;
+  return 1;
+};
+
+const getDateRangeLabel = (range: DateRangeFilter) => {
+  if (range === '30D') return '30 hari terakhir';
+  if (range === '7D') return '7 hari terakhir';
+  return 'Hari ini';
 };
 
 const parseUtcTimestamp = (value?: string) => {
@@ -63,6 +74,15 @@ const getWitaDayLabel = (dayNumber: number) => {
   return DAY_LABELS[new Date(dayNumber * MS_PER_DAY).getUTCDay()];
 };
 
+const getDayNumberIsoDate = (dayNumber: number) => {
+  return new Date(dayNumber * MS_PER_DAY).toISOString().slice(0, 10);
+};
+
+const getChartDayLabel = (dayNumber: number, periodDays: number) => {
+  if (periodDays > 7) return getDayNumberIsoDate(dayNumber).slice(5).replace('-', '/');
+  return getWitaDayLabel(dayNumber);
+};
+
 const formatWitaShortDate = (date: Date) => {
   return new Intl.DateTimeFormat('id-ID', {
     timeZone: WITA_TIME_ZONE,
@@ -72,6 +92,46 @@ const formatWitaShortDate = (date: Date) => {
 };
 
 const formatKg = (value: number) => value.toFixed(1).replace('.', ',');
+
+const formatWitaDateTime = (date: Date) => {
+  return new Intl.DateTimeFormat('id-ID', {
+    timeZone: WITA_TIME_ZONE,
+    dateStyle: 'short',
+    timeStyle: 'medium',
+  }).format(date);
+};
+
+const escapeCsvCell = (value: CsvCell) => {
+  const text = value === null || value === undefined ? '' : String(value);
+  if (/[",\r\n]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
+  return text;
+};
+
+const downloadCsv = (filename: string, rows: CsvCell[][]) => {
+  if (typeof window === 'undefined') return;
+
+  const csv = rows.map((row) => row.map(escapeCsvCell).join(',')).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(url);
+};
+
+const getChartBarGeometry = (totalBars: number, index: number) => {
+  const safeTotal = Math.max(totalBars, 1);
+  const slotWidth = 400 / safeTotal;
+  const maxBarWidth = safeTotal > 14 ? 10 : safeTotal > 7 ? 20 : 32;
+  const barWidth = Math.max(6, Math.min(maxBarWidth, slotWidth * 0.55));
+  const x = slotWidth * index + (slotWidth - barWidth) / 2;
+
+  return { barWidth, x };
+};
 
 const isDedakName = (name: string) => {
   const normalized = name.trim().toLowerCase();
@@ -89,18 +149,14 @@ const normalizeFeedLabel = (name: string) => {
 export default function FeedChartsPage({ 
   feedList, 
   formulasiList,
-  jumlahStarter,
-  jumlahGrower1,
-  jumlahGrower2,
-  jumlahFinisher,
   jumlahBebek,
   feedTransactions,
   entokReadings
 }: FeedChartsPageProps) {
   const [nutritionTab, setNutritionTab] = useState<NutritionPeriodTab>('HARIAN');
   const [consumptionTab, setConsumptionTab] = useState<'HARIAN' | 'MINGGUAN' | 'BULANAN'>('HARIAN');
-  const [dateRange, setDateRange] = useState('HARI INI');
-  const [activeScale, setActiveScale] = useState('SEMUA TIMBANGAN');
+  const [dateRange, setDateRange] = useState<DateRangeFilter>('HARI INI');
+  const [activeScale, setActiveScale] = useState<ScaleFilter>('SEMUA TIMBANGAN');
 
   // Vibrant color helpers for charts
   const getNutritionColor = (name: string) => {
@@ -229,19 +285,25 @@ export default function FeedChartsPage({
     return acc;
   }, {});
 
+  const selectedPeriodDays = getDateRangeDays(dateRange);
+  const rangeStartDay = todayWitaDay - selectedPeriodDays + 1;
+  const showDedakChart = activeScale === 'SEMUA TIMBANGAN' || activeScale === 'T1';
+  const showGrowthChart = activeScale === 'SEMUA TIMBANGAN' || activeScale === 'T3';
+
   let stockCursor = dedakStokVal;
   const dedakStockByDay = new Map<number, number>();
   dedakStockByDay.set(todayWitaDay, stockCursor);
-  for (let dayNumber = todayWitaDay - 1; dayNumber >= todayWitaDay - 6; dayNumber -= 1) {
+  for (let dayNumber = todayWitaDay - 1; dayNumber >= rangeStartDay; dayNumber -= 1) {
     const nextDayNumber = dayNumber + 1;
     stockCursor -= netDedakChangeByDay[nextDayNumber] || 0;
     dedakStockByDay.set(dayNumber, Math.max(0, stockCursor));
   }
 
-  const dedakStockData = Array.from({ length: 7 }, (_, index) => {
-    const dayNumber = todayWitaDay - (6 - index);
+  const dedakStockData = Array.from({ length: selectedPeriodDays }, (_, index) => {
+    const dayNumber = rangeStartDay + index;
     return {
-      day: getWitaDayLabel(dayNumber),
+      day: getChartDayLabel(dayNumber, selectedPeriodDays),
+      date: getDayNumberIsoDate(dayNumber),
       stock: dedakStockByDay.get(dayNumber) || 0,
       isHighlight: dayNumber === todayWitaDay,
     };
@@ -251,17 +313,28 @@ export default function FeedChartsPage({
     .map((reading) => {
       const date = parseUtcTimestamp(reading.recorded_at || reading.timestamp);
       const value = Number(reading.value ?? reading.weight ?? 0);
-      return { date, value };
+      return { ...reading, date, value };
     })
-    .filter((reading): reading is { date: Date; value: number } => {
+    .filter((reading): reading is TimbanganReading & { date: Date; value: number } => {
       return Boolean(reading.date) && Number.isFinite(reading.value) && reading.value > 0;
     })
     .sort((a, b) => a.date.getTime() - b.date.getTime());
 
-  const growthData = normalizedEntokReadings.slice(-7).map((reading, index, arr) => ({
-    day: formatWitaShortDate(reading.date),
+  const filteredEntokReadings = normalizedEntokReadings.filter((reading) => {
+    const dayNumber = getWitaDayNumber(reading.date);
+    return dayNumber >= rangeStartDay && dayNumber <= todayWitaDay;
+  });
+
+  const latestGrowthByDay = new Map<number, TimbanganReading & { date: Date; value: number }>();
+  filteredEntokReadings.forEach((reading) => {
+    latestGrowthByDay.set(getWitaDayNumber(reading.date), reading);
+  });
+
+  const growthData = Array.from(latestGrowthByDay.entries()).map(([dayNumber, reading]) => ({
+    day: getChartDayLabel(dayNumber, selectedPeriodDays),
+    date: getDayNumberIsoDate(dayNumber),
     growth: reading.value,
-    isHighlight: index === arr.length - 1,
+    isHighlight: dayNumber === todayWitaDay,
   }));
 
   const latestGrowthReading = normalizedEntokReadings.at(-1);
@@ -269,6 +342,72 @@ export default function FeedChartsPage({
   const maxGrowthVal = Math.max(...growthData.map(d => d.growth), 3);
   const nutritionData = analyzeNutritionForPeriod({ feedList, feedTransactions, tab: nutritionTab });
   const nutritionTargetReached = nutritionData.length > 0 && nutritionData.every((nut) => nut.status === 'IDEAL');
+  const selectedScaleLabel: Record<ScaleFilter, string> = {
+    'SEMUA TIMBANGAN': 'Semua Timbangan',
+    T1: 'Timbangan 1 - Stok Dedak',
+    T3: 'Timbangan 3 - Pertumbuhan',
+  };
+
+  const handleExportCsv = () => {
+    const rows: CsvCell[][] = [
+      [
+        'rentang_filter',
+        'timbangan_filter',
+        'jenis_data',
+        'tanggal_wita',
+        'waktu_wita',
+        'timbangan',
+        'label',
+        'nilai',
+        'unit',
+        'keterangan',
+      ],
+    ];
+
+    if (showDedakChart) {
+      dedakStockData.forEach((item) => {
+        rows.push([
+          getDateRangeLabel(dateRange),
+          selectedScaleLabel[activeScale],
+          'stok_pakan',
+          item.date,
+          '',
+          'Timbangan 1',
+          'Dedak',
+          item.stock.toFixed(3),
+          'kg',
+          item.isHighlight ? 'Sisa stok hari ini' : 'Estimasi stok berdasarkan transaksi pakan',
+        ]);
+      });
+    }
+
+    if (showGrowthChart) {
+      filteredEntokReadings.forEach((reading) => {
+        rows.push([
+          getDateRangeLabel(dateRange),
+          selectedScaleLabel[activeScale],
+          'berat_entok',
+          getDayNumberIsoDate(getWitaDayNumber(reading.date)),
+          formatWitaDateTime(reading.date),
+          'Timbangan 3',
+          reading.label || 'Entok',
+          reading.value.toFixed(3),
+          reading.unit || 'kg',
+          `ID reading: ${reading.id}`,
+        ]);
+      });
+    }
+
+    if (rows.length === 1) {
+      window.alert('Tidak ada data untuk diekspor pada filter ini.');
+      return;
+    }
+
+    const filenameDate = getDayNumberIsoDate(todayWitaDay);
+    const scaleSlug = activeScale.toLowerCase().replace(/\s+/g, '-');
+    const rangeSlug = dateRange.toLowerCase().replace(/\s+/g, '-');
+    downloadCsv(`grafik-pangan-${rangeSlug}-${scaleSlug}-${filenameDate}.csv`, rows);
+  };
 
   return (
     <div className="content-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: '24px', padding: 0 }}>
@@ -290,9 +429,9 @@ export default function FeedChartsPage({
             className="form-select" 
             style={{ width: 'auto', padding: '6px 12px', fontSize: '11px', background: 'var(--bg-input)' }}
             value={dateRange}
-            onChange={(e) => setDateRange(e.target.value)}
+            onChange={(e) => setDateRange(e.target.value as DateRangeFilter)}
           >
-            <option value="HARI INI">[ Rentang Tanggal ]</option>
+            <option value="HARI INI">Hari Ini</option>
             <option value="7D">7 HARI TERAKHIR</option>
             <option value="30D">30 HARI TERAKHIR</option>
           </select>
@@ -301,14 +440,18 @@ export default function FeedChartsPage({
             className="form-select" 
             style={{ width: 'auto', padding: '6px 12px', fontSize: '11px', background: 'var(--bg-input)' }}
             value={activeScale}
-            onChange={(e) => setActiveScale(e.target.value)}
+            onChange={(e) => setActiveScale(e.target.value as ScaleFilter)}
           >
-            <option value="SEMUA TIMBANGAN">[ Pilih Timbangan ]</option>
+            <option value="SEMUA TIMBANGAN">Semua Timbangan</option>
             <option value="T1">TIMBANGAN 1 (STOK DEDAK)</option>
             <option value="T3">TIMBANGAN 3 (PERTUMBUHAN)</option>
           </select>
 
-          <button className="retro-btn" style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 14px' }}>
+          <button
+            className="retro-btn"
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 14px' }}
+            onClick={handleExportCsv}
+          >
             <LuDownload size={12} />
             <span>Export CSV</span>
           </button>
@@ -341,7 +484,8 @@ export default function FeedChartsPage({
       <div className="dashboard-charts-grid">
         
         {/* Timbangan 1 Chart */}
-        <div className="panel chart-container">
+        {showDedakChart && (
+        <div className="panel chart-container" style={!showGrowthChart ? { gridColumn: '1 / -1' } : undefined}>
           <div className="panel-header" style={{ padding: '12px 18px' }}>
             <div className="panel-title" style={{ fontSize: '11px' }}>
               <LuScale size={14} />
@@ -360,16 +504,15 @@ export default function FeedChartsPage({
 
                 {/* Draw SVG Outline Bars */}
                 {dedakStockData.map((data, index) => {
-                  const barWidth = 32;
-                  const spacing = (400 - (dedakStockData.length * barWidth)) / (dedakStockData.length + 1);
-                  const x = spacing + index * (barWidth + spacing);
+                  const { barWidth, x } = getChartBarGeometry(dedakStockData.length, index);
                   const barHeight = (data.stock / maxStockVal) * 120;
                   const y = 140 - barHeight;
                   const color = data.isHighlight ? '#a855f7' : 'var(--accent)';
                   const glowColor = data.isHighlight ? 'rgba(168, 85, 247, 0.15)' : 'var(--accent-glow)';
+                  const showValue = dedakStockData.length <= 10 || data.isHighlight || index % 5 === 0;
 
                   return (
-                    <g key={data.day} className="chart-bar-group">
+                    <g key={data.date} className="chart-bar-group">
                       <rect 
                         x={x} 
                         y={y} 
@@ -380,6 +523,7 @@ export default function FeedChartsPage({
                         strokeWidth="2"
                         rx="2"
                       />
+                      {showValue && (
                       <text 
                         x={x + barWidth/2} 
                         y={y - 8} 
@@ -392,6 +536,7 @@ export default function FeedChartsPage({
                       >
                         {formatKg(data.stock)}
                       </text>
+                      )}
                     </g>
                   );
                 })}
@@ -399,15 +544,19 @@ export default function FeedChartsPage({
             </div>
             {/* X Axis Labels */}
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 20px', marginTop: '8px', fontSize: '10px', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
-              {dedakStockData.map((d) => (
-                <span key={d.day} style={{ width: '32px', textAlign: 'center', color: d.isHighlight ? '#c084fc' : 'inherit' }}>{d.day}</span>
+              {dedakStockData.map((d, index) => (
+                <span key={d.date} style={{ flex: 1, minWidth: 0, textAlign: 'center', color: d.isHighlight ? '#c084fc' : 'inherit' }}>
+                  {dedakStockData.length <= 7 || d.isHighlight || index % (dedakStockData.length > 14 ? 5 : 2) === 0 ? d.day : ''}
+                </span>
               ))}
             </div>
           </div>
         </div>
+        )}
 
         {/* Timbangan 3 Chart */}
-        <div className="panel chart-container">
+        {showGrowthChart && (
+        <div className="panel chart-container" style={!showDedakChart ? { gridColumn: '1 / -1' } : undefined}>
           <div className="panel-header" style={{ padding: '12px 18px', display: 'flex', justifyContent: 'space-between' }}>
             <div className="panel-title" style={{ fontSize: '11px' }}>
               <LuTrendingUp size={14} />
@@ -433,16 +582,15 @@ export default function FeedChartsPage({
 
                 {/* Draw SVG Outline Bars */}
                 {growthData.map((data, index) => {
-                  const barWidth = 32;
-                  const spacing = (400 - (growthData.length * barWidth)) / (growthData.length + 1);
-                  const x = spacing + index * (barWidth + spacing);
+                  const { barWidth, x } = getChartBarGeometry(growthData.length, index);
                   const barHeight = (data.growth / maxGrowthVal) * 120;
                   const y = 140 - barHeight;
                   const color = data.isHighlight ? '#a855f7' : 'var(--accent)';
                   const glowColor = data.isHighlight ? 'rgba(168, 85, 247, 0.15)' : 'var(--accent-glow)';
+                  const showValue = growthData.length <= 10 || data.isHighlight || index % 5 === 0;
 
                   return (
-                    <g key={data.day} className="chart-bar-group">
+                    <g key={data.date} className="chart-bar-group">
                       <rect 
                         x={x} 
                         y={y} 
@@ -453,6 +601,7 @@ export default function FeedChartsPage({
                         strokeWidth="2"
                         rx="2"
                       />
+                      {showValue && (
                       <text 
                         x={x + barWidth/2} 
                         y={y - 8} 
@@ -465,6 +614,7 @@ export default function FeedChartsPage({
                       >
                         {formatKg(data.growth)} kg
                       </text>
+                      )}
                     </g>
                   );
                 })}
@@ -474,13 +624,16 @@ export default function FeedChartsPage({
             {/* X Axis Labels */}
             {growthData.length > 0 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 20px', marginTop: '8px', fontSize: '10px', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
-                {growthData.map((d) => (
-                  <span key={d.day} style={{ width: '32px', textAlign: 'center', color: d.isHighlight ? '#c084fc' : 'inherit' }}>{d.day}</span>
+                {growthData.map((d, index) => (
+                  <span key={d.date} style={{ flex: 1, minWidth: 0, textAlign: 'center', color: d.isHighlight ? '#c084fc' : 'inherit' }}>
+                    {growthData.length <= 7 || d.isHighlight || index % (growthData.length > 14 ? 5 : 2) === 0 ? d.day : ''}
+                  </span>
                 ))}
               </div>
             )}
           </div>
         </div>
+        )}
 
       </div>
 
