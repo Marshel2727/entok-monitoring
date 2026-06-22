@@ -289,6 +289,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
     final isFeedingTask = _isFeedingTask('${item['title'] ?? ''}');
     final batchKey = _batchExpansionKey(taskId, feedingBatch, executionId: executionId);
     final showBatchDetail = _shouldShowBatchDetail(feedingBatch, batchKey);
+    final isSelected = _selectedChecklistIndex == index;
     final isCompact = isDone && !showBatchDetail && !isSelected;
 
     var isWaktunya = false;
@@ -300,7 +301,6 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
       }
     }
 
-    final isSelected = _selectedChecklistIndex == index;
     final statusColor = isDone ? const Color(0xFF26D057) : (isWaktunya ? const Color(0xFFC79121) : const Color(0xFF757575));
     final statusIcon = isDone ? Icons.check_circle_rounded : Icons.access_time_rounded;
 
