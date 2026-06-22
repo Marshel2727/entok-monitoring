@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
+import { FeedbackProvider } from "@/components/shared/FeedbackProvider";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -57,7 +58,9 @@ export default function RootLayout({
       <body>
         <ThemeProvider>
           <AuthProvider>
-            {children}
+            <FeedbackProvider>
+              {children}
+            </FeedbackProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

@@ -16,6 +16,7 @@ import {
 import { FeedItem, FormulasiItem, KatalogItem } from '@/types';
 import { useTheme } from '@/context/ThemeContext';
 import { resolveAssetUrl } from '@/services/api';
+import { useFeedback } from '@/components/shared/FeedbackProvider';
 
 interface PublicLayoutProps {
   feedList: FeedItem[];
@@ -45,6 +46,7 @@ export default function PublicLayout({
   const [activeSection, setActiveSection] = useState<'home' | 'katalog' | 'tentang' | 'kontak'>('home');
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
+  const { showToast } = useFeedback();
   
   // Contact Form State
   const [contactForm, setContactForm] = useState({
@@ -258,7 +260,7 @@ export default function PublicLayout({
                 <h2 style={{ fontSize: '20px', fontWeight: '800', color: 'var(--pub-primary)' }}>
                   Perbandingan Spesifikasi
                 </h2>
-                <button className="pub-btn pub-btn-white" style={{ fontSize: '12px', padding: '6px 14px', gap: '6px' }} onClick={() => alert("Brosur PDF berhasil diunduh (Simulasi)")}>
+                <button className="pub-btn pub-btn-white" style={{ fontSize: '12px', padding: '6px 14px', gap: '6px' }} onClick={() => showToast('info', 'Brosur PDF berhasil diunduh. Fitur ini masih simulasi.')}>
                   <LuDownload size={14} /> Unduh Brosur PDF
                 </button>
               </div>
@@ -518,9 +520,9 @@ export default function PublicLayout({
           <span>© 2026 Entok Premium Catalog. All rights reserved.</span>
         </div>
         <div className="public-footer-right">
-          <span className="public-footer-link" onClick={() => alert("Simulasi: Kebijakan Privasi")}>Kebijakan Privasi</span>
-          <span className="public-footer-link" onClick={() => alert("Simulasi: Syarat & Ketentuan")}>Syarat &amp; Ketentuan</span>
-          <span className="public-footer-link" onClick={() => alert("Simulasi: Pusat Bantuan")}>Bantuan</span>
+          <span className="public-footer-link" onClick={() => showToast('info', 'Kebijakan Privasi masih dalam mode simulasi.')}>Kebijakan Privasi</span>
+          <span className="public-footer-link" onClick={() => showToast('info', 'Syarat & Ketentuan masih dalam mode simulasi.')}>Syarat &amp; Ketentuan</span>
+          <span className="public-footer-link" onClick={() => showToast('info', 'Pusat Bantuan masih dalam mode simulasi.')}>Bantuan</span>
         </div>
       </footer>
     </div>

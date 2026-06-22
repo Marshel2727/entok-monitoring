@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { LuHistory, LuTrash2 } from 'react-icons/lu';
 import { ActivityLog } from '@/types';
+import { useFeedback } from '@/components/shared/FeedbackProvider';
 
 interface ActivityHistoryPageProps {
   history: ActivityLog[];
@@ -10,6 +11,7 @@ interface ActivityHistoryPageProps {
 }
 
 export default function ActivityHistoryPage({ history, onClearHistory }: ActivityHistoryPageProps) {
+  const { confirmAction } = useFeedback();
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -38,8 +40,14 @@ export default function ActivityHistoryPage({ history, onClearHistory }: Activit
     }
   };
 
-  const handleClearClick = () => {
-    if (confirm("Apakah Anda yakin ingin menghapus seluruh riwayat aktivitas?")) {
+  const handleClearClick = async () => {
+    const confirmed = await confirmAction({
+      title: 'Bersihkan Log Aktivitas',
+      message: 'Apakah Anda yakin ingin menghapus seluruh riwayat aktivitas?',
+      confirmLabel: 'Bersihkan Log',
+      tone: 'danger',
+    });
+    if (confirmed) {
       onClearHistory();
       setCurrentPage(1);
     }

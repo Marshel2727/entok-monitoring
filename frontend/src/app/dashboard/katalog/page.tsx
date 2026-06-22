@@ -4,8 +4,10 @@ import React, { useEffect, useState } from 'react';
 import { catalogService } from '@/services/catalog';
 import KelolaKatalogPage from '@/components/catalog/KelolaKatalogPage';
 import { KatalogItem } from '@/types';
+import { useFeedback } from '@/components/shared/FeedbackProvider';
 
 export default function KatalogPage() {
+  const { showToast } = useFeedback();
   const [catalogs, setCatalogs] = useState<KatalogItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -34,7 +36,7 @@ export default function KatalogPage() {
         fetchCatalogs(); // Refresh lists
       }
     } catch (err: any) {
-      alert(err.message || 'Gagal menyimpan produk.');
+      showToast('error', err.message || 'Gagal menyimpan produk.');
     }
   };
 
@@ -45,7 +47,7 @@ export default function KatalogPage() {
         fetchCatalogs(); // Refresh lists
       }
     } catch (err: any) {
-      alert(err.message || 'Gagal menghapus produk.');
+      showToast('error', err.message || 'Gagal menghapus produk.');
     }
   };
 

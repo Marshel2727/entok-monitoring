@@ -4,8 +4,10 @@ import React, { useEffect, useState } from 'react';
 import { taskService } from '@/services/task';
 import { PenjagaTaskItem } from '@/types';
 import KelolaTugasPage from '@/components/task/KelolaTugasPage';
+import { useFeedback } from '@/components/shared/FeedbackProvider';
 
 export default function TugasPage() {
+  const { showToast } = useFeedback();
   const [tasks, setTasks] = useState<PenjagaTaskItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -36,7 +38,7 @@ export default function TugasPage() {
       await fetchTasks();
     } catch (err) {
       console.error(err);
-      alert('Gagal menyimpan tugas. Silakan coba lagi.');
+      showToast('error', 'Gagal menyimpan tugas. Silakan coba lagi.');
     }
   };
 
@@ -46,7 +48,7 @@ export default function TugasPage() {
       await fetchTasks();
     } catch (err) {
       console.error(err);
-      alert('Gagal menghapus tugas. Silakan coba lagi.');
+      showToast('error', 'Gagal menghapus tugas. Silakan coba lagi.');
     }
   };
 
@@ -66,4 +68,3 @@ export default function TugasPage() {
     />
   );
 }
-

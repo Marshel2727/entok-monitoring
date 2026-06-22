@@ -8,8 +8,10 @@ import { feedingBatchService } from '@/services/feedingBatch';
 import { populationService, PopulationPhase } from '@/services/population';
 import KelolaPakanPage from '@/components/feed/KelolaPakanPage';
 import { FeedItem, FormulasiItem, Timbangan } from '@/types';
+import { useFeedback } from '@/components/shared/FeedbackProvider';
 
 export default function PakanPage() {
+  const { showToast } = useFeedback();
   const [feeds, setFeeds] = useState<FeedItem[]>([]);
   const [timbangans, setTimbangans] = useState<Timbangan[]>([]);
   const [formulations, setFormulations] = useState<FormulasiItem[]>([]);
@@ -49,7 +51,7 @@ export default function PakanPage() {
         fetchFeeds(); // Refresh lists
       }
     } catch (err: any) {
-      alert(err.message || 'Gagal menyimpan bahan pakan.');
+      showToast('error', err.message || 'Gagal menyimpan bahan pakan.');
     }
   };
 
@@ -60,7 +62,7 @@ export default function PakanPage() {
         fetchFeeds(); // Refresh lists
       }
     } catch (err: any) {
-      alert(err.message || 'Gagal menghapus bahan pakan.');
+      showToast('error', err.message || 'Gagal menghapus bahan pakan.');
     }
   };
 
@@ -71,7 +73,7 @@ export default function PakanPage() {
         fetchFeeds(); // Refresh lists
       }
     } catch (err: any) {
-      alert(err.message || 'Gagal merestock pakan.');
+      showToast('error', err.message || 'Gagal merestock pakan.');
     }
   };
 
@@ -120,7 +122,7 @@ export default function PakanPage() {
         await fetchFeeds();
       }
     } catch (err: any) {
-      alert(err.message || 'Gagal menyimpan pembacaan timbangan.');
+      showToast('error', err.message || 'Gagal menyimpan pembacaan timbangan.');
     }
   };
 

@@ -4,8 +4,10 @@ import React, { useEffect, useState } from 'react';
 import { activityService } from '@/services/activity';
 import { ActivityLog } from '@/types';
 import ActivityHistoryPage from '@/components/activity/ActivityHistoryPage';
+import { useFeedback } from '@/components/shared/FeedbackProvider';
 
 export default function RiwayatPage() {
+  const { showToast } = useFeedback();
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -31,7 +33,7 @@ export default function RiwayatPage() {
       await fetchLogs();
     } catch (err) {
       console.error(err);
-      alert('Gagal membersihkan log aktivitas. Silakan coba lagi.');
+      showToast('error', 'Gagal membersihkan log aktivitas. Silakan coba lagi.');
     }
   };
 
@@ -50,4 +52,3 @@ export default function RiwayatPage() {
     />
   );
 }
-

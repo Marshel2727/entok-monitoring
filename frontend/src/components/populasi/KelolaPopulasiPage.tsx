@@ -9,6 +9,7 @@ import {
   LuSparkles 
 } from 'react-icons/lu';
 import { PopulasiLog } from '@/types';
+import { useFeedback } from '@/components/shared/FeedbackProvider';
 
 interface KelolaPopulasiPageProps {
   jumlahStarter: number;
@@ -36,18 +37,19 @@ export default function KelolaPopulasiPage({
   onUpdateFasePopulasi,
   onDeleteLog
 }: KelolaPopulasiPageProps) {
+  const { showToast } = useFeedback();
   const [selectedFase, setSelectedFase] = useState<string>("");
   const [popInput, setPopInput] = useState<string>("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedFase) {
-      alert("Pilih Usia / Fase terlebih dahulu!");
+      showToast('warning', 'Pilih Usia / Fase terlebih dahulu.');
       return;
     }
     const val = parseInt(popInput);
     if (isNaN(val) || val < 0) {
-      alert("Masukkan jumlah entok yang valid (minimal 0)!");
+      showToast('warning', 'Masukkan jumlah entok yang valid, minimal 0.');
       return;
     }
     

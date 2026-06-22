@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { LuPencil, LuTrash2, LuStore, LuImage, LuPlus, LuX } from 'react-icons/lu';
 import { KatalogItem } from '@/types';
 import { resolveAssetUrl } from '@/services/api';
+import { useFeedback } from '@/components/shared/FeedbackProvider';
 
 interface KelolaKatalogPageProps {
   katalogList: KatalogItem[];
@@ -27,6 +28,7 @@ export default function KelolaKatalogPage({
   onSaveKatalog,
   onDeleteKatalog
 }: KelolaKatalogPageProps) {
+  const { showToast, confirmAction } = useFeedback();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editItem, setEditItem] = useState<KatalogItem | null>(null);
   
@@ -67,7 +69,7 @@ export default function KelolaKatalogPage({
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 10 * 1024 * 1024) {
-        alert("Ukuran file terlalu besar. Maksimal 10MB.");
+        showToast('warning', 'Ukuran file terlalu besar. Maksimal 10MB.');
         return;
       }
       const reader = new FileReader();
@@ -111,7 +113,7 @@ export default function KelolaKatalogPage({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!nama || !deskripsi || harga <= 0 || stok < 0) {
-      alert("Mohon lengkapi formulir dengan data yang valid.");
+      showToast('warning', 'Mohon lengkapi formulir dengan data yang valid.');
       return;
     }
 
@@ -130,8 +132,14 @@ export default function KelolaKatalogPage({
     setIsModalOpen(false);
   };
 
-  const handleDelete = (id: string, name: string) => {
-    if (window.confirm(`Apakah Anda yakin ingin menghapus produk "${name}" dari katalog?`)) {
+  const handleDelete = async (id: string, name: string) => {
+    const confirmed = await confirmAction({
+      title: 'Hapus Produk Katalog',
+      message: `Apakah Anda yakin ingin menghapus produk "${name}" dari katalog?`,
+      confirmLabel: 'Hapus Produk',
+      tone: 'danger',
+    });
+    if (confirmed) {
       onDeleteKatalog(id);
     }
   };

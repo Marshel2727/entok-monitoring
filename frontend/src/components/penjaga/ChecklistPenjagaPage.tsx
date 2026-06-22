@@ -22,6 +22,7 @@ import { DailyChecklistItem } from '@/services/task';
 import { FeedingBatch } from '@/services/feedingBatch';
 import { resolveAssetUrl } from '@/services/api';
 import { buildFeedingBatchView, isFeedingTaskName, pickBestFeedingBatch, selectFeedingBatchForTask } from '@/domain/feeding/feedingBatchView';
+import { useFeedback } from '@/components/shared/FeedbackProvider';
 
 interface ChecklistPenjagaPageProps {
   feedList: FeedItem[];
@@ -72,6 +73,7 @@ export default function ChecklistPenjagaPage({
   onCancelFeedingBatch,
   onResetDaily
 }: ChecklistPenjagaPageProps) {
+  const { showToast, confirmAction } = useFeedback();
   const tasksList = React.useMemo(() => {
     const parseTimeToMinutes = (timeStr: string) => {
       if (!timeStr) return 0;
@@ -153,31 +155,43 @@ export default function ChecklistPenjagaPage({
     try {
       await onCreateFeedingBatch?.(taskId, taskExecutionId);
     } catch (err: any) {
-      alert(err.message || 'Gagal membuat batch racikan.');
+      showToast('error', err.message || 'Gagal membuat batch racikan.');
     }
   };
 
   const handleFinalizeBatch = async (batchId?: string) => {
-    if (!window.confirm('Finalisasi racikan akan memotong stok sesuai hasil timbang. Lanjutkan?')) {
+    const confirmed = await confirmAction({
+      title: 'Finalisasi Racikan',
+      message: 'Finalisasi racikan akan memotong stok sesuai hasil timbang. Lanjutkan?',
+      confirmLabel: 'Finalisasi',
+      tone: 'warning',
+    });
+    if (!confirmed) {
       return;
     }
 
     try {
       await onFinalizeFeedingBatch?.(batchId);
     } catch (err: any) {
-      alert(err.message || 'Gagal finalisasi racikan.');
+      showToast('error', err.message || 'Gagal finalisasi racikan.');
     }
   };
 
   const handleCancelBatch = async (batchId?: string) => {
-    if (!window.confirm('Batalkan batch racikan hari ini?')) {
+    const confirmed = await confirmAction({
+      title: 'Batalkan Batch Racikan',
+      message: 'Batalkan batch racikan hari ini?',
+      confirmLabel: 'Batalkan Batch',
+      tone: 'danger',
+    });
+    if (!confirmed) {
       return;
     }
 
     try {
       await onCancelFeedingBatch?.(batchId);
     } catch (err: any) {
-      alert(err.message || 'Gagal membatalkan batch racikan.');
+      showToast('error', err.message || 'Gagal membatalkan batch racikan.');
     }
   };
 
@@ -804,7 +818,7 @@ export default function ChecklistPenjagaPage({
     if (targetState) {
       if (isBeriPakan) {
         if (!isFeedingBatchFinalForTask(task)) {
-          alert('Finalisasi batch racikan pakan terlebih dahulu. Stok dipotong dari tabel pembanding, bukan dari checklist.');
+          showToast('warning', 'Finalisasi batch racikan pakan terlebih dahulu. Stok dipotong dari tabel pembanding.');
           return false;
         }
       } else {
@@ -823,7 +837,7 @@ export default function ChecklistPenjagaPage({
         await onToggleTask(task?.task_id || id, targetState);
       }
     } catch (err: any) {
-      alert(err.message || 'Gagal mengubah status tugas.');
+      showToast('error', err.message || 'Gagal mengubah status tugas.');
       return false;
     }
 
@@ -851,38 +865,46 @@ export default function ChecklistPenjagaPage({
       ? "Apakah Anda yakin ingin mereset seluruh kegiatan hari ini beserta batch racikan pakan? Data stok yang sudah dipotong akan dikembalikan."
       : "Apakah Anda yakin ingin mereset seluruh kegiatan hari ini?";
 
-    if (window.confirm(confirmMsg)) {
-      const reset: { [key: string]: boolean } = {};
-      tasksList.forEach(t => {
-        reset[t.id] = false;
-      });
+    const confirmed = await confirmAction({
+      title: 'Reset Kegiatan Harian',
+      message: confirmMsg,
+      confirmLabel: 'Reset',
+      tone: 'danger',
+    });
+    if (!confirmed) {
+      return;
+    }
 
-      try {
-        if (onResetDaily && !isPublic) {
-          await onResetDaily();
-        } else if (!isPublic) {
-          const completedTaskIds = tasksList
-            .filter((task) => completedTasks[task.id])
-            .map((task) => task.task_id || task.id);
+    const reset: { [key: string]: boolean } = {};
+    tasksList.forEach(t => {
+      reset[t.id] = false;
+    });
 
-          if (onToggleTask && completedTaskIds.length > 0) {
-            for (const taskId of completedTaskIds) {
-              await onToggleTask(taskId, false);
-            }
-          }
+    try {
+      if (onResetDaily && !isPublic) {
+        await onResetDaily();
+      } else if (!isPublic) {
+        const completedTaskIds = tasksList
+          .filter((task) => completedTasks[task.id])
+          .map((task) => task.task_id || task.id);
 
-          if (feedingBatch && onCancelFeedingBatch) {
-            await onCancelFeedingBatch();
+        if (onToggleTask && completedTaskIds.length > 0) {
+          for (const taskId of completedTaskIds) {
+            await onToggleTask(taskId, false);
           }
         }
-      } catch (err: any) {
-        alert(err.message || 'Gagal mereset status tugas.');
-        return;
-      }
 
-      saveTasksState(reset);
-      setActiveTab('home');
+        if (feedingBatch && onCancelFeedingBatch) {
+          await onCancelFeedingBatch();
+        }
+      }
+    } catch (err: any) {
+      showToast('error', err.message || 'Gagal mereset status tugas.');
+      return;
     }
+
+    saveTasksState(reset);
+    setActiveTab('home');
   };
 
   const handleSetCompletedSteps = (steps: number) => {
@@ -1558,8 +1580,14 @@ export default function ChecklistPenjagaPage({
                     </button>
                     {onLogout && (
                       <button
-                        onClick={() => {
-                          if (window.confirm("Apakah Anda yakin ingin keluar dari Portal Penjaga?")) {
+                        onClick={async () => {
+                          const confirmed = await confirmAction({
+                            title: 'Keluar Portal',
+                            message: 'Apakah Anda yakin ingin keluar dari Portal Penjaga?',
+                            confirmLabel: 'Keluar',
+                            tone: 'warning',
+                          });
+                          if (confirmed) {
                             onLogout();
                           }
                         }}
@@ -2502,11 +2530,17 @@ export default function ChecklistPenjagaPage({
                     </button>
                     {onLogout && (
                       <button 
-                        onClick={() => {
-                          if (window.confirm("Apakah Anda yakin ingin keluar dari Portal Penjaga?")) {
-                            onLogout();
-                          }
-                        }}
+                          onClick={async () => {
+                            const confirmed = await confirmAction({
+                              title: 'Keluar Portal',
+                              message: 'Apakah Anda yakin ingin keluar dari Portal Penjaga?',
+                              confirmLabel: 'Keluar',
+                              tone: 'warning',
+                            });
+                            if (confirmed) {
+                              onLogout();
+                            }
+                          }}
                         style={{
                           backgroundColor: '#e53e3e',
                           color: '#ffffff',

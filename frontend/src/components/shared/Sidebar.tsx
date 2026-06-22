@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { useFeedback } from '@/components/shared/FeedbackProvider';
 import { 
   LuLayoutDashboard, 
   LuTrendingUp, 
@@ -40,6 +41,7 @@ type MenuEntry =
 export default function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const { confirmAction } = useFeedback();
   const [openGroups, setOpenGroups] = useState<{[key: string]: boolean}>({});
 
   const menuItems: MenuEntry[] = [
@@ -209,9 +211,15 @@ export default function Sidebar() {
         <a
           href="#logout"
           className="nav-item"
-          onClick={(e) => {
+          onClick={async (e) => {
             e.preventDefault();
-            if (window.confirm("Apakah Anda yakin ingin keluar dari sistem?")) {
+            const confirmed = await confirmAction({
+              title: 'Keluar Sistem',
+              message: 'Apakah Anda yakin ingin keluar dari sistem?',
+              confirmLabel: 'Logout',
+              tone: 'warning',
+            });
+            if (confirmed) {
               logout();
             }
           }}

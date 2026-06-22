@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { LuPencil, LuTrash2, LuClipboardList, LuImage, LuPlus, LuX, LuArrowUp, LuArrowDown } from 'react-icons/lu';
 import { PenjagaTaskItem, PanduanLangkah } from '@/types';
 import { resolveAssetUrl } from '@/services/api';
+import { useFeedback } from '@/components/shared/FeedbackProvider';
 
 interface KelolaTugasPageProps {
   tasksList: PenjagaTaskItem[];
@@ -27,6 +28,7 @@ export default function KelolaTugasPage({
   onSaveTask,
   onDeleteTask
 }: KelolaTugasPageProps) {
+  const { showToast, confirmAction } = useFeedback();
   const tasksList = React.useMemo(() => {
     const parseTimeToMinutes = (timeStr: string) => {
       if (!timeStr) return 0;
@@ -92,7 +94,7 @@ export default function KelolaTugasPage({
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 10 * 1024 * 1024) {
-        alert("Ukuran file terlalu besar. Maksimal 10MB.");
+        showToast('warning', 'Ukuran file terlalu besar. Maksimal 10MB.');
         return;
       }
       const reader = new FileReader();
@@ -181,7 +183,7 @@ export default function KelolaTugasPage({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!nama || !waktu || !deskripsi) {
-      alert("Mohon lengkapi formulir tugas utama.");
+      showToast('warning', 'Mohon lengkapi formulir tugas utama.');
       return;
     }
 
@@ -201,8 +203,14 @@ export default function KelolaTugasPage({
     setIsModalOpen(false);
   };
 
-  const handleDelete = (id: string, name: string) => {
-    if (window.confirm(`Apakah Anda yakin ingin menghapus tugas "${name}" dari SOP Penjaga?`)) {
+  const handleDelete = async (id: string, name: string) => {
+    const confirmed = await confirmAction({
+      title: 'Hapus Tugas SOP',
+      message: `Apakah Anda yakin ingin menghapus tugas "${name}" dari SOP Penjaga?`,
+      confirmLabel: 'Hapus Tugas',
+      tone: 'danger',
+    });
+    if (confirmed) {
       onDeleteTask(id);
     }
   };

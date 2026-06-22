@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { LuPlus, LuPencil, LuTrash2, LuLock, LuX, LuTriangleAlert } from 'react-icons/lu';
 import { FeedItem, FormulasiItem, Timbangan } from '@/types';
+import { useFeedback } from '@/components/shared/FeedbackProvider';
 
 interface KelolaPakanPageProps {
   feedList: FeedItem[];
@@ -67,6 +68,7 @@ export default function KelolaPakanPage({
   onScaleReading,
   onScaleComposition
 }: KelolaPakanPageProps) {
+  const { showToast, confirmAction } = useFeedback();
   // Local States
   const [quickFeedId, setQuickFeedId] = useState('');
   const [quickAmount, setQuickAmount] = useState('');
@@ -177,7 +179,7 @@ export default function KelolaPakanPage({
 
     onRestockFeed(quickFeedId, amount);
     setQuickAmount('');
-    alert(`Berhasil restock pakan!`);
+    showToast('success', 'Restock pakan berhasil disimpan.');
   };
 
   const handleScaleSubmit = async (e: React.FormEvent) => {
@@ -186,17 +188,17 @@ export default function KelolaPakanPage({
 
     const value = parseFloat(scaleValue);
     if (!Number.isFinite(value) || value < 0) {
-      alert('Nilai timbangan harus berupa angka 0 atau lebih.');
+      showToast('warning', 'Nilai timbangan harus berupa angka 0 atau lebih.');
       return;
     }
 
     if (selectedScale.tipe === 'MULTI' && !selectedScaleFeed) {
-      alert('Pilih bahan pakan untuk Timbangan 2 / multi.');
+      showToast('warning', 'Pilih bahan pakan untuk Timbangan 2 / multi.');
       return;
     }
 
     if (selectedScale.tipe === 'MULTI' && !scalePhase) {
-      alert('Pilih fase usia untuk racikan Timbangan 2.');
+      showToast('warning', 'Pilih fase usia untuk racikan Timbangan 2.');
       return;
     }
 
@@ -204,7 +206,7 @@ export default function KelolaPakanPage({
     try {
       await onScaleReading(selectedScale.id, value, selectedScaleLabel, selectedScaleFeed?.id, scalePhase);
       setScaleValue(selectedScale.tipe === 'MULTI' && selectedTargetKg > 0 ? selectedTargetKg.toFixed(2) : '');
-      alert(selectedScale.tipe === 'MULTI'
+      showToast('success', selectedScale.tipe === 'MULTI'
         ? 'Data racikan dari Timbangan 2 berhasil masuk ke batch.'
         : 'Pembacaan timbangan berhasil disimpan.');
     } finally {
@@ -216,20 +218,26 @@ export default function KelolaPakanPage({
     if (!onScaleComposition || !selectedScale || selectedScale.tipe !== 'MULTI') return;
 
     if (!scalePhase) {
-      alert('Pilih fase usia dulu.');
+      showToast('warning', 'Pilih fase usia dulu.');
       return;
     }
 
-    if (!window.confirm(`Masukkan semua bahan fase "${scalePhase}" sesuai komposisi target batch?`)) {
+    const confirmed = await confirmAction({
+      title: 'Masukkan Komposisi Batch',
+      message: `Masukkan semua bahan fase "${scalePhase}" sesuai komposisi target batch?`,
+      confirmLabel: 'Masukkan Bahan',
+      tone: 'warning',
+    });
+    if (!confirmed) {
       return;
     }
 
     setIsCompositionSaving(true);
     try {
       await onScaleComposition(selectedScale.id, scalePhase);
-      alert('Semua bahan fase ini berhasil masuk ke batch sesuai komposisi.');
+      showToast('success', 'Semua bahan fase ini berhasil masuk ke batch sesuai komposisi.');
     } catch (err: any) {
-      alert(err.message || 'Gagal memasukkan komposisi ke batch.');
+      showToast('error', err.message || 'Gagal memasukkan komposisi ke batch.');
     } finally {
       setIsCompositionSaving(false);
     }

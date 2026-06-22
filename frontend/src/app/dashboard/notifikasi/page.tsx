@@ -5,8 +5,10 @@ import { feedService } from '@/services/feed';
 import { activityService } from '@/services/activity';
 import { FeedItem, ActivityLog } from '@/types';
 import NotifikasiPage from '@/components/notification/NotifikasiPage';
+import { useFeedback } from '@/components/shared/FeedbackProvider';
 
 export default function NotifikasiRoute() {
+  const { showToast } = useFeedback();
   const [feeds, setFeeds] = useState<FeedItem[]>([]);
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,7 +39,7 @@ export default function NotifikasiRoute() {
       await fetchData();
     } catch (err) {
       console.error(err);
-      alert('Gagal melakukan restock. Silakan coba lagi.');
+      showToast('error', 'Gagal melakukan restock. Silakan coba lagi.');
     }
   };
 
@@ -47,7 +49,7 @@ export default function NotifikasiRoute() {
       await fetchData();
     } catch (err) {
       console.error(err);
-      alert('Gagal membersihkan log riwayat. Silakan coba lagi.');
+      showToast('error', 'Gagal membersihkan log riwayat. Silakan coba lagi.');
     }
   };
 
@@ -68,4 +70,3 @@ export default function NotifikasiRoute() {
     />
   );
 }
-

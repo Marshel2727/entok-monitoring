@@ -14,6 +14,7 @@ import {
   getNutritionStatusColor,
   NutritionPeriodTab,
 } from '@/domain/nutrition/nutritionAnalysis';
+import { useFeedback } from '@/components/shared/FeedbackProvider';
 
 interface FeedChartsPageProps {
   feedList: FeedItem[];
@@ -156,6 +157,7 @@ export default function FeedChartsPage({
   lastSyncedAt,
   isRefreshing = false
 }: FeedChartsPageProps) {
+  const { showToast } = useFeedback();
   const [nutritionTab, setNutritionTab] = useState<NutritionPeriodTab>('HARIAN');
   const [consumptionTab, setConsumptionTab] = useState<'HARIAN' | 'MINGGUAN' | 'BULANAN'>('HARIAN');
   const [dateRange, setDateRange] = useState<DateRangeFilter>('HARI INI');
@@ -402,7 +404,7 @@ export default function FeedChartsPage({
     }
 
     if (rows.length === 1) {
-      window.alert('Tidak ada data untuk diekspor pada filter ini.');
+      showToast('info', 'Tidak ada data untuk diekspor pada filter ini.');
       return;
     }
 

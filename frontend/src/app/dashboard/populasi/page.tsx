@@ -4,8 +4,10 @@ import React, { useEffect, useState } from 'react';
 import { populationService } from '@/services/population';
 import { PopulasiLog } from '@/types';
 import KelolaPopulasiPage from '@/components/populasi/KelolaPopulasiPage';
+import { useFeedback } from '@/components/shared/FeedbackProvider';
 
 export default function PopulasiPage() {
+  const { showToast, confirmAction } = useFeedback();
   const [populations, setPopulations] = useState<any[]>([]);
   const [logs, setLogs] = useState<PopulasiLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,19 +38,27 @@ export default function PopulasiPage() {
       await fetchPopulations();
     } catch (err) {
       console.error(err);
-      alert('Gagal mengupdate populasi. Silakan coba lagi.');
+      showToast('error', 'Gagal mengupdate populasi. Silakan coba lagi.');
     }
   };
 
   const handleDeleteLog = async (id: string) => {
-    if (confirm('Apakah Anda yakin ingin menghapus log riwayat ini?')) {
-      try {
-        await populationService.deleteLog(id);
-        await fetchPopulations();
-      } catch (err) {
-        console.error(err);
-        alert('Gagal menghapus log riwayat. Silakan coba lagi.');
-      }
+    const confirmed = await confirmAction({
+      title: 'Hapus Log Populasi',
+      message: 'Apakah Anda yakin ingin menghapus log riwayat ini?',
+      confirmLabel: 'Hapus Log',
+      tone: 'danger',
+    });
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await populationService.deleteLog(id);
+      await fetchPopulations();
+    } catch (err) {
+      console.error(err);
+      showToast('error', 'Gagal menghapus log riwayat. Silakan coba lagi.');
     }
   };
 
@@ -82,4 +92,3 @@ export default function PopulasiPage() {
     />
   );
 }
-

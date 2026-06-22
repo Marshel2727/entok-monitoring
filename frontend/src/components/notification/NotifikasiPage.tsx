@@ -11,6 +11,7 @@ import {
   LuTrash2 
 } from 'react-icons/lu';
 import { FeedItem, ActivityLog } from '@/types';
+import { useFeedback } from '@/components/shared/FeedbackProvider';
 
 interface NotifikasiPageProps {
   feedList: FeedItem[];
@@ -25,6 +26,7 @@ export default function NotifikasiPage({
   onRestockFeed, 
   onClearHistory 
 }: NotifikasiPageProps) {
+  const { showToast } = useFeedback();
   const [activeTab, setActiveTab] = useState<'SEMUA' | 'PERINGATAN' | 'LOG'>('SEMUA');
   const [restockAmounts, setRestockAmounts] = useState<{ [key: string]: string }>({});
 
@@ -79,13 +81,13 @@ export default function NotifikasiPage({
     const rawVal = restockAmounts[feedId];
     const amount = parseFloat(rawVal);
     if (isNaN(amount) || amount <= 0) {
-      alert("Masukkan jumlah restock yang valid (lebih dari 0)!");
+      showToast('warning', 'Masukkan jumlah restock yang valid, lebih dari 0.');
       return;
     }
 
     onRestockFeed(feedId, amount);
     setRestockAmounts(prev => ({ ...prev, [feedId]: "" }));
-    alert(`Berhasil restock ${amount} kg untuk ${feedNama}!`);
+    showToast('success', `Berhasil restock ${amount} kg untuk ${feedNama}.`);
   };
 
   const handleInputChange = (feedId: string, val: string) => {

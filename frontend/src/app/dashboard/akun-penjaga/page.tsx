@@ -4,8 +4,10 @@ import React, { useEffect, useState } from 'react';
 import { authService } from '@/services/auth';
 import { User, KeeperAccountItem } from '@/types';
 import KelolaAkunPenjagaPage from '@/components/keeper/KelolaAkunPenjagaPage';
+import { useFeedback } from '@/components/shared/FeedbackProvider';
 
 export default function AkunPenjagaPage() {
+  const { showToast } = useFeedback();
   const [keepers, setKeepers] = useState<KeeperAccountItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -64,7 +66,7 @@ export default function AkunPenjagaPage() {
       await fetchKeepers();
     } catch (err) {
       console.error(err);
-      alert('Gagal menyimpan akun penjaga. Silakan coba lagi.');
+      showToast('error', 'Gagal menyimpan akun penjaga. Silakan coba lagi.');
     }
   };
 
@@ -74,7 +76,7 @@ export default function AkunPenjagaPage() {
       await fetchKeepers();
     } catch (err) {
       console.error(err);
-      alert('Gagal menghapus akun penjaga. Silakan coba lagi.');
+      showToast('error', 'Gagal menghapus akun penjaga. Silakan coba lagi.');
     }
   };
 
@@ -94,4 +96,3 @@ export default function AkunPenjagaPage() {
     />
   );
 }
-

@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { LuPencil, LuTrash2, LuUsers, LuPlus, LuX, LuEye, LuEyeOff, LuSearch } from 'react-icons/lu';
 import { KeeperAccountItem } from '@/types';
+import { useFeedback } from '@/components/shared/FeedbackProvider';
 
 interface KelolaAkunPenjagaPageProps {
   keeperAccounts: KeeperAccountItem[];
@@ -15,6 +16,7 @@ export default function KelolaAkunPenjagaPage({
   onSaveAccount,
   onDeleteAccount
 }: KelolaAkunPenjagaPageProps) {
+  const { showToast, confirmAction } = useFeedback();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editItem, setEditItem] = useState<KeeperAccountItem | null>(null);
   const [showPasswordMap, setShowPasswordMap] = useState<{ [key: string]: boolean }>({});
@@ -60,7 +62,7 @@ export default function KelolaAkunPenjagaPage({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!nama || !username || (!editItem && !kataSandi)) {
-      alert("Mohon lengkapi seluruh formulir akun.");
+      showToast('warning', 'Mohon lengkapi seluruh formulir akun.');
       return;
     }
 
@@ -84,8 +86,14 @@ export default function KelolaAkunPenjagaPage({
     setIsModalOpen(false);
   };
 
-  const handleDelete = (id: string, name: string) => {
-    if (window.confirm(`Apakah Anda yakin ingin menghapus akun penjaga "${name}"?`)) {
+  const handleDelete = async (id: string, name: string) => {
+    const confirmed = await confirmAction({
+      title: 'Hapus Akun Penjaga',
+      message: `Apakah Anda yakin ingin menghapus akun penjaga "${name}"?`,
+      confirmLabel: 'Hapus Akun',
+      tone: 'danger',
+    });
+    if (confirmed) {
       onDeleteAccount(id);
     }
   };

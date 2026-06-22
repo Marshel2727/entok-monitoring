@@ -6,8 +6,10 @@ import { feedService } from '@/services/feed';
 import FormulasiModal from '@/components/formulation/FormulasiModal';
 import { FormulasiItem, FeedItem } from '@/types';
 import { LuTableProperties, LuPencil, LuTrash2 } from 'react-icons/lu';
+import { useFeedback } from '@/components/shared/FeedbackProvider';
 
 export default function FormulasiPage() {
+  const { showToast, confirmAction } = useFeedback();
   const [formulations, setFormulations] = useState<FormulasiItem[]>([]);
   const [feeds, setFeeds] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,15 +55,23 @@ export default function FormulasiPage() {
   };
 
   const handleDeleteFormulation = async (id: string, phaseName: string) => {
-    if (window.confirm(`Apakah Anda yakin ingin menghapus formulasi pakan fase "${phaseName}"?`)) {
-      try {
-        const res = await formulationService.deleteFormulation(id);
-        if (res.status === 'success') {
-          fetchData();
-        }
-      } catch (err: any) {
-        alert(err.message || 'Gagal menghapus formulasi.');
+    const confirmed = await confirmAction({
+      title: 'Hapus Formulasi',
+      message: `Apakah Anda yakin ingin menghapus formulasi pakan fase "${phaseName}"?`,
+      confirmLabel: 'Hapus Formulasi',
+      tone: 'danger',
+    });
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      const res = await formulationService.deleteFormulation(id);
+      if (res.status === 'success') {
+        fetchData();
       }
+    } catch (err: any) {
+      showToast('error', err.message || 'Gagal menghapus formulasi.');
     }
   };
 
@@ -73,7 +83,7 @@ export default function FormulasiPage() {
         setIsModalOpen(false);
       }
     } catch (err: any) {
-      alert(err.message || 'Gagal menyimpan formulasi.');
+      showToast('error', err.message || 'Gagal menyimpan formulasi.');
     }
   };
 
