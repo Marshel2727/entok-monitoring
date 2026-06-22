@@ -2,6 +2,7 @@
 #define API_CLIENT_H
 
 #include <WiFi.h>
+#include <WiFiClientSecure.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include "config.h"
@@ -48,6 +49,21 @@ bool ensureWiFi() {
   return WiFi.status() == WL_CONNECTED;
 }
 
+bool beginApiRequest(HTTPClient &http, WiFiClient &client, WiFiClientSecure &secureClient, const String &url) {
+  if (url.startsWith("https://")) {
+    secureClient.setInsecure();
+    return http.begin(secureClient, url);
+  }
+
+  return http.begin(client, url);
+}
+
+void addDeviceHeaders(HTTPClient &http) {
+  if (String(DEVICE_API_KEY).length() > 0) {
+    http.addHeader("X-Device-Key", DEVICE_API_KEY);
+  }
+}
+
 bool loadScaleMap(bool showMessage) {
   if (!ensureWiFi()) {
     return false;
@@ -65,8 +81,17 @@ bool loadScaleMap(bool showMessage) {
   Serial.println(url);
 
   HTTPClient http;
-  http.begin(url);
+  WiFiClient client;
+  WiFiClientSecure secureClient;
+  if (!beginApiRequest(http, client, secureClient, url)) {
+    printLine(0, "URL ERROR");
+    printLine(1, "Backend");
+    delay(2000);
+    showHomeScreen();
+    return false;
+  }
   http.setTimeout(10000);
+  addDeviceHeaders(http);
 
   int httpCode = http.GET();
   String response = http.getString();
@@ -228,9 +253,18 @@ void sendBulkData() {
   Serial.println(url);
 
   HTTPClient http;
-  http.begin(url);
+  WiFiClient client;
+  WiFiClientSecure secureClient;
+  if (!beginApiRequest(http, client, secureClient, url)) {
+    printLine(0, "URL ERROR");
+    printLine(1, "Backend");
+    delay(2000);
+    displayCurrentItem();
+    return;
+  }
   http.setTimeout(15000);
   http.addHeader("Content-Type", "application/json");
+  addDeviceHeaders(http);
 
   int httpCode = http.POST(payload);
   String response = http.getString();

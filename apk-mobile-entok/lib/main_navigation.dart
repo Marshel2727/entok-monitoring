@@ -8,6 +8,7 @@ import 'screens/checklist_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/panduan_screen.dart';
 import 'services/api_service.dart';
+import 'services/task_reminder_service.dart';
 import 'theme/app_theme.dart';
 
 class MainNavigationScreen extends StatefulWidget {
@@ -24,14 +25,24 @@ class MainNavigationScreen extends StatefulWidget {
   State<MainNavigationScreen> createState() => _MainNavigationScreenState();
 }
 
-class _MainNavigationScreenState extends State<MainNavigationScreen> {
+class _MainNavigationScreenState extends State<MainNavigationScreen> with WidgetsBindingObserver {
   static const int _checklistTabIndex = 1;
+  static const Duration _batchPollInterval = Duration(seconds: 2);
+  static const Duration _batchErrorBackoff = Duration(seconds: 10);
+  static const Duration _resumeRefreshInterval = Duration(seconds: 20);
 
   int _currentIndex = 1;
   bool _isLoading = true;
   bool _isSyncing = false;
+  bool _isBatchPolling = false;
+  bool _isAppForeground = true;
   String? _error;
   Timer? _batchRefreshTimer;
+  DateTime? _lastDataLoadAt;
+  DateTime? _lastBatchSyncAt;
+  DateTime? _nextBatchSyncAttemptAt;
+  int _batchSyncFailureCount = 0;
+  bool _hasBatchSyncIssue = false;
 
   List<DailyChecklistItem> _checklist = [];
   List<KeeperTask> _tasks = [];
@@ -43,17 +54,29 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadDailyData();
-    _batchRefreshTimer = Timer.periodic(const Duration(seconds: 8), (_) {
-      if (!mounted || _currentIndex != _checklistTabIndex || _isLoading || _isSyncing) return;
-      _loadDailyData(showLoading: false);
-    });
+    _batchRefreshTimer = Timer.periodic(_batchPollInterval, (_) => _syncFeedingBatchesSilently());
   }
 
   @override
   void dispose() {
     _batchRefreshTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _isAppForeground = true;
+      unawaited(_refreshIfStale(_resumeRefreshInterval));
+      unawaited(_syncFeedingBatchesSilently(force: true));
+    } else if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      _isAppForeground = false;
+    }
   }
 
   String get _today {
@@ -78,7 +101,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         'taskId': isChecklist ? item.taskId : item.id,
         'executionId': isChecklist ? item.executionId : '',
         'title': item.nama,
-        'time': item.waktu,
+        'time': TaskReminderService.formatTaskTimeForDisplay(item.waktu),
         'desc': item.deskripsi,
         'imageUrl': widget.api.assetUrl(item.img),
         'isDone': isChecklist ? item.isCompleted : false,
@@ -112,6 +135,113 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       }
     }
     return map;
+  }
+
+  bool get _hasPreparingBatch {
+    return _feedingBatches.any((batch) => batch.isPreparing && !batch.isFinalized);
+  }
+
+  Future<void> _refreshIfStale(Duration minimumAge) async {
+    if (!mounted || _isLoading || _isSyncing) return;
+    final lastLoad = _lastDataLoadAt;
+    if (lastLoad != null && DateTime.now().difference(lastLoad) < minimumAge) return;
+    await _loadDailyData(showLoading: false);
+  }
+
+  Future<void> _syncFeedingBatchesSilently({bool force = false}) async {
+    if (!mounted || !_isAppForeground || _currentIndex != _checklistTabIndex) return;
+    if (_isLoading || _isSyncing || _isBatchPolling) return;
+    if (!force && !_hasPreparingBatch) return;
+
+    final nextAttempt = _nextBatchSyncAttemptAt;
+    if (nextAttempt != null && DateTime.now().isBefore(nextAttempt)) return;
+
+    _isBatchPolling = true;
+    try {
+      final batches = await widget.api.getTodayBatches(_today);
+      if (!mounted) return;
+
+      final wasSyncIssue = _hasBatchSyncIssue;
+      _batchSyncFailureCount = 0;
+      _hasBatchSyncIssue = false;
+      _nextBatchSyncAttemptAt = null;
+
+      final now = DateTime.now();
+      final batchChanged = _feedingBatchSignature(batches) != _feedingBatchSignature(_feedingBatches);
+      final shouldRefreshSyncUi = wasSyncIssue || _lastBatchSyncAt == null || now.difference(_lastBatchSyncAt!) >= const Duration(seconds: 10);
+
+      _lastBatchSyncAt = now;
+      if (batchChanged) {
+        setState(() {
+          _feedingBatches = batches;
+        });
+      } else if (shouldRefreshSyncUi) {
+        setState(() {});
+      }
+    } on ApiException catch (err) {
+      if (err.statusCode == 401 || err.statusCode == 403) {
+        await widget.onLogout();
+        return;
+      }
+      _markBatchSyncFailed();
+    } catch (_) {
+      _markBatchSyncFailed();
+    } finally {
+      _isBatchPolling = false;
+    }
+  }
+
+  void _markBatchSyncFailed() {
+    _batchSyncFailureCount += 1;
+    if (_batchSyncFailureCount >= 3) {
+      _nextBatchSyncAttemptAt = DateTime.now().add(_batchErrorBackoff);
+      if (!_hasBatchSyncIssue && mounted) {
+        setState(() => _hasBatchSyncIssue = true);
+      } else {
+        _hasBatchSyncIssue = true;
+      }
+    }
+  }
+
+  String _feedingBatchSignature(List<FeedingBatch> batches) {
+    final parts = batches.map((batch) {
+      final ingredients = [...batch.ingredients]
+        ..sort((a, b) {
+          final phaseCompare = a.phase.compareTo(b.phase);
+          if (phaseCompare != 0) return phaseCompare;
+          return a.feedName.compareTo(b.feedName);
+        });
+      final ingredientParts = ingredients.map((item) {
+        return [
+          item.id,
+          item.feedId ?? '',
+          item.phaseId ?? '',
+          item.feedName,
+          item.phase,
+          item.populationCount,
+          item.targetConsumption.toStringAsFixed(3),
+          item.plannedAmount.toStringAsFixed(3),
+          item.weighedAmount.toStringAsFixed(3),
+          item.deductedAmount.toStringAsFixed(3),
+          item.varianceAmount.toStringAsFixed(3),
+          item.unit,
+        ].join(':');
+      }).join(',');
+
+      return [
+        batch.id,
+        batch.tanggal,
+        batch.taskId ?? '',
+        batch.taskExecutionId ?? '',
+        batch.status,
+        batch.tolerancePercent.toStringAsFixed(3),
+        batch.finalizedAt ?? '',
+        ingredientParts,
+      ].join('|');
+    }).toList()
+      ..sort();
+
+    return parts.join('||');
   }
 
   Future<void> _loadDailyData({bool showLoading = true}) async {
@@ -148,7 +278,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         _populations = populations;
         _feedingBatches = batches;
         _error = null;
+        _lastDataLoadAt = DateTime.now();
+        _lastBatchSyncAt = DateTime.now();
+        _hasBatchSyncIssue = false;
       });
+
+      final reminderTasks = checklist.isNotEmpty ? checklist : tasks;
+      unawaited(_syncNotifications(reminderTasks, feeds));
     } on ApiException catch (err) {
       if (err.statusCode == 401 || err.statusCode == 403) {
         await widget.onLogout();
@@ -164,6 +300,21 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           _isSyncing = false;
         });
       }
+    }
+  }
+
+  Future<void> _syncNotifications(List<KeeperTask> tasks, List<FeedItem> feeds) async {
+    try {
+      await TaskReminderService.instance.scheduleDailyTaskReminders(
+        date: _today,
+        tasks: tasks,
+      );
+      await TaskReminderService.instance.notifyLowFeedStock(
+        date: _today,
+        feeds: feeds,
+      );
+    } catch (_) {
+      // Checklist tetap bisa dipakai walau izin notifikasi ditolak atau OS membatasi alarm.
     }
   }
 
@@ -238,9 +389,27 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         builder: (context) => AccountScreen(
           user: widget.api.user,
           onLogout: widget.onLogout,
+          onNotificationSettingsChanged: _syncCurrentNotifications,
         ),
       ),
     );
+
+    unawaited(_syncCurrentNotifications());
+  }
+
+  Future<void> _syncCurrentNotifications() async {
+    final reminderTasks = _checklist.isNotEmpty ? _checklist : _tasks;
+    if (!mounted || reminderTasks.isEmpty) return;
+    await _syncNotifications(reminderTasks, _feeds);
+  }
+
+  void _switchTab(int index) {
+    if (_currentIndex == index) return;
+    setState(() => _currentIndex = index);
+    if (index == _checklistTabIndex) {
+      unawaited(_refreshIfStale(_resumeRefreshInterval));
+      unawaited(_syncFeedingBatchesSilently(force: true));
+    }
   }
 
   @override
@@ -263,6 +432,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         feedingBatches: _feedingBatches,
         batchByTaskId: _batchByTaskId,
         batchByExecutionId: _batchByExecutionId,
+        isLiveBatchPolling: _currentIndex == _checklistTabIndex && _hasPreparingBatch && !_hasBatchSyncIssue,
+        hasBatchSyncIssue: _hasBatchSyncIssue,
+        lastBatchSyncAt: _lastBatchSyncAt,
         onStatusChanged: _toggleTask,
         onCreateFeedingBatch: _createFeedingBatch,
         onFinalizeFeedingBatch: _finalizeFeedingBatch,
@@ -277,7 +449,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         feeds: _feeds,
         formulations: _formulations,
         populations: _populations,
-        onTabSwitch: (index) => setState(() => _currentIndex = index),
+        onTabSwitch: _switchTab,
         onOpenAccount: _openAccount,
       ),
     ];
@@ -331,7 +503,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     final isActive = _currentIndex == index;
     final color = isActive ? EntokColors.green : const Color(0xFF697281);
     return InkWell(
-      onTap: () => setState(() => _currentIndex = index),
+      onTap: () {
+        _switchTab(index);
+      },
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         child: Column(

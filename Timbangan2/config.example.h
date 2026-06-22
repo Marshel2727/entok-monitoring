@@ -8,8 +8,9 @@
 #define WIFI_PASS "YOUR_WIFI_PASSWORD"
 
 // Use the backend host reachable from the ESP32.
-// Example: http://192.168.1.10:5000/api
-#define API_BASE_URL "http://YOUR_BACKEND_HOST:5000/api"
+// Example production: https://api-entok.bengkelit.id/api
+#define API_BASE_URL "https://api-entok.bengkelit.id/api"
+#define DEVICE_API_KEY "CHANGE_THIS_TO_MATCH_IOT_DEVICE_API_KEY"
 #define TIMBANGAN_ID 2
 
 // ================= LCD I2C =================

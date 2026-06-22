@@ -3,6 +3,7 @@
 .pub-cache/
 .pub/
 build/
+build-output/
 coverage/
 
 android/.gradle/
@@ -10,6 +11,9 @@ android/app/build/
 android/build/
 
 ios/Flutter/.last_build_id
+linux/flutter/ephemeral/
+macos/Flutter/ephemeral/
+windows/flutter/ephemeral/
 
 *.iml
 *.log

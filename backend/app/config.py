@@ -7,6 +7,7 @@ load_dotenv()
 class Config:
     SECRET_KEY = os.getenv('SECRET_KEY', 'default-secret-key-1234')
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'default-jwt-secret-key-5678')
+    IOT_DEVICE_API_KEY = os.getenv('IOT_DEVICE_API_KEY', '')
     # Constructing MySQL URI dynamically from env variables
     db_user = os.getenv('DB_USER', 'root')
     db_password = os.getenv('DB_PASSWORD', '')

@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from app.utils.decorators import token_required
+from app.utils.decorators import device_key_required, token_required
 from app.utils.cache import cached_json
 from app.service import feeding_batch_service
 from app.schemas import (
@@ -44,6 +44,7 @@ def create_batch(current_user):
 
 
 @feeding_batch_bp.route('/scale-map', methods=['GET'])
+@device_key_required
 @cached_json(ttl_seconds=5, public=True, vary_auth=False)
 def get_scale_map():
     """
@@ -59,6 +60,7 @@ def get_scale_map():
 
 
 @feeding_batch_bp.route('/scale-readings', methods=['POST'])
+@device_key_required
 def record_scale_reading():
     """
     Endpoint perangkat Timbangan 2.
@@ -73,6 +75,7 @@ def record_scale_reading():
 
 
 @feeding_batch_bp.route('/scale-readings/bulk', methods=['POST'])
+@device_key_required
 def record_scale_readings_bulk():
     """
     Endpoint bulk perangkat Timbangan 2.

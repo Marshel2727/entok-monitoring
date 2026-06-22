@@ -11,6 +11,9 @@ class ChecklistScreen extends StatefulWidget {
   final List<FeedingBatch> feedingBatches;
   final Map<String, FeedingBatch> batchByTaskId;
   final Map<String, FeedingBatch> batchByExecutionId;
+  final bool isLiveBatchPolling;
+  final bool hasBatchSyncIssue;
+  final DateTime? lastBatchSyncAt;
   final Future<void> Function(String taskId, bool status) onStatusChanged;
   final Future<void> Function(String taskId, [String? taskExecutionId]) onCreateFeedingBatch;
   final Future<void> Function(String batchId) onFinalizeFeedingBatch;
@@ -28,6 +31,9 @@ class ChecklistScreen extends StatefulWidget {
     required this.feedingBatches,
     required this.batchByTaskId,
     required this.batchByExecutionId,
+    required this.isLiveBatchPolling,
+    required this.hasBatchSyncIssue,
+    required this.lastBatchSyncAt,
     required this.onStatusChanged,
     required this.onCreateFeedingBatch,
     required this.onFinalizeFeedingBatch,
@@ -43,6 +49,7 @@ class ChecklistScreen extends StatefulWidget {
 
 class _ChecklistScreenState extends State<ChecklistScreen> {
   int? _selectedChecklistIndex;
+  final Set<String> _expandedBatchKeys = <String>{};
 
   @override
   Widget build(BuildContext context) {
@@ -65,21 +72,21 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 12),
                         if (widget.error != null) ...[
                           _buildErrorBox(widget.error!),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 12),
                         ],
                         _buildProgressCard(progressPercent, totalSelesai, totalKegiatan),
-                        const SizedBox(height: 34),
+                        const SizedBox(height: 20),
                         const Padding(
                           padding: EdgeInsets.symmetric(horizontal: 20),
                           child: Text(
                             'LIST KEGIATAN HARI INI',
-                            style: TextStyle(fontSize: 16, color: EntokColors.text, fontWeight: FontWeight.w900),
+                            style: TextStyle(fontSize: 13, color: EntokColors.text, fontWeight: FontWeight.w900),
                           ),
                         ),
-                        const SizedBox(height: 22),
+                        const SizedBox(height: 14),
                       ],
                     ),
                   ),
@@ -95,7 +102,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                     )
                   else
                     SliverPadding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
                       sliver: SliverList(
                         delegate: SliverChildBuilderDelegate(
                           (context, index) => _buildTimelineItem(index),
@@ -122,11 +129,78 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
   }
 
   Widget _buildHeader(BuildContext context) {
-    return EntokTopHeader(
-      title: 'Checklist Kegiatan',
-      subtitle: widget.isSyncing ? 'Sinkronisasi data server...' : _todayLabel(),
-      actionIcon: widget.isSyncing ? Icons.sync_rounded : Icons.person_rounded,
-      onAction: widget.isSyncing ? null : widget.onOpenAccount,
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(22, MediaQuery.of(context).padding.top + 14, 22, 18),
+      decoration: BoxDecoration(
+        color: EntokColors.green,
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(30),
+          bottomRight: Radius.circular(30),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: EntokColors.green.withValues(alpha: 0.20),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Checklist Kegiatan',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    height: 1.1,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  widget.isSyncing ? 'Menyimpan perubahan...' : _todayLabel(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xE9FFFFFF),
+                    fontSize: 13,
+                    height: 1.2,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          GestureDetector(
+            onTap: widget.isSyncing ? null : widget.onOpenAccount,
+            child: Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                color: EntokColors.mint,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.10),
+                    blurRadius: 12,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: Icon(widget.isSyncing ? Icons.sync_rounded : Icons.person_rounded, color: EntokColors.green, size: 25),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -134,10 +208,10 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
           color: EntokColors.mint,
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(color: const Color(0xFFD9F5E4)),
           boxShadow: [
             BoxShadow(
@@ -153,23 +227,23 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
               alignment: Alignment.center,
               children: [
                 SizedBox(
-                  width: 64,
-                  height: 64,
+                  width: 52,
+                  height: 52,
                   child: CircularProgressIndicator(
                     value: widget.progress,
                     backgroundColor: const Color(0xFFE2E7F0),
                     valueColor: AlwaysStoppedAnimation<Color>(_getProgressColor(progressPercent)),
-                    strokeWidth: 8,
+                    strokeWidth: 7,
                     strokeCap: StrokeCap.round,
                   ),
                 ),
                 Text(
                   '$progressPercent%',
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87),
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Colors.black87),
                 ),
               ],
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -177,22 +251,22 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                 children: [
                   const Text(
                     'Progress Harian',
-                    style: TextStyle(fontSize: 17, color: EntokColors.text, fontWeight: FontWeight.w900),
+                    style: TextStyle(fontSize: 15, color: EntokColors.text, fontWeight: FontWeight.w900),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 3),
                   Text(
                     '$totalSelesai/$totalKegiatan selesai',
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: EntokColors.muted),
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: EntokColors.muted),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   const Row(
                     children: [
-                      Icon(Icons.check_circle, size: 16, color: Color(0xFF26D057)),
+                      Icon(Icons.check_circle, size: 14, color: Color(0xFF26D057)),
                       SizedBox(width: 6),
                       Expanded(
                         child: Text(
                           'Pantau pakan entok hari ini',
-                          style: TextStyle(fontSize: 14, color: EntokColors.greenDark, fontWeight: FontWeight.w800),
+                          style: TextStyle(fontSize: 12, color: EntokColors.greenDark, fontWeight: FontWeight.w800),
                         ),
                       ),
                     ],
@@ -212,6 +286,10 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
     final taskId = '${item['taskId'] ?? item['id'] ?? ''}';
     final executionId = '${item['executionId'] ?? ''}';
     final feedingBatch = _batchForTask(taskId, executionId: executionId);
+    final isFeedingTask = _isFeedingTask('${item['title'] ?? ''}');
+    final batchKey = _batchExpansionKey(taskId, feedingBatch, executionId: executionId);
+    final showBatchDetail = _shouldShowBatchDetail(feedingBatch, batchKey);
+    final isCompact = isDone && !showBatchDetail && !isSelected;
 
     var isWaktunya = false;
     if (!isDone) {
@@ -242,24 +320,24 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
           Column(
             children: [
               Container(
-                width: 32,
-                height: 32,
+                width: 30,
+                height: 30,
                 decoration: BoxDecoration(
                   color: isDone ? const Color(0xFFE8F5E9) : Colors.white,
                   shape: BoxShape.circle,
                   border: Border.all(color: statusColor, width: 2),
                 ),
-                child: Icon(statusIcon, color: statusColor, size: 18),
+                child: Icon(statusIcon, color: statusColor, size: 17),
               ),
               Expanded(
                 child: index != widget.kegiatanList.length - 1 ? Container(width: 2, color: lineLinkColor) : const SizedBox(height: 16),
               ),
             ],
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.only(bottom: 12),
               child: GestureDetector(
                 onTap: () {
                   setState(() {
@@ -267,10 +345,10 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                   });
                 },
                 child: Container(
-                  padding: const EdgeInsets.all(15),
+                  padding: EdgeInsets.all(isCompact ? 12 : 13),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(28),
+                    borderRadius: BorderRadius.circular(22),
                     border: Border.all(
                       color: isSelected || isWaktunya ? EntokColors.green : EntokColors.border,
                       width: isSelected || isWaktunya ? 2 : 1,
@@ -278,8 +356,8 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withValues(alpha: 0.045),
-                        blurRadius: 16,
-                        offset: const Offset(0, 8),
+                        blurRadius: 12,
+                        offset: const Offset(0, 6),
                       ),
                     ],
                   ),
@@ -293,42 +371,63 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                           Text(
                             item['time'] ?? '',
                             style: const TextStyle(
-                              fontSize: 13,
+                              fontSize: 12,
                               color: Color(0xFFD05D62),
                               fontWeight: FontWeight.w900,
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 18),
+                      SizedBox(height: isCompact ? 10 : 13),
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _taskAvatar(item),
-                          const SizedBox(width: 12),
+                          _taskAvatar(item, size: isCompact ? 48 : 52),
+                          const SizedBox(width: 11),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   item['title'] ?? '',
-                                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: EntokColors.text),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: isCompact ? 18 : 19,
+                                    height: 1.12,
+                                    color: EntokColors.text,
+                                  ),
                                 ),
-                                const SizedBox(height: 8),
+                                const SizedBox(height: 6),
                                 Text(
                                   item['desc'] ?? '',
-                                  style: const TextStyle(fontSize: 14, height: 1.35, color: EntokColors.muted, fontWeight: FontWeight.w600),
+                                  maxLines: isCompact ? 1 : 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontSize: 13, height: 1.25, color: EntokColors.muted, fontWeight: FontWeight.w600),
                                 ),
                               ],
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: 8),
                           _checkBubble(isDone),
                         ],
                       ),
-                      if (_isFeedingTask(item['title'] ?? '')) ...[
+                      if (isFeedingTask) ...[
                         const SizedBox(height: 12),
-                        _buildFeedingBatchPanel(taskId, feedingBatch, executionId: executionId),
+                        if (showBatchDetail)
+                          _buildFeedingBatchPanel(
+                            taskId,
+                            feedingBatch,
+                            executionId: executionId,
+                            canCollapse: feedingBatch != null && (feedingBatch.isFinalized || isDone),
+                            onCollapse: () => _collapseBatchDetail(batchKey),
+                          )
+                        else
+                          _buildFeedingBatchSummary(
+                            feedingBatch,
+                            onOpenDetail: () => _expandBatchDetail(batchKey),
+                          ),
                       ],
                       if (isSelected && !isDone) ...[
                         const SizedBox(height: 12),
@@ -367,21 +466,21 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
     );
   }
 
-  Widget _taskAvatar(Map<String, dynamic> item) {
+  Widget _taskAvatar(Map<String, dynamic> item, {double size = 52}) {
     final imageUrl = '${item['imageUrl'] ?? ''}';
     return Container(
-      width: 54,
-      height: 54,
-      decoration: BoxDecoration(color: EntokColors.green, borderRadius: BorderRadius.circular(16)),
+      width: size,
+      height: size,
+      decoration: BoxDecoration(color: EntokColors.green, borderRadius: BorderRadius.circular(14)),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         child: imageUrl.isNotEmpty
             ? Image.network(
                 imageUrl,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Icon(item['icon'] ?? Icons.assignment, color: Colors.white, size: 30),
+                errorBuilder: (_, _, _) => Icon(item['icon'] ?? Icons.assignment, color: Colors.white, size: 28),
               )
-            : Icon(item['icon'] ?? Icons.assignment, color: Colors.white, size: 30),
+            : Icon(item['icon'] ?? Icons.assignment, color: Colors.white, size: 28),
       ),
     );
   }
@@ -393,7 +492,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
         isDone ? 'SELESAI' : (isWaktunya ? 'WAKTUNYA' : 'BELUM WAKTUNYA'),
         style: TextStyle(
           color: isDone ? EntokColors.green : (isWaktunya ? EntokColors.warning : EntokColors.muted),
-          fontSize: 14,
+          fontSize: 12,
           fontWeight: FontWeight.w900,
         ),
       ),
@@ -402,18 +501,24 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
 
   Widget _checkBubble(bool isDone) {
     return Container(
-      width: 34,
-      height: 34,
+      width: 30,
+      height: 30,
       decoration: BoxDecoration(
         color: isDone ? const Color(0xFF26D057) : Colors.white,
         shape: BoxShape.circle,
         border: Border.all(color: isDone ? EntokColors.green : const Color(0xFFD8DEE7), width: 3),
       ),
-      child: isDone ? const Icon(Icons.check, color: Colors.white, size: 18) : null,
+      child: isDone ? const Icon(Icons.check, color: Colors.white, size: 16) : null,
     );
   }
 
-  Widget _buildFeedingBatchPanel(String taskId, FeedingBatch? batch, {String? executionId}) {
+  Widget _buildFeedingBatchPanel(
+    String taskId,
+    FeedingBatch? batch, {
+    String? executionId,
+    bool canCollapse = false,
+    VoidCallback? onCollapse,
+  }) {
     final hasBatch = batch != null;
     final ingredients = batch?.ingredients ?? const <FeedingBatchIngredient>[];
     final groupedItems = _groupIngredientsByPhase(ingredients);
@@ -424,16 +529,16 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(13),
         border: Border.all(color: const Color(0xFFDCE8E2)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.07),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
+            color: Colors.black.withValues(alpha: 0.045),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
@@ -444,29 +549,33 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Container(
-                width: 42,
-                height: 42,
+                width: 38,
+                height: 38,
                 decoration: BoxDecoration(
                   color: const Color(0xFFEFFFF5),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(11),
                   border: Border.all(color: const Color(0xFFD8F3E4)),
                 ),
-                child: const Icon(Icons.auto_awesome_rounded, color: Color(0xFF15D36B), size: 20),
+                child: const Icon(Icons.auto_awesome_rounded, color: Color(0xFF15D36B), size: 18),
               ),
               const SizedBox(width: 10),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    const Text(
                       'Batch Racikan',
                       style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Color(0xFF102033)),
                     ),
-                    SizedBox(height: 4),
-                    Text(
+                    const SizedBox(height: 3),
+                    const Text(
                       'Data Timbangan 2 masuk ke sini. Stok dipotong saat finalisasi.',
                       style: TextStyle(fontSize: 9, color: Color(0xFF68758F), height: 1.4),
                     ),
+                    if (currentBatch != null) ...[
+                      const SizedBox(height: 5),
+                      _batchLiveLine(currentBatch),
+                    ],
                   ],
                 ),
               ),
@@ -505,16 +614,16 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
               children: [
                 for (final group in groupedItems) ...[
                   _phaseGroupCard(group),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 9),
                 ],
                 _stockSummaryCard(totalItems, isFinalized),
                 if (currentBatch != null && isPreparing) ...[
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
                   Text(
                     'Toleransi selisih: ${_fmt(currentBatch.tolerancePercent)}% per bahan.',
                     style: const TextStyle(fontSize: 10, color: Color(0xFF68758F), fontWeight: FontWeight.w600),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
                   Row(
                     children: [
                       Expanded(
@@ -547,13 +656,127 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                   ),
                 ],
                 if (currentBatch != null && isFinalized) ...[
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
                   const _BatchNotice(message: 'Batch sudah final. Data timbang tersimpan dan stok sudah dipotong.'),
+                  if (canCollapse && onCollapse != null) ...[
+                    const SizedBox(height: 8),
+                    _compactTextButton(
+                      'Sembunyikan detail',
+                      Icons.keyboard_arrow_up_rounded,
+                      onCollapse,
+                    ),
+                  ],
                 ],
               ],
             ),
         ],
       ),
+    );
+  }
+
+  Widget _buildFeedingBatchSummary(FeedingBatch? batch, {required VoidCallback onOpenDetail}) {
+    final ingredients = batch?.ingredients ?? const <FeedingBatchIngredient>[];
+    final totals = _totalIngredientsByFeed(ingredients);
+    final totalDeducted = totals.fold<double>(0, (sum, item) => sum + item.deducted);
+    final totalWeighed = totals.fold<double>(0, (sum, item) => sum + item.weighed);
+    final displayTotal = batch?.isFinalized == true ? totalDeducted : totalWeighed;
+    final isFinalized = batch?.isFinalized == true;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onOpenDetail,
+        child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
+          decoration: BoxDecoration(
+            color: isFinalized ? const Color(0xFFEFFFF5) : const Color(0xFFFFFAEB),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: isFinalized ? const Color(0xFFD8F3E4) : const Color(0xFFF5D58C)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: isFinalized ? const Color(0xFFBCEFD0) : const Color(0xFFF2D89B)),
+                ),
+                child: Icon(
+                  isFinalized ? Icons.check_circle_rounded : Icons.inventory_2_outlined,
+                  color: isFinalized ? const Color(0xFF15D36B) : const Color(0xFFC79121),
+                  size: 19,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isFinalized ? 'Batch final' : 'Batch racikan',
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF102033)),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      '${totals.length} bahan - total ${_formatKg(displayTotal)} - ${isFinalized ? 'stok sudah dipotong' : 'lihat target'}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF68758F)),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Detail',
+                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF1B5E20)),
+              ),
+              const SizedBox(width: 2),
+              const Icon(Icons.chevron_right_rounded, color: Color(0xFF1B5E20), size: 24),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _batchLiveLine(FeedingBatch batch) {
+    final isLive = batch.isPreparing && !widget.hasBatchSyncIssue && widget.isLiveBatchPolling;
+    final isIssue = batch.isPreparing && widget.hasBatchSyncIssue;
+    final color = isIssue
+        ? const Color(0xFFE53E3E)
+        : isLive
+            ? const Color(0xFF15D36B)
+            : const Color(0xFF718096);
+    final label = isIssue
+        ? 'SYNC TERTUNDA'
+        : isLive
+            ? 'LIVE'
+            : batch.isFinalized
+                ? 'FINAL'
+                : 'SIAP';
+    final timeText = widget.lastBatchSyncAt == null ? '' : ' - update ${_timeOfDay(widget.lastBatchSyncAt!)}';
+
+    return Row(
+      children: [
+        Container(
+          width: 7,
+          height: 7,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 5),
+        Expanded(
+          child: Text(
+            '$label$timeText',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: color),
+          ),
+        ),
+      ],
     );
   }
 
@@ -576,8 +799,8 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
         border: Border.all(color: batch == null ? Colors.black12 : borderColor),
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        child: Text(label, style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.w900)),
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+        child: Text(label, style: TextStyle(color: color, fontSize: 8, fontWeight: FontWeight.w900)),
       ),
     );
   }
@@ -587,14 +810,14 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: const Color(0xFFDCEFE4)),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
             color: const Color(0xFFEFFFF5),
             child: Row(
               children: [
@@ -605,14 +828,14 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Color(0xFF15D36B),
-                      fontSize: 10,
+                      fontSize: 9,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
                 ),
                 Text(
                   '${first?.populationCount ?? 0} ekor - target ${_fmt(first?.targetConsumption ?? 0)} gr/ekor',
-                  style: const TextStyle(color: Color(0xFF68758F), fontSize: 9, fontWeight: FontWeight.w700),
+                  style: const TextStyle(color: Color(0xFF68758F), fontSize: 8, fontWeight: FontWeight.w700),
                 ),
               ],
             ),
@@ -626,7 +849,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
   Widget _batchIngredientTile(FeedingBatchIngredient item) {
     final hasScaleData = item.weighedAmount > 0 || item.deductedAmount > 0;
     return Container(
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: const BoxDecoration(
         border: Border(top: BorderSide(color: Color(0xFFE8EEF2))),
       ),
@@ -634,12 +857,12 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 34,
+            height: 34,
             decoration: const BoxDecoration(color: Color(0xFFEEF8F1), shape: BoxShape.circle),
-            child: Icon(_feedIcon(item.feedName), color: const Color(0xFF1B5E20), size: 20),
+            child: Icon(_feedIcon(item.feedName), color: const Color(0xFF1B5E20), size: 18),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -651,21 +874,21 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                         item.feedName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF102033), fontWeight: FontWeight.w900),
+                        style: const TextStyle(fontSize: 11, color: Color(0xFF102033), fontWeight: FontWeight.w900),
                       ),
                     ),
                     _scaleDataBadge(hasScaleData),
                   ],
                 ),
-                const SizedBox(height: 9),
+                const SizedBox(height: 7),
                 Row(
                   children: [
                     Expanded(child: _batchMetric('Target', _formatKg(item.plannedAmount, item.unit))),
-                    const SizedBox(width: 7),
+                    const SizedBox(width: 5),
                     Expanded(child: _batchMetric('Timbang', _formatKg(item.weighedAmount, item.unit), color: hasScaleData ? const Color(0xFF102033) : const Color(0xFFA8B6C8))),
-                    const SizedBox(width: 7),
+                    const SizedBox(width: 5),
                     Expanded(child: _batchMetric('Terpotong', _formatKg(item.deductedAmount, item.unit))),
-                    const SizedBox(width: 7),
+                    const SizedBox(width: 5),
                     Expanded(
                       child: _batchMetric(
                         'Selisih',
@@ -685,7 +908,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
 
   Widget _scaleDataBadge(bool hasScaleData) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
         color: hasScaleData ? const Color(0xFFD4EDDA) : const Color(0xFFFFF3CD),
         borderRadius: BorderRadius.circular(999),
@@ -694,7 +917,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
         hasScaleData ? 'MASUK' : 'MENUNGGU',
         style: TextStyle(
           color: hasScaleData ? const Color(0xFF155724) : const Color(0xFF856404),
-          fontSize: 8,
+          fontSize: 7,
           fontWeight: FontWeight.w900,
         ),
       ),
@@ -709,7 +932,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
           label,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontSize: 8, color: Color(0xFF7C8AA1), fontWeight: FontWeight.w800),
+          style: const TextStyle(fontSize: 7, color: Color(0xFF7C8AA1), fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 2),
         FittedBox(
@@ -717,7 +940,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
           alignment: Alignment.centerLeft,
           child: Text(
             value,
-            style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w900),
+            style: TextStyle(fontSize: 9, color: color, fontWeight: FontWeight.w900),
           ),
         ),
       ],
@@ -728,14 +951,14 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFFF8FAFF),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(9),
         border: Border.all(color: const Color(0xFFDFE8F3)),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(9),
             decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: Color(0xFFE8EEF2)))),
             child: const Row(
               children: [
@@ -744,7 +967,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                 Expanded(
                   child: Text(
                     'Total Pemotongan Stok Saat Finalisasi',
-                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF102033)),
+                    style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Color(0xFF102033)),
                   ),
                 ),
               ],
@@ -752,25 +975,43 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
           ),
           for (final item in totalItems)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
               decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: Color(0xFFEEF2F5)))),
               child: Row(
                 children: [
                   Expanded(
                     child: Text(
                       item.feedName,
-                      style: const TextStyle(fontSize: 10, color: Color(0xFF102033), fontWeight: FontWeight.w900),
+                      style: const TextStyle(fontSize: 9, color: Color(0xFF102033), fontWeight: FontWeight.w900),
                     ),
                   ),
                   Text(
                     'Target ${_formatKg(item.planned)}\nPotong ${_formatKg(isFinalized ? item.deducted : item.weighed)}',
                     textAlign: TextAlign.right,
-                    style: const TextStyle(fontSize: 10, color: Color(0xFF68758F), height: 1.35, fontWeight: FontWeight.w700),
+                    style: const TextStyle(fontSize: 9, color: Color(0xFF68758F), height: 1.32, fontWeight: FontWeight.w700),
                   ),
                 ],
               ),
             ),
         ],
+      ),
+    );
+  }
+
+  Widget _compactTextButton(String label, IconData icon, VoidCallback onPressed) {
+    return Align(
+      alignment: Alignment.centerRight,
+      child: TextButton.icon(
+        onPressed: onPressed,
+        icon: Icon(icon, size: 16),
+        label: Text(label),
+        style: TextButton.styleFrom(
+          foregroundColor: const Color(0xFF1B5E20),
+          textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          minimumSize: const Size(0, 32),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
       ),
     );
   }
@@ -935,6 +1176,27 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
 
   bool _isFeedingTask(String title) => title.toLowerCase().contains('pakan');
 
+  String _batchExpansionKey(String taskId, FeedingBatch? batch, {String? executionId}) {
+    final batchId = batch?.id ?? '';
+    if (batchId.isNotEmpty) return 'batch:$batchId';
+    if (executionId != null && executionId.isNotEmpty) return 'execution:$executionId';
+    return 'task:$taskId';
+  }
+
+  bool _shouldShowBatchDetail(FeedingBatch? batch, String batchKey) {
+    if (batch == null) return true;
+    if (batch.isPreparing && !batch.isFinalized) return true;
+    return _expandedBatchKeys.contains(batchKey);
+  }
+
+  void _expandBatchDetail(String batchKey) {
+    setState(() => _expandedBatchKeys.add(batchKey));
+  }
+
+  void _collapseBatchDetail(String batchKey) {
+    setState(() => _expandedBatchKeys.remove(batchKey));
+  }
+
   FeedingBatch? _pickBestBatch(List<FeedingBatch> batches) {
     if (batches.isEmpty) return null;
     final sorted = [...batches];
@@ -1007,8 +1269,15 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
     return value.toStringAsFixed(2);
   }
 
+  String _timeOfDay(DateTime value) {
+    final hour = value.hour.toString().padLeft(2, '0');
+    final minute = value.minute.toString().padLeft(2, '0');
+    final second = value.second.toString().padLeft(2, '0');
+    return '$hour:$minute:$second';
+  }
+
   String _todayLabel() {
-    final now = DateTime.now().toUtc().add(const Duration(hours: 8));
+    final now = DateTime.now();
     const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
     return '${days[now.weekday - 1]}, ${now.day} ${months[now.month - 1]} ${now.year}';

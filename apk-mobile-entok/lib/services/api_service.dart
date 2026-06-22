@@ -16,8 +16,9 @@ class ApiException implements Exception {
 }
 
 class ApiService {
-  static const String apiBaseUrl = 'https://api-entok.marshelportfolio.me/api';
-  static const String assetBaseUrl = 'https://api-entok.marshelportfolio.me';
+  static const String apiBaseUrl = 'https://api-entok.bengkelit.id/api';
+  static const String assetBaseUrl = 'https://api-entok.bengkelit.id';
+  static const String frontendAssetBaseUrl = 'https://dashboard-entok.bengkelit.id';
 
   static const _tokenKey = 'entok_token';
   static const _userKey = 'entok_user';
@@ -170,10 +171,19 @@ class ApiService {
   }
 
   String assetUrl(String? path) {
-    if (path == null || path.isEmpty) return '';
-    if (path.startsWith('http://') || path.startsWith('https://')) return path;
-    if (path.startsWith('/')) return '$assetBaseUrl$path';
-    return '$assetBaseUrl/$path';
+    final source = path?.trim() ?? '';
+    if (source.isEmpty) return '';
+    if (source.startsWith('http://') || source.startsWith('https://') || source.startsWith('data:')) {
+      return source;
+    }
+    if (source.startsWith('/images/') || source.startsWith('/_next/')) {
+      return '$frontendAssetBaseUrl$source';
+    }
+    if (source.startsWith('/static/')) {
+      return '$assetBaseUrl$source';
+    }
+    if (source.startsWith('/')) return '$assetBaseUrl$source';
+    return '$assetBaseUrl/$source';
   }
 
   Future<Map<String, dynamic>> _send(

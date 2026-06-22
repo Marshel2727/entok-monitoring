@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'main_navigation.dart';
 import 'screens/login_screen.dart';
 import 'services/api_service.dart';
+import 'services/task_reminder_service.dart';
 import 'theme/app_theme.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await TaskReminderService.instance.initialize();
   runApp(const MyApp());
 }
 
@@ -63,6 +66,7 @@ class _AuthGateState extends State<AuthGate> {
   }
 
   Future<void> _logout() async {
+    await TaskReminderService.instance.cancelTaskReminders();
     await _api.logout();
     if (mounted) setState(() {});
   }

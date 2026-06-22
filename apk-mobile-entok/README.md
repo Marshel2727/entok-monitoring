@@ -3,7 +3,7 @@
 Aplikasi Flutter untuk portal penjaga Entok Premium. Aplikasi ini sudah terhubung ke backend production:
 
 ```text
-https://api-entok.marshelportfolio.me/api
+https://api-entok.bengkelit.id/api
 ```
 
 ## Cara Menjalankan
@@ -35,6 +35,7 @@ Kalau belum ingin install Flutter lokal, APK bisa dibuild lewat Docker dari root
 
 ```bash
 cd "C:\PROJECT WEB\ENTOK"
+docker compose --profile apk build apk-mobile
 docker compose --profile apk run --rm apk-mobile
 ```
 
@@ -55,5 +56,7 @@ build/app/outputs/flutter-apk/app-debug.apk
 
 - Login memakai akun penjaga/pengawas dari database backend.
 - API berada di `lib/services/api_service.dart`.
+- Aplikasi menjadwalkan notifikasi lokal sebelum waktu tugas harian. Waktu pengingat bisa dipilih 1 menit, 30 menit, 1 jam, keduanya, atau custom 1-1440 menit.
+- Halaman pengaturan notifikasi punya tombol tes untuk memastikan izin notifikasi Android aktif.
 - Jangan simpan password database atau secret backend di aplikasi mobile.
 - Docker dipakai hanya untuk build APK, bukan untuk menjalankan aplikasi langsung di HP.

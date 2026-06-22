@@ -1,4 +1,5 @@
 # app/utils/decorators.py
+import hmac
 import jwt
 from functools import wraps
 from flask import request, jsonify, current_app
@@ -48,3 +49,24 @@ def roles_allowed(*roles):
             return f(current_user, *args, **kwargs)
         return decorated
     return decorator
+
+def device_key_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        expected_key = current_app.config.get('IOT_DEVICE_API_KEY') or ''
+        if not expected_key:
+            return jsonify({
+                'status': 'error',
+                'message': 'API key perangkat belum dikonfigurasi di server'
+            }), 503
+
+        provided_key = request.headers.get('X-Device-Key', '')
+        if not provided_key or not hmac.compare_digest(provided_key, expected_key):
+            return jsonify({
+                'status': 'error',
+                'message': 'API key perangkat tidak valid'
+            }), 401
+
+        return f(*args, **kwargs)
+
+    return decorated

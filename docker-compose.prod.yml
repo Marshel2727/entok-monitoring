@@ -30,6 +30,7 @@ services:
       PORT: 5000
       SECRET_KEY: ${SECRET_KEY}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      IOT_DEVICE_API_KEY: ${IOT_DEVICE_API_KEY}
       FRONTEND_URL: ${FRONTEND_URL}
     ports:
       - "5001:5000"
