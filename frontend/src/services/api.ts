@@ -124,6 +124,7 @@ export async function apiCall<T>(endpoint: string, options: RequestOptions = {})
   const config: RequestInit = {
     ...options,
     headers,
+    cache: options.cache || 'no-store',
   };
 
   if (options.body) {
