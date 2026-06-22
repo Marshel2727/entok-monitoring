@@ -7,6 +7,7 @@ from flasgger import Swagger
 from app.utils.db import db
 from app.utils.cache import init_cache_headers
 from app.config import Config
+from app.realtime import init_realtime, parse_cors_origins
 
 migrate = Migrate()
 
@@ -16,7 +17,8 @@ def create_app(config_class=Config):
 
     # Enable CORS dynamically based on FRONTEND_URL
     frontend_url = os.getenv('FRONTEND_URL', '*')
-    CORS(app, resources={r"/api/*": {"origins": frontend_url}})
+    cors_origins = parse_cors_origins(frontend_url)
+    CORS(app, resources={r"/api/*": {"origins": cors_origins}})
 
     # Initialize Swagger
     Swagger(app)
@@ -25,6 +27,7 @@ def create_app(config_class=Config):
     # Initialize extensions
     db.init_app(app)
     migrate.init_app(app, db)
+    init_realtime(app, cors_origins)
 
     # Ensure uploads directory exists
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)

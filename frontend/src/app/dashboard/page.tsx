@@ -4,6 +4,8 @@ import React, { useEffect, useState } from 'react';
 import { feedService, FeedTransaction } from '@/services/feed';
 import { populationService } from '@/services/population';
 import { timbanganService } from '@/services/timbangan';
+import { clearApiCache } from '@/services/api';
+import { subscribeRealtime } from '@/services/realtime';
 import { FeedItem, Timbangan, TimbanganReading } from '@/types';
 import { LuActivity, LuScale, LuTrendingUp, LuWifi } from 'react-icons/lu';
 
@@ -11,6 +13,14 @@ const WITA_TIME_ZONE = 'Asia/Makassar';
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const DAY_LABELS = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
 const TARGET_PANEN_KG = 3.0;
+const DASHBOARD_REALTIME_EVENTS = [
+  'feed_inventory_updated',
+  'feed_stock_updated',
+  'feeding_batch_updated',
+  'scale_reading_created',
+  'scale_status_updated',
+  'scale_registry_updated',
+] as const;
 
 function parseUtcTimestamp(value?: string) {
   if (!value) return null;
@@ -106,10 +116,15 @@ export default function DashboardHome() {
 
     fetchDashboardData(true);
     const refreshTimer = window.setInterval(() => fetchDashboardData(false), 15000);
+    const unsubscribeRealtime = subscribeRealtime(DASHBOARD_REALTIME_EVENTS, () => {
+      clearApiCache();
+      fetchDashboardData(false);
+    });
 
     return () => {
       active = false;
       window.clearInterval(refreshTimer);
+      unsubscribeRealtime();
     };
   }, []);
 

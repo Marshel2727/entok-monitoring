@@ -3,9 +3,17 @@
 import React, { useEffect, useState } from 'react';
 import { feedService } from '@/services/feed';
 import { activityService } from '@/services/activity';
+import { clearApiCache } from '@/services/api';
+import { subscribeRealtime } from '@/services/realtime';
 import { FeedItem, ActivityLog } from '@/types';
 import NotifikasiPage from '@/components/notification/NotifikasiPage';
 import { useFeedback } from '@/components/shared/FeedbackProvider';
+
+const NOTIFIKASI_REALTIME_EVENTS = [
+  'feed_inventory_updated',
+  'feed_stock_updated',
+  'feeding_batch_updated',
+] as const;
 
 export default function NotifikasiRoute() {
   const { showToast } = useFeedback();
@@ -17,8 +25,8 @@ export default function NotifikasiRoute() {
     fetchData();
   }, []);
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     try {
       const [feedRes, logsRes] = await Promise.all([
         feedService.getFeeds(),
@@ -29,9 +37,16 @@ export default function NotifikasiRoute() {
     } catch (err) {
       console.error(err);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
+
+  useEffect(() => {
+    return subscribeRealtime(NOTIFIKASI_REALTIME_EVENTS, () => {
+      clearApiCache();
+      fetchData(false);
+    });
+  }, []);
 
   const handleRestockFeed = async (id: string, amount: number) => {
     try {

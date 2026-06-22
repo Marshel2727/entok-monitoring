@@ -8,8 +8,17 @@ import { feedService } from '@/services/feed';
 import { formulationService } from '@/services/formulation';
 import { populationService } from '@/services/population';
 import { feedingBatchService, FeedingBatch } from '@/services/feedingBatch';
+import { clearApiCache } from '@/services/api';
+import { subscribeRealtime } from '@/services/realtime';
 import { FeedItem, FormulasiItem } from '@/types';
 import ChecklistPenjagaPage from '@/components/penjaga/ChecklistPenjagaPage';
+
+const PORTAL_REALTIME_EVENTS = [
+  'feeding_batch_updated',
+  'feed_inventory_updated',
+  'feed_stock_updated',
+  'scale_reading_created',
+] as const;
 
 export default function PenjagaPortal() {
   const { isLoggedIn, userRole, logout, isLoading } = useAuth();
@@ -80,6 +89,17 @@ export default function PenjagaPortal() {
       if (showLoading) setLoadingPortal(false);
     }
   };
+
+  useEffect(() => {
+    if (isLoading || !isLoggedIn || (userRole !== 'PENJAGA' && userRole !== 'PENGAWAS')) {
+      return;
+    }
+
+    return subscribeRealtime(PORTAL_REALTIME_EVENTS, () => {
+      clearApiCache();
+      fetchDailyData(false);
+    });
+  }, [isLoggedIn, userRole, isLoading]);
 
   const handleToggleTask = async (taskId: string, isCompleted: boolean) => {
     const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Makassar' });

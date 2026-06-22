@@ -1,6 +1,7 @@
 # app/service/feed_service.py
 from app.utils.db import db
 from app.models.feed import Feed, FeedTransaction
+from app.realtime import emit_realtime_event
 from app.service.activity_service import create_log
 
 def _to_percent(value, default=0.0):
@@ -73,6 +74,17 @@ def save_feed(feed_id, data):
 
         db.session.commit()
         create_log("INVENTARIS", f"Mengedit bahan pakan \"{feed.name}\" ({feed.category}). Ambang batas: {feed.min_threshold} kg.", data.get('user_id'))
+        emit_realtime_event('feed_inventory_updated', {
+            'action': 'updated',
+            'feed_id': feed.id,
+            'feed_name': feed.name,
+        })
+        if 'stok' in data:
+            emit_realtime_event('feed_stock_updated', {
+                'action': 'manual_update',
+                'feed_id': feed.id,
+                'feed_name': feed.name,
+            })
         
         return {
             'status': 'success',
@@ -112,6 +124,17 @@ def save_feed(feed_id, data):
             db.session.commit()
 
         create_log("INVENTARIS", f"Menambahkan pakan baru: \"{new_feed.name}\" dengan kategori \"{new_feed.category}\". Stok awal: {new_feed.stock} kg.", data.get('user_id'))
+        emit_realtime_event('feed_inventory_updated', {
+            'action': 'created',
+            'feed_id': new_feed.id,
+            'feed_name': new_feed.name,
+        })
+        if stok > 0:
+            emit_realtime_event('feed_stock_updated', {
+                'action': 'initial_stock',
+                'feed_id': new_feed.id,
+                'feed_name': new_feed.name,
+            })
 
         return {
             'status': 'success',
@@ -128,6 +151,11 @@ def delete_feed(feed_id, user_id=None):
     db.session.delete(feed)
     db.session.commit()
     create_log("INVENTARIS", f"Menghapus pakan \"{feed_name}\" dari database.", user_id)
+    emit_realtime_event('feed_inventory_updated', {
+        'action': 'deleted',
+        'feed_id': feed_id,
+        'feed_name': feed_name,
+    })
     
     return {
         'status': 'success',
@@ -158,6 +186,11 @@ def restock_feed(feed_id, amount, description, user_id):
     db.session.commit()
 
     create_log("RESTOCK", f"Restock masuk {amount:.1f} kg untuk \"{feed.name}\". Sisa stok saat ini: {feed.stock:.1f} kg.", user_id)
+    emit_realtime_event('feed_stock_updated', {
+        'action': 'restock',
+        'feed_id': feed.id,
+        'feed_name': feed.name,
+    })
 
     return {
         'status': 'success',
@@ -202,6 +235,10 @@ def deduct_feed_stock(deductions, user_id=None):
         updated_feeds.append(feed)
 
     db.session.commit()
+    emit_realtime_event('feed_stock_updated', {
+        'action': 'deduct',
+        'feed_ids': [feed.id for feed in updated_feeds],
+    })
     return {
         'status': 'success',
         'message': 'Stok pakan berhasil dikurangi',

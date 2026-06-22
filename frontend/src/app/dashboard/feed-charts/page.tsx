@@ -5,6 +5,8 @@ import { feedService, FeedTransaction } from '@/services/feed';
 import { formulationService } from '@/services/formulation';
 import { populationService, type PopulationPhase } from '@/services/population';
 import { timbanganService } from '@/services/timbangan';
+import { clearApiCache } from '@/services/api';
+import { subscribeRealtime } from '@/services/realtime';
 import FeedChartsPage from '@/components/dashboard/FeedChartsPage';
 import { FeedItem, FormulasiItem, TimbanganReading } from '@/types';
 
@@ -19,6 +21,12 @@ interface FeedChartsCachePayload {
 
 const FEED_CHARTS_CACHE_KEY = 'entok_feed_charts_cache_v2';
 const FEED_CHARTS_CACHE_MAX_AGE_MS = 6 * 60 * 60 * 1000;
+const FEED_CHARTS_REALTIME_EVENTS = [
+  'feed_inventory_updated',
+  'feed_stock_updated',
+  'feeding_batch_updated',
+  'scale_reading_created',
+] as const;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -140,10 +148,15 @@ export default function FeedChartsRoute() {
 
     fetchData(true);
     const refreshTimer = window.setInterval(() => fetchData(false), 15000);
+    const unsubscribeRealtime = subscribeRealtime(FEED_CHARTS_REALTIME_EVENTS, () => {
+      clearApiCache();
+      fetchData(false);
+    });
 
     return () => {
       active = false;
       window.clearInterval(refreshTimer);
+      unsubscribeRealtime();
     };
   }, []);
 

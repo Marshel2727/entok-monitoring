@@ -2,6 +2,7 @@
 from app.utils.db import db
 from app.models.timbangan import Timbangan, TimbanganReading
 from app.models.feed import Feed, FeedTransaction
+from app.realtime import emit_realtime_event
 from app.service.activity_service import create_log
 
 
@@ -60,6 +61,11 @@ def save_timbangan(timbangan_id, data):
 
         db.session.commit()
         create_log("SISTEM", f"Memperbarui timbangan: \"{nama}\".", data.get('user_id'))
+        emit_realtime_event('scale_registry_updated', {
+            'action': 'updated',
+            'timbangan_id': item.id,
+            'timbangan': item.to_dict(),
+        })
 
         return {
             'status': 'success',
@@ -82,6 +88,11 @@ def save_timbangan(timbangan_id, data):
         db.session.commit()
 
         create_log("SISTEM", f"Mendaftarkan timbangan baru: \"{nama}\".", data.get('user_id'))
+        emit_realtime_event('scale_registry_updated', {
+            'action': 'created',
+            'timbangan_id': new_item.id,
+            'timbangan': new_item.to_dict(),
+        })
 
         return {
             'status': 'success',
@@ -100,6 +111,10 @@ def delete_timbangan(timbangan_id, user_id=None):
     db.session.delete(item)
     db.session.commit()
     create_log("SISTEM", f"Menghapus timbangan: \"{nama}\" beserta seluruh riwayat data.", user_id)
+    emit_realtime_event('scale_registry_updated', {
+        'action': 'deleted',
+        'timbangan_id': timbangan_id,
+    })
 
     return {
         'status': 'success',
@@ -118,6 +133,11 @@ def update_timbangan_status(timbangan_id, new_status):
 
     item.status = new_status
     db.session.commit()
+    emit_realtime_event('scale_status_updated', {
+        'timbangan_id': item.id,
+        'status': item.status,
+        'timbangan': item.to_dict(),
+    })
 
     return {
         'status': 'success',
@@ -211,6 +231,22 @@ def add_reading(data):
             feed.stock = value
 
     db.session.commit()
+    emit_realtime_event('scale_reading_created', {
+        'timbangan_id': timbangan.id,
+        'timbangan_tipe': timbangan.tipe,
+        'label': reading.label,
+        'value': reading.value,
+        'unit': reading.unit,
+        'reading': reading.to_dict(),
+    })
+
+    if feed and timbangan.tipe == 'DEDICATED':
+        emit_realtime_event('feed_stock_updated', {
+            'action': 'scale_adjustment',
+            'feed_id': feed.id,
+            'feed_name': feed.name,
+            'timbangan_id': timbangan.id,
+        })
 
     return {
         'status': 'success',

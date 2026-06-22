@@ -15,4 +15,4 @@ RUN chmod +x /app/docker-entrypoint.sh
 EXPOSE 5000
 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "main:app"]
+CMD ["gunicorn", "--worker-class", "gthread", "--threads", "100", "--workers", "1", "--bind", "0.0.0.0:5000", "main:app"]

@@ -6,9 +6,20 @@ import { timbanganService } from '@/services/timbangan';
 import { formulationService } from '@/services/formulation';
 import { feedingBatchService } from '@/services/feedingBatch';
 import { populationService, PopulationPhase } from '@/services/population';
+import { clearApiCache } from '@/services/api';
+import { subscribeRealtime } from '@/services/realtime';
 import KelolaPakanPage from '@/components/feed/KelolaPakanPage';
 import { FeedItem, FormulasiItem, Timbangan } from '@/types';
 import { useFeedback } from '@/components/shared/FeedbackProvider';
+
+const PAKAN_REALTIME_EVENTS = [
+  'feed_inventory_updated',
+  'feed_stock_updated',
+  'feeding_batch_updated',
+  'scale_reading_created',
+  'scale_status_updated',
+  'scale_registry_updated',
+] as const;
 
 export default function PakanPage() {
   const { showToast } = useFeedback();
@@ -23,8 +34,8 @@ export default function PakanPage() {
     fetchFeeds();
   }, []);
 
-  const fetchFeeds = async () => {
-    setLoading(true);
+  const fetchFeeds = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     try {
       const [res, timbanganRes, formulationRes, populationRes] = await Promise.all([
         feedService.getFeeds(),
@@ -40,9 +51,16 @@ export default function PakanPage() {
       console.error(err);
       setError('Gagal memuat inventaris pakan dari database');
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
+
+  useEffect(() => {
+    return subscribeRealtime(PAKAN_REALTIME_EVENTS, () => {
+      clearApiCache();
+      fetchFeeds(false);
+    });
+  }, []);
 
   const handleSaveFeed = async (feed: FeedItem) => {
     try {

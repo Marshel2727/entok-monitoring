@@ -9,9 +9,33 @@ from app.models.growth_phase import GrowthPhase, normalize_phase_key
 from app.models.timbangan import Timbangan, TimbanganReading
 from app.models.feeding_batch import FeedingBatch, FeedingBatchIngredient
 from app.models.task import TaskExecution
+from app.realtime import emit_realtime_event
 from app.service.activity_service import create_log
 
 PHASE_ORDER = ('starter', 'grower 1', 'grower 2', 'finisher')
+
+
+def _emit_batch_updated(action, batch, extra=None):
+    payload = {
+        'action': action,
+        'batch_id': batch.id,
+        'date': batch.batch_date.isoformat() if batch.batch_date else None,
+        'status': batch.status,
+        'task_id': batch.task_id,
+        'task_execution_id': batch.task_execution_id,
+    }
+    if extra:
+        payload.update(extra)
+    emit_realtime_event('feeding_batch_updated', payload)
+
+
+def _emit_batch_stock_updated(action, batch):
+    feed_ids = sorted({item.feed_id for item in batch.ingredients if item.feed_id})
+    emit_realtime_event('feed_stock_updated', {
+        'action': action,
+        'batch_id': batch.id,
+        'feed_ids': feed_ids,
+    })
 
 
 def _today_wita():
@@ -346,6 +370,7 @@ def create_batch(user_id, date_str=None, task_id=None, task_execution_id=None):
     db.session.commit()
     task_label = f" untuk tugas {resolved_task_id}" if resolved_task_id else ""
     create_log("SISTEM", f"Membuat batch racikan pakan tanggal {batch_date.isoformat()}{task_label}.", user_id)
+    _emit_batch_updated('created', batch)
 
     return {
         'status': 'success',
@@ -597,11 +622,23 @@ def record_scale_reading(data, user_id=None):
     if timbangan.tipe != 'MULTI':
         return {'status': 'error', 'message': 'Racikan pakan harus dikirim dari timbangan tipe MULTI'}, 400
 
-    _, error, code = _apply_scale_reading_to_batch(batch, timbangan, reading_data)
+    applied, error, code = _apply_scale_reading_to_batch(batch, timbangan, reading_data)
     if error:
         return error, code
 
     db.session.commit()
+    emit_realtime_event('scale_reading_created', {
+        'timbangan_id': timbangan.id,
+        'timbangan_tipe': timbangan.tipe,
+        'batch_id': batch.id,
+        'label': applied.get('label') if applied else reading_data['label'],
+        'phase': applied.get('phase') if applied else reading_data['phase'],
+        'value': reading_data['value'],
+        'unit': reading_data['unit'],
+    })
+    _emit_batch_updated('scale_reading_recorded', batch, {
+        'ingredient_id': applied.get('ingredient_id') if applied else None,
+    })
 
     return {
         'status': 'success',
@@ -674,6 +711,15 @@ def record_scale_readings_bulk(data, user_id=None):
     except Exception:
         db.session.rollback()
         raise
+    emit_realtime_event('scale_reading_created', {
+        'timbangan_id': timbangan.id,
+        'timbangan_tipe': timbangan.tipe,
+        'batch_id': batch.id,
+        'items_count': len(applied_items),
+    })
+    _emit_batch_updated('scale_readings_recorded', batch, {
+        'items_count': len(applied_items),
+    })
 
     return {
         'status': 'success',
@@ -718,6 +764,18 @@ def record_weight(batch_id, ingredient_id, amount, user_id=None, timbangan_id=2)
         db.session.add(reading)
 
     db.session.commit()
+    emit_realtime_event('scale_reading_created', {
+        'timbangan_id': timbangan.id if timbangan else timbangan_id,
+        'timbangan_tipe': timbangan.tipe if timbangan else None,
+        'batch_id': batch.id,
+        'label': ingredient.feed_name,
+        'phase': ingredient.phase,
+        'value': ingredient.weighed_amount,
+        'unit': 'kg',
+    })
+    _emit_batch_updated('weight_recorded', batch, {
+        'ingredient_id': ingredient.id,
+    })
 
     return {
         'status': 'success',
@@ -787,6 +845,8 @@ def finalize_batch(batch_id, user_id=None):
 
     db.session.commit()
     create_log("SISTEM", f"Finalisasi racikan pakan {batch.id}. Stok dipotong sesuai hasil Timbangan 2.", user_id)
+    _emit_batch_updated('finalized', batch)
+    _emit_batch_stock_updated('batch_finalized', batch)
 
     return {
         'status': 'success',
@@ -820,6 +880,8 @@ def cancel_batch(batch_id, user_id=None):
     batch.status = 'CANCELLED'
     db.session.commit()
     create_log("SISTEM", f"Membatalkan batch racikan pakan {batch.id} (pembalikan stok dilakukan jika sebelumnya FINAL).", user_id)
+    _emit_batch_updated('cancelled', batch)
+    _emit_batch_stock_updated('batch_cancelled', batch)
 
     return {
         'status': 'success',
