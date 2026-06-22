@@ -1,6 +1,6 @@
 # app/routes/timbangan_routes.py
 from flask import Blueprint, request, jsonify
-from app.utils.decorators import device_key_required, token_required, roles_allowed
+from app.utils.decorators import device_key_or_token_required, token_required, roles_allowed
 from app.utils.cache import cached_json
 from app.service import timbangan_service
 from app.schemas import (
@@ -82,15 +82,15 @@ def update_status(current_user, timbangan_id):
 # ==========================================
 
 @timbangan_bp.route('/readings', methods=['POST'])
-@device_key_required
+@device_key_or_token_required('PENGAWAS')
 def add_reading():
     """
     POST /api/timbangan/readings — Terima data dari ESP32.
     
     Body: { timbangan_id: int, value: float, label?: string, unit?: string }
     
-    CATATAN: Endpoint ini TIDAK memakai JWT karena ESP32 mengirim data
-    otomatis. Keamanan memakai header X-Device-Key.
+    CATATAN: ESP32 memakai header X-Device-Key. Dashboard pengawas boleh
+    memakai JWT untuk simulasi input timbangan.
     """
     data, error = load_or_error(TimbanganReadingSchema(), request.get_json())
     if error:

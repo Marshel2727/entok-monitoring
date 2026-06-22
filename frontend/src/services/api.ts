@@ -53,6 +53,14 @@ function getAuthToken() {
   return localStorage.getItem('entok_jwt_token');
 }
 
+function shouldLogoutOnUnauthorized(message?: string) {
+  const normalized = (message || '').toLowerCase();
+  return normalized.includes('token')
+    || normalized.includes('otentikasi')
+    || normalized.includes('unauthorized')
+    || normalized.includes('pengguna tidak valid');
+}
+
 function cacheKey(endpoint: string, token: string | null) {
   return `${BASE_URL}${endpoint}::${token || 'public'}`;
 }
@@ -125,20 +133,22 @@ export async function apiCall<T>(endpoint: string, options: RequestOptions = {})
   try {
     const response = await fetch(url, config);
     const method = (config.method || 'GET').toUpperCase();
+    const data = await response.json().catch(() => ({}));
     
     if (response.status === 401) {
-      // Clear token and redirect if unauthorized
-      if (typeof window !== 'undefined') {
+      const message = data?.message || 'Unauthorized';
+
+      // Only clear the session when the JWT itself is invalid/expired.
+      // Device API-key failures should show an error without logging out the dashboard user.
+      if (typeof window !== 'undefined' && shouldLogoutOnUnauthorized(message)) {
         localStorage.removeItem('entok_jwt_token');
         localStorage.removeItem('entok_is_logged_in');
         localStorage.removeItem('entok_user_role');
         window.location.href = '/login';
       }
-      throw new Error('Unauthorized');
+      throw new Error(message);
     }
 
-    const data = await response.json();
-    
     if (!response.ok) {
       throw new Error(data.message || 'Something went wrong');
     }
