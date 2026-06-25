@@ -8,6 +8,15 @@ from app.service.activity_service import create_log
 from app.utils.uploads import save_base64_image_if_needed
 from app.utils.helpers import format_wita_iso
 
+def _prefer_execution(current, candidate):
+    if current is None:
+        return candidate
+    if candidate.is_completed and not current.is_completed:
+        return candidate
+    if candidate.completed_at and (not current.completed_at or candidate.completed_at > current.completed_at):
+        return candidate
+    return current
+
 def get_all_tasks():
     tasks = Task.query.all()
     # Sort tasks chronologically by parse time
@@ -149,7 +158,9 @@ def get_daily_checklist(date_str):
 
     tasks = Task.query.all()
     executions = TaskExecution.query.filter_by(execution_date=query_date).all()
-    execution_map = {e.task_id: e for e in executions}
+    execution_map = {}
+    for execution in executions:
+        execution_map[execution.task_id] = _prefer_execution(execution_map.get(execution.task_id), execution)
 
     checklist = []
     seeded = False
@@ -226,8 +237,8 @@ def toggle_task_execution(task_id, date_str, keeper_id, is_completed):
     if not task:
         return {'status': 'error', 'message': 'Tugas tidak ditemukan'}, 404
 
-    exec_item = TaskExecution.query.filter_by(task_id=task_id, execution_date=query_date).first()
-    if not exec_item:
+    exec_items = TaskExecution.query.filter_by(task_id=task_id, execution_date=query_date).all()
+    if not exec_items:
         exec_item = TaskExecution(
             task_id=task_id,
             keeper_id=keeper_id,
@@ -235,11 +246,17 @@ def toggle_task_execution(task_id, date_str, keeper_id, is_completed):
             is_completed=False
         )
         db.session.add(exec_item)
+        exec_items = [exec_item]
+    else:
+        exec_item = None
+        for item in exec_items:
+            exec_item = _prefer_execution(exec_item, item)
 
     # If it is being marked completed
-    if is_completed and not exec_item.is_completed:
+    was_completed = any(item.is_completed for item in exec_items)
+    if is_completed and not was_completed:
         if "beri pakan" in task.title.lower():
-            if not has_finalized_batch(date_str, task_id, exec_item.id):
+            if not any(has_finalized_batch(date_str, task_id, item.id) for item in exec_items):
                 return {
                     'status': 'error',
                     'message': 'Finalisasi racikan pakan terlebih dahulu sebelum menyelesaikan tugas Beri Pakan.'
@@ -249,16 +266,23 @@ def toggle_task_execution(task_id, date_str, keeper_id, is_completed):
         else:
             create_log("SISTEM", f"[OPERASIONAL] Penjaga menyelesaikan tugas {task.title}.", keeper_id)
 
-        exec_item.is_completed = True
-        exec_item.keeper_id = keeper_id
-        exec_item.completed_at = datetime.utcnow()
+        completed_at = datetime.utcnow()
+        for item in exec_items:
+            item.is_completed = True
+            item.keeper_id = keeper_id
+            item.completed_at = completed_at
         
     # If it is being marked uncompleted
-    elif not is_completed and exec_item.is_completed:
+    elif not is_completed and was_completed:
         create_log("SISTEM", f"[OPERASIONAL] Penjaga membatalkan status tugas {task.title}.", keeper_id)
-        exec_item.is_completed = False
-        exec_item.completed_at = None
-        exec_item.keeper_id = keeper_id
+        for item in exec_items:
+            item.is_completed = False
+            item.completed_at = None
+            item.keeper_id = keeper_id
+
+    exec_item = None
+    for item in exec_items:
+        exec_item = _prefer_execution(exec_item, item)
 
     db.session.commit()
     
