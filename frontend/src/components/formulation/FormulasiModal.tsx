@@ -36,7 +36,6 @@ export default function FormulasiModal({
   const [kategori, setKategori] = useState('Energi & Karbohidrat');
   const [targetKonsumsi, setTargetKonsumsi] = useState(30.0);
   const [percentages, setPercentages] = useState<{ [key: string]: number }>({});
-  const [totalComposition, setTotalComposition] = useState(0);
   const [selectedAlternatives, setSelectedAlternatives] = useState<string[]>([]);
 
   // Dynamically group feed list by formulation category
@@ -64,55 +63,48 @@ export default function FormulasiModal({
     return categories;
   }, [feedList]);
 
-  // Load values when editing
-  useEffect(() => {
-    if (editItem) {
-      setFase(editItem.fase);
-      setKategori(editItem.kategori);
-      setTargetKonsumsi(editItem.targetKonsumsi);
-      setSelectedAlternatives(editItem.pakanAlternatif.filter(x => x !== "-"));
-      
-      const initialPercentages: { [key: string]: number } = {};
-      
-      Object.keys(ingredientsByCategory).forEach(cat => {
-        ingredientsByCategory[cat].forEach(ing => {
-          const feedId = ing.key.replace('feed_', '');
-          const feed = feedList.find(f => f.id === feedId);
-          let matchedVal = 0;
-          if (feed) {
-            matchedVal = editItem.komposisi[feed.nama] || 0;
-          }
-          initialPercentages[ing.key] = matchedVal;
-        });
-      });
-
-      setPercentages(initialPercentages);
-    } else {
-      setFase('');
-      setKategori('Energi & Karbohidrat');
-      setTargetKonsumsi(30.0);
-      setSelectedAlternatives([]);
-      
-      const defaults: { [key: string]: number } = {};
-      Object.keys(ingredientsByCategory).forEach(cat => {
-        ingredientsByCategory[cat].forEach(ing => {
-          defaults[ing.key] = 0;
-        });
-      });
-      setPercentages(defaults);
-    }
-  }, [editItem, isOpen, ingredientsByCategory, feedList]);
-
-  // Recalculate total composition globally across all categories
-  useEffect(() => {
+  const totalComposition = useMemo(() => {
     let sum = 0;
     Object.keys(ingredientsByCategory).forEach(cat => {
       ingredientsByCategory[cat].forEach(ing => {
         sum += percentages[ing.key] || 0;
       });
     });
-    setTotalComposition(Number(sum.toFixed(1)));
+    return Number(sum.toFixed(1));
   }, [percentages, ingredientsByCategory]);
+
+  // Load values when editing
+  useEffect(() => {
+    const buildPercentages = (item: FormulasiItem | null) => {
+      const values: { [key: string]: number } = {};
+      Object.keys(ingredientsByCategory).forEach(cat => {
+        ingredientsByCategory[cat].forEach(ing => {
+          const feedId = ing.key.replace('feed_', '');
+          const feed = feedList.find(f => f.id === feedId);
+          values[ing.key] = item && feed ? item.komposisi[feed.nama] || 0 : 0;
+        });
+      });
+      return values;
+    };
+
+    const timer = window.setTimeout(() => {
+      if (editItem) {
+        setFase(editItem.fase);
+        setKategori(editItem.kategori);
+        setTargetKonsumsi(editItem.targetKonsumsi);
+        setSelectedAlternatives(editItem.pakanAlternatif.filter(x => x !== "-"));
+        setPercentages(buildPercentages(editItem));
+      } else {
+        setFase('');
+        setKategori('Energi & Karbohidrat');
+        setTargetKonsumsi(30.0);
+        setSelectedAlternatives([]);
+        setPercentages(buildPercentages(null));
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [editItem, isOpen, ingredientsByCategory, feedList]);
 
   if (!isOpen) return null;
 

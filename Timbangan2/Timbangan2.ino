@@ -5,6 +5,10 @@
 #include "scale_helper.h"
 #include "api_client.h"
 
+#ifndef DISPLAY_REFRESH_MS
+#define DISPLAY_REFRESH_MS 1000
+#endif
+
 const byte ROWS = 4;
 const byte COLS = 4;
 
@@ -63,8 +67,10 @@ void saveCurrentAndNext() {
   if (currentIndex < itemCount - 1) {
     printLine(0, "AUTO TARE...");
     printLine(1, "Bahan berikut");
-    scale.tare(30);
+    scale.tare(AUTO_TARE_SAMPLES);
     currentWeight = 0;
+    displayWeight = 0;
+    displayWeightReady = false;
 
     currentIndex++;
     delay(700);
@@ -203,7 +209,7 @@ void setup() {
 void loop() {
   handleKeypad();
 
-  if (weighingStarted && millis() - lastWeightRead >= 700) {
+  if (weighingStarted && millis() - lastWeightRead >= DISPLAY_REFRESH_MS) {
     lastWeightRead = millis();
     currentWeight = readWeightFast();
 

@@ -9,6 +9,14 @@
 #include "display_helper.h"
 #include "scale_map.h"
 
+#ifndef API_RETRY_COUNT
+#define API_RETRY_COUNT 2
+#endif
+
+#ifndef API_RETRY_DELAY_MS
+#define API_RETRY_DELAY_MS 800
+#endif
+
 void connectWiFi() {
   WiFi.mode(WIFI_STA);
   WiFi.setSleep(false);
@@ -59,9 +67,62 @@ bool beginApiRequest(HTTPClient &http, WiFiClient &client, WiFiClientSecure &sec
 }
 
 void addDeviceHeaders(HTTPClient &http) {
-  if (String(DEVICE_API_KEY).length() > 0) {
-    http.addHeader("X-Device-Key", DEVICE_API_KEY);
+  String key = String(DEVICE_API_KEY);
+  key.trim();
+
+  if (key.length() > 0 && key != "CHANGE_THIS_TO_MATCH_IOT_DEVICE_API_KEY") {
+    http.addHeader("X-Device-Key", key);
   }
+}
+
+String httpCodeText(int httpCode) {
+  if (httpCode > 0) {
+    return "HTTP:" + String(httpCode);
+  }
+
+  return "NET:" + String(httpCode);
+}
+
+int getWithRetry(HTTPClient &http) {
+  int httpCode = 0;
+
+  for (int attempt = 1; attempt <= API_RETRY_COUNT; attempt++) {
+    httpCode = http.GET();
+    if (httpCode > 0) {
+      return httpCode;
+    }
+
+    Serial.print("GET retry ");
+    Serial.print(attempt);
+    Serial.print("/");
+    Serial.print(API_RETRY_COUNT);
+    Serial.print(" code=");
+    Serial.println(httpCode);
+    delay(API_RETRY_DELAY_MS);
+  }
+
+  return httpCode;
+}
+
+int postWithRetry(HTTPClient &http, const String &payload) {
+  int httpCode = 0;
+
+  for (int attempt = 1; attempt <= API_RETRY_COUNT; attempt++) {
+    httpCode = http.POST(payload);
+    if (httpCode > 0) {
+      return httpCode;
+    }
+
+    Serial.print("POST retry ");
+    Serial.print(attempt);
+    Serial.print("/");
+    Serial.print(API_RETRY_COUNT);
+    Serial.print(" code=");
+    Serial.println(httpCode);
+    delay(API_RETRY_DELAY_MS);
+  }
+
+  return httpCode;
 }
 
 bool loadScaleMap(bool showMessage) {
@@ -74,7 +135,6 @@ bool loadScaleMap(bool showMessage) {
     printLine(1, "Tunggu...");
   }
 
-  activeBatchId[0] = '\0';
   String url = String(API_BASE_URL) + "/feeding-batches/scale-map?timbangan_id=" + String(TIMBANGAN_ID);
 
   Serial.print("GET URL: ");
@@ -93,7 +153,7 @@ bool loadScaleMap(bool showMessage) {
   http.setTimeout(10000);
   addDeviceHeaders(http);
 
-  int httpCode = http.GET();
+  int httpCode = getWithRetry(http);
   String response = http.getString();
 
   Serial.print("GET scale-map HTTP: ");
@@ -104,7 +164,7 @@ bool loadScaleMap(bool showMessage) {
 
   if (httpCode < 200 || httpCode >= 300) {
     printLine(0, "AMBIL GAGAL");
-    printLine(1, "HTTP:" + String(httpCode));
+    printLine(1, httpCodeText(httpCode));
     delay(2500);
     showHomeScreen();
     return false;
@@ -121,14 +181,20 @@ bool loadScaleMap(bool showMessage) {
     return false;
   }
 
-  JsonArray arr = doc["items"].as<JsonArray>();
-  itemCount = 0;
-  setText(activeBatchId, sizeof(activeBatchId), doc["batch_id"] | "");
+  if (!doc["items"].is<JsonArray>()) {
+    printLine(0, "TARGET ERROR");
+    printLine(1, "items kosong");
+    delay(2200);
+    showHomeScreen();
+    return false;
+  }
+
+  const char* batchId = doc["batch_id"] | "";
 
   Serial.print("Active batch ID: ");
-  Serial.println(activeBatchId);
+  Serial.println(batchId);
 
-  if (strlen(activeBatchId) == 0) {
+  if (strlen(batchId) == 0) {
     printLine(0, "BATCH ID KOSONG");
     printLine(1, "Ambil ulang #");
     delay(2500);
@@ -136,36 +202,54 @@ bool loadScaleMap(bool showMessage) {
     return false;
   }
 
+  JsonArray arr = doc["items"].as<JsonArray>();
+  static ScaleItem nextItems[MAX_ITEMS];
+  int nextItemCount = 0;
+
   for (JsonObject obj : arr) {
-    if (itemCount >= MAX_ITEMS) {
+    if (nextItemCount >= MAX_ITEMS) {
       break;
     }
 
-    scaleItems[itemCount].kode = obj["kode"] | (itemCount + 1);
+    const char* phase = obj["phase"] | "";
+    const char* label = obj["label"] | "";
+    if (strlen(phase) == 0 || strlen(label) == 0) {
+      continue;
+    }
 
-    setText(scaleItems[itemCount].phase, sizeof(scaleItems[itemCount].phase), obj["phase"] | "");
-    setText(scaleItems[itemCount].phaseShort, sizeof(scaleItems[itemCount].phaseShort), obj["phase_short"] | "");
-    setText(scaleItems[itemCount].label, sizeof(scaleItems[itemCount].label), obj["label"] | "");
-    setText(scaleItems[itemCount].labelShort, sizeof(scaleItems[itemCount].labelShort), obj["label_short"] | "");
-    setText(scaleItems[itemCount].phaseId, sizeof(scaleItems[itemCount].phaseId), obj["phase_id"] | "");
+    nextItems[nextItemCount].kode = obj["kode"] | (nextItemCount + 1);
 
-    scaleItems[itemCount].target = obj["target"] | 0.0;
-    scaleItems[itemCount].weight = obj["weighed"] | 0.0;
-    scaleItems[itemCount].saved = obj["saved"] | false;
+    setText(nextItems[nextItemCount].phase, sizeof(nextItems[nextItemCount].phase), phase);
+    setText(nextItems[nextItemCount].phaseShort, sizeof(nextItems[nextItemCount].phaseShort), obj["phase_short"] | "");
+    setText(nextItems[nextItemCount].label, sizeof(nextItems[nextItemCount].label), label);
+    setText(nextItems[nextItemCount].labelShort, sizeof(nextItems[nextItemCount].labelShort), obj["label_short"] | "");
+    setText(nextItems[nextItemCount].phaseId, sizeof(nextItems[nextItemCount].phaseId), obj["phase_id"] | "");
 
-    itemCount++;
+    nextItems[nextItemCount].target = obj["target"] | 0.0;
+    nextItems[nextItemCount].weight = obj["weighed"] | 0.0;
+    nextItems[nextItemCount].saved = obj["saved"] | false;
+
+    nextItemCount++;
   }
 
-  weighingStarted = false;
-  currentIndex = firstUnsavedIndex();
-
-  if (itemCount == 0) {
+  if (nextItemCount == 0) {
     printLine(0, "TARGET KOSONG");
     printLine(1, "Cek formulasi");
     delay(2000);
     showHomeScreen();
     return false;
   }
+
+  activeBatchId[0] = '\0';
+  setText(activeBatchId, sizeof(activeBatchId), batchId);
+  itemCount = nextItemCount;
+  for (int i = 0; i < itemCount; i++) {
+    scaleItems[i] = nextItems[i];
+  }
+
+  weighingStarted = false;
+  currentIndex = firstUnsavedIndex();
+  currentWeight = 0;
 
   showTargetReadyScreen();
   return true;
@@ -266,7 +350,7 @@ void sendBulkData() {
   http.addHeader("Content-Type", "application/json");
   addDeviceHeaders(http);
 
-  int httpCode = http.POST(payload);
+  int httpCode = postWithRetry(http, payload);
   String response = http.getString();
 
   Serial.print("POST bulk HTTP: ");
@@ -283,7 +367,7 @@ void sendBulkData() {
     showHomeScreen();
   } else {
     printLine(0, "KIRIM GAGAL");
-    printLine(1, "HTTP:" + String(httpCode));
+    printLine(1, httpCodeText(httpCode));
     delay(2500);
     displayCurrentItem();
   }

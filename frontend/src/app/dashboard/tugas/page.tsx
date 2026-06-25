@@ -11,11 +11,7 @@ export default function TugasPage() {
   const [tasks, setTasks] = useState<PenjagaTaskItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchTasks();
-  }, []);
-
-  const fetchTasks = async () => {
+  async function fetchTasks() {
     setLoading(true);
     try {
       const res = await taskService.getTasks();
@@ -25,7 +21,14 @@ export default function TugasPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void fetchTasks();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   const handleSaveTask = async (task: PenjagaTaskItem) => {
     try {

@@ -152,7 +152,7 @@ export default function KelolaTugasPage({
     setLangkahList(reordered);
   };
 
-  const handleStepChange = (index: number, field: keyof PanduanLangkah, value: any) => {
+  const handleStepChange = <K extends keyof PanduanLangkah>(index: number, field: K, value: PanduanLangkah[K]) => {
     const updated = langkahList.map((step, idx) => {
       if (idx === index) {
         return { ...step, [field]: value };
@@ -485,7 +485,7 @@ export default function KelolaTugasPage({
 
                 <div className="form-grid">
                   <div className="form-group">
-                    <label className="form-label">Kotak Warning ("Perhatikan!")</label>
+                    <label className="form-label">Kotak Warning (&quot;Perhatikan!&quot;)</label>
                     <textarea 
                       className="form-input" 
                       rows={2}
@@ -497,7 +497,7 @@ export default function KelolaTugasPage({
                   </div>
 
                   <div className="form-group">
-                    <label className="form-label">Kotak Catatan Kerja ("Catatan")</label>
+                    <label className="form-label">Kotak Catatan Kerja (&quot;Catatan&quot;)</label>
                     <textarea 
                       className="form-input" 
                       rows={2}
@@ -527,7 +527,7 @@ export default function KelolaTugasPage({
 
                   {langkahList.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '16px', color: 'var(--text-muted)', fontSize: '12px', border: '1px dashed var(--border)', borderRadius: '6px' }}>
-                      Belum ada langkah panduan terdaftar. Klik "+ Tambah Langkah" di atas.
+                      Belum ada langkah panduan terdaftar. Klik &quot;+ Tambah Langkah&quot; di atas.
                     </div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

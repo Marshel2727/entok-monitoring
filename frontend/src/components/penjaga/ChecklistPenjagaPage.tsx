@@ -74,6 +74,7 @@ export default function ChecklistPenjagaPage({
   onResetDaily
 }: ChecklistPenjagaPageProps) {
   const { showToast, confirmAction } = useFeedback();
+  const errorMessage = (err: unknown, fallback: string) => (err instanceof Error ? err.message : fallback);
   const tasksList = React.useMemo(() => {
     const parseTimeToMinutes = (timeStr: string) => {
       if (!timeStr) return 0;
@@ -154,8 +155,8 @@ export default function ChecklistPenjagaPage({
   const handleCreateBatch = async (taskId?: string, taskExecutionId?: string) => {
     try {
       await onCreateFeedingBatch?.(taskId, taskExecutionId);
-    } catch (err: any) {
-      showToast('error', err.message || 'Gagal membuat batch racikan.');
+    } catch (err) {
+      showToast('error', errorMessage(err, 'Gagal membuat batch racikan.'));
     }
   };
 
@@ -172,8 +173,8 @@ export default function ChecklistPenjagaPage({
 
     try {
       await onFinalizeFeedingBatch?.(batchId);
-    } catch (err: any) {
-      showToast('error', err.message || 'Gagal finalisasi racikan.');
+    } catch (err) {
+      showToast('error', errorMessage(err, 'Gagal finalisasi racikan.'));
     }
   };
 
@@ -190,8 +191,8 @@ export default function ChecklistPenjagaPage({
 
     try {
       await onCancelFeedingBatch?.(batchId);
-    } catch (err: any) {
-      showToast('error', err.message || 'Gagal membatalkan batch racikan.');
+    } catch (err) {
+      showToast('error', errorMessage(err, 'Gagal membatalkan batch racikan.'));
     }
   };
 
@@ -721,51 +722,55 @@ export default function ChecklistPenjagaPage({
 
   // 1. Daily Auto-Reset Check inside useEffect
   useEffect(() => {
-    const todayISO = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Makassar' });
-    const savedDate = localStorage.getItem('entok_penjaga_last_date');
-    const savedState = localStorage.getItem('entok_penjaga_tasks_state');
+    const timer = window.setTimeout(() => {
+      const todayISO = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Makassar' });
+      const savedDate = localStorage.getItem('entok_penjaga_last_date');
+      const savedState = localStorage.getItem('entok_penjaga_tasks_state');
 
-    // Build default checklist completion map dynamically
-    const defaultState: { [key: string]: boolean } = {};
-    tasksList.forEach(t => {
-      defaultState[t.id] = false;
-    });
-
-    if (checklist && checklist.length > 0) {
-      const apiState = { ...defaultState };
-      checklist.forEach(item => {
-        apiState[item.execution_id || item.task_id] = item.is_completed;
+      // Build default checklist completion map dynamically
+      const defaultState: { [key: string]: boolean } = {};
+      tasksList.forEach(t => {
+        defaultState[t.id] = false;
       });
-      setCompletedTasks(apiState);
-    } else if (savedDate !== todayISO) {
-      // New day -> reset all tasks automatically
-      setCompletedTasks(defaultState);
-      localStorage.setItem('entok_penjaga_tasks_state', JSON.stringify(defaultState));
-      localStorage.setItem('entok_penjaga_last_date', todayISO);
-    } else if (savedState) {
-      // Same day -> load saved tasks state
-      try {
-        const parsed = JSON.parse(savedState);
-        const merged = { ...defaultState, ...parsed };
-        setCompletedTasks(merged);
-      } catch (e) {
+
+      if (checklist && checklist.length > 0) {
+        const apiState = { ...defaultState };
+        checklist.forEach(item => {
+          apiState[item.execution_id || item.task_id] = item.is_completed;
+        });
+        setCompletedTasks(apiState);
+      } else if (savedDate !== todayISO) {
+        // New day -> reset all tasks automatically
+        setCompletedTasks(defaultState);
+        localStorage.setItem('entok_penjaga_tasks_state', JSON.stringify(defaultState));
+        localStorage.setItem('entok_penjaga_last_date', todayISO);
+      } else if (savedState) {
+        // Same day -> load saved tasks state
+        try {
+          const parsed = JSON.parse(savedState);
+          const merged = { ...defaultState, ...parsed };
+          setCompletedTasks(merged);
+        } catch {
+          setCompletedTasks(defaultState);
+        }
+      } else {
         setCompletedTasks(defaultState);
       }
-    } else {
-      setCompletedTasks(defaultState);
-    }
-    
-    // Load logged in keeper name safely
-    if (typeof window !== 'undefined') {
-      const savedName = localStorage.getItem('entok_logged_in_keeper_name');
-      if (savedName) {
-        setKeeperName(savedName);
-      } else {
-        setKeeperName('Penjaga');
+
+      // Load logged in keeper name safely
+      if (typeof window !== 'undefined') {
+        const savedName = localStorage.getItem('entok_logged_in_keeper_name');
+        if (savedName) {
+          setKeeperName(savedName);
+        } else {
+          setKeeperName('Penjaga');
+        }
       }
-    }
-    
-    setHasLoaded(true);
+
+      setHasLoaded(true);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, [tasksList, checklist]);
 
   const saveTasksState = (newTasks: typeof completedTasks) => {
@@ -836,8 +841,8 @@ export default function ChecklistPenjagaPage({
       if (onToggleTask) {
         await onToggleTask(task?.task_id || id, targetState);
       }
-    } catch (err: any) {
-      showToast('error', err.message || 'Gagal mengubah status tugas.');
+    } catch (err) {
+      showToast('error', errorMessage(err, 'Gagal mengubah status tugas.'));
       return false;
     }
 
@@ -898,8 +903,8 @@ export default function ChecklistPenjagaPage({
           await onCancelFeedingBatch();
         }
       }
-    } catch (err: any) {
-      showToast('error', err.message || 'Gagal mereset status tugas.');
+    } catch (err) {
+      showToast('error', errorMessage(err, 'Gagal mereset status tugas.'));
       return;
     }
 

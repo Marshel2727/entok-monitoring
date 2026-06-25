@@ -30,11 +30,9 @@ export default function PakanPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    fetchFeeds();
-  }, []);
+  const errorMessage = (err: unknown, fallback: string) => (err instanceof Error ? err.message : fallback);
 
-  const fetchFeeds = async (showLoading = true) => {
+  async function fetchFeeds(showLoading = true) {
     if (showLoading) setLoading(true);
     try {
       const [res, timbanganRes, formulationRes, populationRes] = await Promise.all([
@@ -47,13 +45,20 @@ export default function PakanPage() {
       setTimbangans(timbanganRes || []);
       setFormulations(formulationRes || []);
       setPopulations(populationRes || []);
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
       setError('Gagal memuat inventaris pakan dari database');
     } finally {
       if (showLoading) setLoading(false);
     }
-  };
+  }
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void fetchFeeds();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     return subscribeRealtime(PAKAN_REALTIME_EVENTS, () => {
@@ -68,8 +73,8 @@ export default function PakanPage() {
       if (res.status === 'success') {
         fetchFeeds(); // Refresh lists
       }
-    } catch (err: any) {
-      showToast('error', err.message || 'Gagal menyimpan bahan pakan.');
+    } catch (err) {
+      showToast('error', errorMessage(err, 'Gagal menyimpan bahan pakan.'));
     }
   };
 
@@ -79,8 +84,8 @@ export default function PakanPage() {
       if (res.status === 'success') {
         fetchFeeds(); // Refresh lists
       }
-    } catch (err: any) {
-      showToast('error', err.message || 'Gagal menghapus bahan pakan.');
+    } catch (err) {
+      showToast('error', errorMessage(err, 'Gagal menghapus bahan pakan.'));
     }
   };
 
@@ -90,8 +95,8 @@ export default function PakanPage() {
       if (res.status === 'success') {
         fetchFeeds(); // Refresh lists
       }
-    } catch (err: any) {
-      showToast('error', err.message || 'Gagal merestock pakan.');
+    } catch (err) {
+      showToast('error', errorMessage(err, 'Gagal merestock pakan.'));
     }
   };
 
@@ -139,8 +144,8 @@ export default function PakanPage() {
       if (res.status === 'success') {
         await fetchFeeds();
       }
-    } catch (err: any) {
-      showToast('error', err.message || 'Gagal menyimpan pembacaan timbangan.');
+    } catch (err) {
+      showToast('error', errorMessage(err, 'Gagal menyimpan pembacaan timbangan.'));
     }
   };
 
@@ -182,7 +187,7 @@ export default function PakanPage() {
       }
 
       await fetchFeeds();
-    } catch (err: any) {
+    } catch (err) {
       throw err;
     }
   };

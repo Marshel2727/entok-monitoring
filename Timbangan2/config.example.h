@@ -24,7 +24,18 @@
 #define LOADCELL_DOUT_PIN 16
 #define LOADCELL_SCK_PIN 17
 #define CALIBRATION_FACTOR 6304.998047
-#define ZERO_THRESHOLD 0.030
+#define ZERO_THRESHOLD 0.050
+#define FAST_WEIGHT_SAMPLES 15
+#define STABLE_WEIGHT_WINDOWS 7
+#define STABLE_WEIGHT_SAMPLES 15
+#define STABLE_WEIGHT_DELAY_MS 60
+#define TARE_SAMPLES 50
+#define AUTO_TARE_SAMPLES 35
+#define DISPLAY_REFRESH_MS 1000
+
+// ================= API =================
+#define API_RETRY_COUNT 2
+#define API_RETRY_DELAY_MS 800
 
 // ================= KEYPAD =================
 #define ROW1_PIN 13

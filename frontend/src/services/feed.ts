@@ -27,8 +27,8 @@ export const feedService = {
 
   saveFeed: async (feed: Partial<FeedItem>) => {
     const payload = {
-      id: feed.id,
-      nama: feed.nama,
+      ...(feed.id ? { id: feed.id } : {}),
+      nama: feed.nama?.trim(),
       kategori: feed.kategori,
       stok: feed.stok,
       ambangBatas: feed.ambangBatas,

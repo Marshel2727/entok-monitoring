@@ -23,7 +23,7 @@ export const populationService = {
   },
 
   updatePopulation: async (fase: string, nilaiBaru: number) => {
-    return api.post<{ status: string; message: string; data: any }>('/populations', {
+    return api.post<{ status: string; message: string; data: unknown }>('/populations', {
       fase,
       nilaiBaru,
     });

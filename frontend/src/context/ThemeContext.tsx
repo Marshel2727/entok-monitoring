@@ -15,11 +15,15 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>('dark');
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem('entok_theme') as Theme | null;
-    if (savedTheme) {
-      setTheme(savedTheme);
-      document.documentElement.classList.toggle('light-theme', savedTheme === 'light');
-    }
+    const timer = window.setTimeout(() => {
+      const savedTheme = localStorage.getItem('entok_theme') as Theme | null;
+      if (savedTheme) {
+        setTheme(savedTheme);
+        document.documentElement.classList.toggle('light-theme', savedTheme === 'light');
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, []);
 
   const toggleTheme = () => {

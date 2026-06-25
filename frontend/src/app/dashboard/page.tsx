@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { feedService, FeedTransaction } from '@/services/feed';
-import { populationService } from '@/services/population';
+import { populationService, PopulationPhase } from '@/services/population';
 import { timbanganService } from '@/services/timbangan';
 import { clearApiCache } from '@/services/api';
 import { subscribeRealtime } from '@/services/realtime';
@@ -75,7 +75,7 @@ function isFeedConsumptionTransaction(transaction: FeedTransaction) {
 
 export default function DashboardHome() {
   const [feeds, setFeeds] = useState<FeedItem[]>([]);
-  const [populations, setPopulations] = useState<any[]>([]);
+  const [populations, setPopulations] = useState<PopulationPhase[]>([]);
   const [timbangans, setTimbangans] = useState<Timbangan[]>([]);
   const [feedTransactions, setFeedTransactions] = useState<FeedTransaction[]>([]);
   const [entokReadings, setEntokReadings] = useState<TimbanganReading[]>([]);

@@ -9,8 +9,8 @@ export const catalogService = {
 
   saveCatalog: async (item: Partial<KatalogItem>) => {
     const payload = {
-      id: item.id,
-      nama: item.nama,
+      ...(item.id ? { id: item.id } : {}),
+      nama: item.nama?.trim(),
       deskripsi: item.deskripsi,
       harga: item.harga,
       stok: item.stok,

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { formulationService } from '@/services/formulation';
 import { feedService } from '@/services/feed';
 import FormulasiModal from '@/components/formulation/FormulasiModal';
@@ -17,11 +17,15 @@ export default function FormulasiPage() {
   const [editItem, setEditItem] = useState<FormulasiItem | null>(null);
   const [lastUpdated, setLastUpdated] = useState('Baru saja');
 
-  useEffect(() => {
-    fetchData();
+  const errorMessage = (err: unknown, fallback: string) => (err instanceof Error ? err.message : fallback);
+
+  const updateLastUpdatedTime = useCallback(() => {
+    const now = new Date();
+    const formattedTime = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+    setLastUpdated(`Pukul ${formattedTime}`);
   }, []);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const [formsRes, feedsRes] = await Promise.all([
@@ -36,13 +40,14 @@ export default function FormulasiPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [updateLastUpdatedTime]);
 
-  const updateLastUpdatedTime = () => {
-    const now = new Date();
-    const formattedTime = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-    setLastUpdated(`Pukul ${formattedTime}`);
-  };
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void fetchData();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [fetchData]);
 
   const handleOpenAddModal = () => {
     setEditItem(null);
@@ -70,8 +75,8 @@ export default function FormulasiPage() {
       if (res.status === 'success') {
         fetchData();
       }
-    } catch (err: any) {
-      showToast('error', err.message || 'Gagal menghapus formulasi.');
+    } catch (err) {
+      showToast('error', errorMessage(err, 'Gagal menghapus formulasi.'));
     }
   };
 
@@ -82,8 +87,8 @@ export default function FormulasiPage() {
         fetchData();
         setIsModalOpen(false);
       }
-    } catch (err: any) {
-      showToast('error', err.message || 'Gagal menyimpan formulasi.');
+    } catch (err) {
+      showToast('error', errorMessage(err, 'Gagal menyimpan formulasi.'));
     }
   };
 
