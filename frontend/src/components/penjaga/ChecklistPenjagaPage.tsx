@@ -94,7 +94,7 @@ export default function ChecklistPenjagaPage({
     };
     const sourceTasks: PenjagaTaskItem[] = (checklist && checklist.length > 0)
       ? checklist.map((item) => ({
-          id: item.execution_id || item.task_id,
+          id: item.task_id,
           task_id: item.task_id,
           execution_id: item.execution_id,
           nama: item.nama,
@@ -736,7 +736,7 @@ export default function ChecklistPenjagaPage({
       if (checklist && checklist.length > 0) {
         const apiState = { ...defaultState };
         checklist.forEach(item => {
-          apiState[item.execution_id || item.task_id] = item.is_completed;
+          apiState[item.task_id] = item.is_completed;
         });
         setCompletedTasks(apiState);
       } else if (savedDate !== todayISO) {

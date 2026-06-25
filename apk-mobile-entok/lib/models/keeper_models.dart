@@ -123,7 +123,7 @@ class DailyChecklistItem extends KeeperTask {
     final taskId = '${json['task_id'] ?? json['id'] ?? ''}';
     final executionId = '${json['execution_id'] ?? ''}';
     return DailyChecklistItem(
-      id: executionId.isNotEmpty ? executionId : taskId,
+      id: taskId,
       taskId: taskId,
       nama: '${json['nama'] ?? ''}',
       waktu: '${json['waktu'] ?? ''}',
