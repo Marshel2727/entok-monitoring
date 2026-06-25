@@ -3,14 +3,14 @@
 import React, { useEffect, useState } from 'react';
 import { feedService } from '@/services/feed';
 import { formulationService } from '@/services/formulation';
-import { populationService } from '@/services/population';
+import { populationService, PopulationPhase } from '@/services/population';
 import PanduanPenjagaPage from '@/components/penjaga/PanduanPenjagaPage';
 import { FeedItem, FormulasiItem } from '@/types';
 
 export default function AcuanPakanRoute() {
   const [feeds, setFeeds] = useState<FeedItem[]>([]);
   const [formulations, setFormulations] = useState<FormulasiItem[]>([]);
-  const [populations, setPopulations] = useState<any[]>([]);
+  const [populations, setPopulations] = useState<PopulationPhase[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -26,7 +26,7 @@ export default function AcuanPakanRoute() {
         setFeeds(feedsRes || []);
         setFormulations(formsRes || []);
         setPopulations(popRes || []);
-      } catch (err: any) {
+      } catch (err) {
         console.error('Failed to load guide data:', err);
         setError('Gagal memuat acuan pakan dari database');
       } finally {

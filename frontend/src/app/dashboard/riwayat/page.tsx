@@ -11,11 +11,7 @@ export default function RiwayatPage() {
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchLogs();
-  }, []);
-
-  const fetchLogs = async () => {
+  async function fetchLogs() {
     setLoading(true);
     try {
       const res = await activityService.getActivities();
@@ -25,7 +21,14 @@ export default function RiwayatPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void fetchLogs();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   const handleClearHistory = async () => {
     try {

@@ -24,22 +24,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    const token = localStorage.getItem('entok_jwt_token');
-    const savedRole = localStorage.getItem('entok_user_role') as 'PENGAWAS' | 'PENJAGA' | null;
-    const savedUserStr = localStorage.getItem('entok_user_profile');
+    const timer = window.setTimeout(() => {
+      const token = localStorage.getItem('entok_jwt_token');
+      const savedRole = localStorage.getItem('entok_user_role') as 'PENGAWAS' | 'PENJAGA' | null;
+      const savedUserStr = localStorage.getItem('entok_user_profile');
 
-    if (token && savedRole) {
-      setIsLoggedIn(true);
-      setUserRole(savedRole);
-      if (savedUserStr) {
-        try {
-          setUser(JSON.parse(savedUserStr));
-        } catch (e) {
-          setUser(null);
+      if (token && savedRole) {
+        setIsLoggedIn(true);
+        setUserRole(savedRole);
+        if (savedUserStr) {
+          try {
+            setUser(JSON.parse(savedUserStr));
+          } catch {
+            setUser(null);
+          }
         }
       }
-    }
-    setIsLoading(false);
+      setIsLoading(false);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, []);
 
   const login = async (username: string, password: string) => {

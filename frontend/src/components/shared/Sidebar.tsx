@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
@@ -96,25 +96,6 @@ export default function Sidebar() {
     }
   ];
 
-  // Auto-open groups on mount & pathname changes
-  useEffect(() => {
-    const newOpenGroups = { ...openGroups };
-    let changed = false;
-    menuItems.forEach(entry => {
-      if (entry.type === 'group') {
-        const group = entry.data;
-        const hasActiveChild = group.items.some(item => pathname === item.path);
-        if (hasActiveChild && !openGroups[group.groupName]) {
-          newOpenGroups[group.groupName] = true;
-          changed = true;
-        }
-      }
-    });
-    if (changed) {
-      setOpenGroups(newOpenGroups);
-    }
-  }, [pathname]);
-
   const toggleGroup = (groupName: string) => {
     setOpenGroups(prev => ({
       ...prev,
@@ -158,7 +139,8 @@ export default function Sidebar() {
             );
           } else {
             const group = entry.data;
-            const isOpen = !!openGroups[group.groupName];
+            const hasActiveChild = group.items.some(item => pathname === item.path);
+            const isOpen = !!openGroups[group.groupName] || hasActiveChild;
             return (
               <div key={group.groupName} style={{ display: 'flex', flexDirection: 'column' }}>
                 <div 

@@ -7,7 +7,7 @@ import { feedService } from '@/services/feed';
 import { formulationService } from '@/services/formulation';
 import { catalogService } from '@/services/catalog';
 import { taskService } from '@/services/task';
-import { populationService } from '@/services/population';
+import { populationService, PopulationPhase } from '@/services/population';
 import PublicLayout from '@/components/shared/PublicLayout';
 import { FeedItem, FormulasiItem, KatalogItem, PenjagaTaskItem } from '@/types';
 
@@ -19,7 +19,7 @@ export default function HomeRoute() {
   const [formulations, setFormulations] = useState<FormulasiItem[]>([]);
   const [catalogs, setCatalogs] = useState<KatalogItem[]>([]);
   const [tasks, setTasks] = useState<PenjagaTaskItem[]>([]);
-  const [populations, setPopulations] = useState<any[]>([]);
+  const [populations, setPopulations] = useState<PopulationPhase[]>([]);
   const [loadingData, setLoadingData] = useState(true);
 
   // If logged in, redirect to respective home

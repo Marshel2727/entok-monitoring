@@ -21,11 +21,7 @@ export default function NotifikasiRoute() {
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async (showLoading = true) => {
+  async function fetchData(showLoading = true) {
     if (showLoading) setLoading(true);
     try {
       const [feedRes, logsRes] = await Promise.all([
@@ -39,7 +35,14 @@ export default function NotifikasiRoute() {
     } finally {
       if (showLoading) setLoading(false);
     }
-  };
+  }
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void fetchData();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     return subscribeRealtime(NOTIFIKASI_REALTIME_EVENTS, () => {

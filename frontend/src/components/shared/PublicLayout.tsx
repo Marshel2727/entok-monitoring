@@ -13,7 +13,7 @@ import {
   LuSun,
   LuMoon
 } from 'react-icons/lu';
-import { FeedItem, FormulasiItem, KatalogItem } from '@/types';
+import { FeedItem, FormulasiItem, KatalogItem, PenjagaTaskItem } from '@/types';
 import { useTheme } from '@/context/ThemeContext';
 import { resolveAssetUrl } from '@/services/api';
 import { useFeedback } from '@/components/shared/FeedbackProvider';
@@ -22,7 +22,7 @@ interface PublicLayoutProps {
   feedList: FeedItem[];
   formulasiList: FormulasiItem[];
   katalogList: KatalogItem[];
-  tasksList?: any[];
+  tasksList?: PenjagaTaskItem[];
   isPreview?: boolean;
   onBackToDashboard?: () => void;
   jumlahStarter?: number;

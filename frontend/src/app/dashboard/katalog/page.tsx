@@ -12,22 +12,27 @@ export default function KatalogPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    fetchCatalogs();
-  }, []);
+  const errorMessage = (err: unknown, fallback: string) => (err instanceof Error ? err.message : fallback);
 
-  const fetchCatalogs = async () => {
+  async function fetchCatalogs() {
     setLoading(true);
     try {
       const res = await catalogService.getCatalogs();
       setCatalogs(res || []);
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
       setError('Gagal memuat katalog produk dari database');
     } finally {
       setLoading(false);
     }
-  };
+  }
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void fetchCatalogs();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   const handleSaveCatalog = async (item: KatalogItem) => {
     try {
@@ -35,8 +40,8 @@ export default function KatalogPage() {
       if (res.status === 'success') {
         fetchCatalogs(); // Refresh lists
       }
-    } catch (err: any) {
-      showToast('error', err.message || 'Gagal menyimpan produk.');
+    } catch (err) {
+      showToast('error', errorMessage(err, 'Gagal menyimpan produk.'));
     }
   };
 
@@ -46,8 +51,8 @@ export default function KatalogPage() {
       if (res.status === 'success') {
         fetchCatalogs(); // Refresh lists
       }
-    } catch (err: any) {
-      showToast('error', err.message || 'Gagal menghapus produk.');
+    } catch (err) {
+      showToast('error', errorMessage(err, 'Gagal menghapus produk.'));
     }
   };
 

@@ -36,8 +36,8 @@ export function resolveAssetUrl(src?: string, fallback = '') {
   return src;
 }
 
-interface RequestOptions extends RequestInit {
-  body?: any;
+interface RequestOptions extends Omit<RequestInit, 'body'> {
+  body?: unknown;
 }
 
 type CacheEntry<T> = {
@@ -111,24 +111,25 @@ export async function cachedApiCall<T>(
 
 export async function apiCall<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
   const url = `${BASE_URL}${endpoint}`;
+  const { body, ...requestOptions } = options;
   
   // Get token from localStorage
   const token = getAuthToken();
 
-  const headers = new Headers(options.headers || {});
+  const headers = new Headers(requestOptions.headers || {});
   headers.set('Content-Type', 'application/json');
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
   }
 
   const config: RequestInit = {
-    ...options,
+    ...requestOptions,
     headers,
-    cache: options.cache || 'no-store',
+    cache: requestOptions.cache || 'no-store',
   };
 
-  if (options.body) {
-    config.body = JSON.stringify(options.body);
+  if (body !== undefined) {
+    config.body = JSON.stringify(body);
   }
 
   try {
@@ -172,10 +173,10 @@ export const api = {
   getCached: <T>(endpoint: string, ttlMs?: number, options?: RequestInit) =>
     cachedApiCall<T>(endpoint, ttlMs, { ...options, method: 'GET' }),
     
-  post: <T>(endpoint: string, body: any, options?: RequestInit) => 
+  post: <T>(endpoint: string, body: unknown, options?: RequestInit) =>
     apiCall<T>(endpoint, { ...options, method: 'POST', body }),
     
-  put: <T>(endpoint: string, body: any, options?: RequestInit) => 
+  put: <T>(endpoint: string, body: unknown, options?: RequestInit) =>
     apiCall<T>(endpoint, { ...options, method: 'PUT', body }),
     
   delete: <T>(endpoint: string, options?: RequestInit) => 

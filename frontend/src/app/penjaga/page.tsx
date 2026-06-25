@@ -6,11 +6,11 @@ import { useAuth } from '@/context/AuthContext';
 import { taskService, DailyChecklistItem } from '@/services/task';
 import { feedService } from '@/services/feed';
 import { formulationService } from '@/services/formulation';
-import { populationService } from '@/services/population';
+import { populationService, PopulationPhase } from '@/services/population';
 import { feedingBatchService, FeedingBatch } from '@/services/feedingBatch';
 import { clearApiCache } from '@/services/api';
 import { subscribeRealtime } from '@/services/realtime';
-import { FeedItem, FormulasiItem } from '@/types';
+import { FeedItem, FormulasiItem, PenjagaTaskItem } from '@/types';
 import ChecklistPenjagaPage from '@/components/penjaga/ChecklistPenjagaPage';
 
 const PORTAL_REALTIME_EVENTS = [
@@ -27,37 +27,13 @@ export default function PenjagaPortal() {
   const [checklist, setChecklist] = useState<DailyChecklistItem[]>([]);
   const [feeds, setFeeds] = useState<FeedItem[]>([]);
   const [formulations, setFormulations] = useState<FormulasiItem[]>([]);
-  const [populations, setPopulations] = useState<any[]>([]);
-  const [tasks, setTasks] = useState<any[]>([]);
+  const [populations, setPopulations] = useState<PopulationPhase[]>([]);
+  const [tasks, setTasks] = useState<PenjagaTaskItem[]>([]);
   const [feedingBatch, setFeedingBatch] = useState<FeedingBatch | null>(null);
   const [feedingBatches, setFeedingBatches] = useState<FeedingBatch[]>([]);
   const [loadingPortal, setLoadingPortal] = useState(true);
 
-  useEffect(() => {
-    if (!isLoading) {
-      if (!isLoggedIn) {
-        router.push('/login');
-      } else if (userRole !== 'PENJAGA' && userRole !== 'PENGAWAS') {
-        router.push('/dashboard');
-      } else {
-        fetchDailyData();
-      }
-    }
-  }, [isLoggedIn, userRole, isLoading, router]);
-
-  useEffect(() => {
-    if (isLoading || !isLoggedIn || (userRole !== 'PENJAGA' && userRole !== 'PENGAWAS')) {
-      return;
-    }
-
-    const timer = window.setInterval(() => {
-      fetchDailyData(false);
-    }, 10000);
-
-    return () => window.clearInterval(timer);
-  }, [isLoggedIn, userRole, isLoading]);
-
-  const fetchDailyData = async (showLoading = true) => {
+  async function fetchDailyData(showLoading = true) {
     if (showLoading) setLoadingPortal(true);
     try {
       const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Makassar' }); // YYYY-MM-DD format
@@ -88,7 +64,34 @@ export default function PenjagaPortal() {
     } finally {
       if (showLoading) setLoadingPortal(false);
     }
-  };
+  }
+
+  useEffect(() => {
+    if (!isLoading) {
+      if (!isLoggedIn) {
+        router.push('/login');
+      } else if (userRole !== 'PENJAGA' && userRole !== 'PENGAWAS') {
+        router.push('/dashboard');
+      } else {
+        const timer = window.setTimeout(() => {
+          void fetchDailyData();
+        }, 0);
+        return () => window.clearTimeout(timer);
+      }
+    }
+  }, [isLoggedIn, userRole, isLoading, router]);
+
+  useEffect(() => {
+    if (isLoading || !isLoggedIn || (userRole !== 'PENJAGA' && userRole !== 'PENGAWAS')) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      fetchDailyData(false);
+    }, 10000);
+
+    return () => window.clearInterval(timer);
+  }, [isLoggedIn, userRole, isLoading]);
 
   useEffect(() => {
     if (isLoading || !isLoggedIn || (userRole !== 'PENJAGA' && userRole !== 'PENGAWAS')) {

@@ -69,6 +69,7 @@ export default function KelolaPakanPage({
   onScaleComposition
 }: KelolaPakanPageProps) {
   const { showToast, confirmAction } = useFeedback();
+  const errorMessage = (err: unknown, fallback: string) => (err instanceof Error ? err.message : fallback);
   // Local States
   const [quickFeedId, setQuickFeedId] = useState('');
   const [quickAmount, setQuickAmount] = useState('');
@@ -139,9 +140,12 @@ export default function KelolaPakanPage({
 
   useEffect(() => {
     if (selectedScale?.tipe === 'MULTI' && selectedScaleFeed && selectedTargetKg > 0) {
-      setScaleValue(selectedTargetKg.toFixed(2));
+      const timer = window.setTimeout(() => {
+        setScaleValue(selectedTargetKg.toFixed(2));
+      }, 0);
+      return () => window.clearTimeout(timer);
     }
-  }, [selectedScale?.tipe, selectedScaleFeed?.id, selectedTargetKg]);
+  }, [selectedScale?.tipe, selectedScaleFeed, selectedTargetKg]);
   
   // State for category filtering
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('Semua');
@@ -236,8 +240,8 @@ export default function KelolaPakanPage({
     try {
       await onScaleComposition(selectedScale.id, scalePhase);
       showToast('success', 'Semua bahan fase ini berhasil masuk ke batch sesuai komposisi.');
-    } catch (err: any) {
-      showToast('error', err.message || 'Gagal memasukkan komposisi ke batch.');
+    } catch (err) {
+      showToast('error', errorMessage(err, 'Gagal memasukkan komposisi ke batch.'));
     } finally {
       setIsCompositionSaving(false);
     }

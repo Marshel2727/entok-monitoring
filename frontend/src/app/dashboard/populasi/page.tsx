@@ -1,22 +1,18 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { populationService } from '@/services/population';
+import { populationService, PopulationPhase } from '@/services/population';
 import { PopulasiLog } from '@/types';
 import KelolaPopulasiPage from '@/components/populasi/KelolaPopulasiPage';
 import { useFeedback } from '@/components/shared/FeedbackProvider';
 
 export default function PopulasiPage() {
   const { showToast, confirmAction } = useFeedback();
-  const [populations, setPopulations] = useState<any[]>([]);
+  const [populations, setPopulations] = useState<PopulationPhase[]>([]);
   const [logs, setLogs] = useState<PopulasiLog[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchPopulations();
-  }, []);
-
-  const fetchPopulations = async () => {
+  async function fetchPopulations() {
     setLoading(true);
     try {
       const [popRes, logsRes] = await Promise.all([
@@ -30,7 +26,14 @@ export default function PopulasiPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void fetchPopulations();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   const handleUpdateFasePopulasi = async (fase: string, newVal: number) => {
     try {
