@@ -24,8 +24,8 @@ export const taskService = {
 
   saveTask: async (task: Partial<PenjagaTaskItem>) => {
     const payload = {
-      id: task.id,
-      nama: task.nama,
+      ...(task.id ? { id: task.id } : {}),
+      nama: task.nama?.trim(),
       waktu: task.waktu,
       deskripsi: task.deskripsi,
       img: task.img,
