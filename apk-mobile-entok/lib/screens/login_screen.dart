@@ -183,7 +183,6 @@ class RegisterScreen extends StatefulWidget {
 class _RegisterScreenState extends State<RegisterScreen> {
   final _nameController = TextEditingController();
   final _usernameController = TextEditingController();
-  final _whatsappController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _hidePassword = true;
@@ -193,7 +192,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   void dispose() {
     _nameController.dispose();
     _usernameController.dispose();
-    _whatsappController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -261,13 +259,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     const SizedBox(height: 24),
                     _FieldLabel('Username'),
                     TextField(controller: _usernameController, decoration: entokInputDecoration('joko', Icons.badge_outlined)),
-                    const SizedBox(height: 24),
-                    _FieldLabel('Nomor WhatsApp'),
-                    TextField(
-                      controller: _whatsappController,
-                      keyboardType: TextInputType.phone,
-                      decoration: entokInputDecoration('081234567890', Icons.phone_android_rounded),
-                    ),
                     const SizedBox(height: 24),
                     _FieldLabel('Password'),
                     TextField(

@@ -3,14 +3,20 @@ import 'package:flutter/material.dart';
 import '../models/keeper_models.dart';
 import '../services/task_reminder_service.dart';
 import '../theme/app_theme.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import '../services/api_service.dart';
+import 'dart:convert';
 
 class AccountScreen extends StatelessWidget {
+  final ApiService api;
   final AppUser? user;
   final Future<void> Function() onLogout;
   final Future<void> Function()? onNotificationSettingsChanged;
 
   const AccountScreen({
     super.key,
+    required this.api,
     required this.user,
     required this.onLogout,
     this.onNotificationSettingsChanged,
@@ -26,7 +32,7 @@ class AccountScreen extends StatelessWidget {
           constraints: const BoxConstraints(maxWidth: 450),
           child: Column(
             children: [
-              const EntokTopHeader(title: 'Kelola Akun', showBack: true),
+              const EntokTopHeader(title: 'Kelola Akun Penjaga', showBack: true),
               Expanded(
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
@@ -47,7 +53,29 @@ class AccountScreen extends StatelessWidget {
                             ),
                           ],
                         ),
-                        child: const Icon(Icons.emoji_nature_rounded, color: EntokColors.green, size: 60),
+                        child: ClipOval(
+                          child: user?.profileImage != null &&
+                              user!.profileImage!.isNotEmpty
+                              ? Image.network(
+                            api.assetUrl(
+                              user!.profileImage,
+                            ),
+                            fit: BoxFit.cover,
+
+                            errorBuilder:
+                                (_, __, ___) =>
+                            const Icon(
+                              Icons.person_rounded,
+                              color: EntokColors.green,
+                              size: 60,
+                            ),
+                          )
+                              : const Icon(
+                            Icons.person_rounded,
+                            color: EntokColors.green,
+                            size: 60,
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 26),
@@ -65,8 +93,16 @@ class AccountScreen extends StatelessWidget {
                     const SizedBox(height: 36),
                     _AccountMenuTile(
                       icon: Icons.person_outline_rounded,
-                      title: 'Edit Profil',
-                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EditProfileScreen(user: user))),
+                      title: 'Edit Profil Penjaga',
+                      onTap: () async {
+                        final updatedUser = await Navigator.push<AppUser>(
+                          context,
+                          MaterialPageRoute(builder: (_) => EditProfileScreen(api: api, user: user)),
+                        );
+                        if (updatedUser != null && context.mounted) {
+                          Navigator.pop(context, updatedUser);
+                        }
+                      },
                     ),
                     _AccountMenuTile(
                       icon: Icons.notifications_none_rounded,
@@ -79,11 +115,6 @@ class AccountScreen extends StatelessWidget {
                           ),
                         ),
                       ),
-                    ),
-                    _AccountMenuTile(
-                      icon: Icons.shield_outlined,
-                      title: 'Keamanan',
-                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SecurityScreen(user: user, onLogout: onLogout))),
                     ),
                     _AccountMenuTile(
                       icon: Icons.help_outline_rounded,
@@ -111,10 +142,102 @@ class AccountScreen extends StatelessWidget {
   }
 }
 
-class EditProfileScreen extends StatelessWidget {
+class EditProfileScreen extends StatefulWidget {
+  final ApiService api;
   final AppUser? user;
 
-  const EditProfileScreen({super.key, required this.user});
+  const EditProfileScreen({
+    super.key,
+    required this.api,
+    required this.user,
+  });
+
+  @override
+  State<EditProfileScreen> createState() =>
+      _EditProfileScreenState();
+}
+
+class _EditProfileScreenState
+    extends State<EditProfileScreen> {
+  final _nameController = TextEditingController();
+  final _usernameController = TextEditingController();
+  final _passwordController = TextEditingController();
+
+  File? _profileImage;
+  bool _hidePassword = true;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _nameController.text =
+        widget.user?.name ?? '';
+
+    _usernameController.text =
+        widget.user?.username ?? '';
+  }
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+
+    final image = await picker.pickImage(
+      source: ImageSource.gallery,
+    );
+
+    if (image != null) {
+      setState(() {
+        _profileImage = File(image.path);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _usernameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveProfile() async {
+
+    String? imageBase64;
+
+    if (_profileImage != null) {
+      final bytes = await _profileImage!.readAsBytes();
+      imageBase64 = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+    }
+
+    try {
+
+      final updatedUser =
+      await widget.api.updateProfile(
+        name: _nameController.text.trim(),
+        username: _usernameController.text.trim(),
+        password: _passwordController.text.trim(),
+        profileImage: imageBase64,
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Profil berhasil diperbarui"),
+        ),
+      );
+
+      Navigator.pop(context, updatedUser);
+
+    } catch (e) {
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -122,60 +245,147 @@ class EditProfileScreen extends StatelessWidget {
       backgroundColor: EntokColors.background,
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 450),
+          constraints: const BoxConstraints(
+            maxWidth: 450,
+          ),
           child: Column(
             children: [
-              const EntokTopHeader(title: 'Edit Profil', showBack: true),
+              const EntokTopHeader(
+                title: 'Edit Profil Penjaga',
+                showBack: true
+              ),
+
               Expanded(
                 child: ListView(
-                  padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+                  padding: const EdgeInsets.fromLTRB(
+                    24,
+                    28,
+                    24,
+                    24,
+                  ),
                   children: [
+
                     Center(
                       child: Stack(
                         children: [
+
                           Container(
                             width: 128,
                             height: 128,
-                            decoration: const BoxDecoration(color: Color(0xFFCFF7DF), shape: BoxShape.circle),
-                            child: const Icon(Icons.person_rounded, color: EntokColors.green, size: 72),
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Color(0xFFCFF7DF),
+                            ),
+                  child: ClipOval(
+                    child: _profileImage != null
+                        ? Image.file(
+                      _profileImage!,
+                      fit: BoxFit.cover,
+                    )
+                        : widget.user?.profileImage != null &&
+                        widget.user!.profileImage!.isNotEmpty
+                        ? Image.network(
+                      widget.api.assetUrl(widget.user!.profileImage),
+                      fit: BoxFit.cover,
+                    )
+                        : const Icon(
+                      Icons.person_rounded,
+                      color: EntokColors.green,
+                      size: 72,
+                    ),
+                  ),
                           ),
+
                           Positioned(
                             right: 0,
                             bottom: 6,
-                            child: Container(
-                              width: 52,
-                              height: 52,
-                              decoration: const BoxDecoration(color: EntokColors.green, shape: BoxShape.circle),
-                              child: const Icon(Icons.photo_camera_rounded, color: Colors.white, size: 26),
+                            child: GestureDetector(
+                              onTap: _pickImage,
+                              child: Container(
+                                width: 52,
+                                height: 52,
+                                decoration: const BoxDecoration(
+                                  color: EntokColors.green,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.photo_camera_rounded,
+                                  color: Colors.white,
+                                  size: 26,
+                                ),
+                              ),
                             ),
                           ),
                         ],
                       ),
                     ),
+
                     const SizedBox(height: 34),
-                    const _PageFieldLabel('Nama Lengkap'),
-                    TextField(
-                      controller: TextEditingController(text: user?.name ?? 'Penjaga Entok'),
-                      decoration: entokInputDecoration('Nama Lengkap', Icons.person_outline_rounded),
+
+                    const _PageFieldLabel(
+                      'Nama Lengkap',
                     ),
-                    const SizedBox(height: 24),
-                    const _PageFieldLabel('Nomor WhatsApp'),
-                    TextField(decoration: entokInputDecoration('081234567890', Icons.chat_bubble_outline_rounded)),
-                    const SizedBox(height: 24),
-                    const _PageFieldLabel('Email'),
-                    TextField(decoration: entokInputDecoration('email@farm.com', Icons.mail_outline_rounded)),
-                    const SizedBox(height: 24),
-                    const _PageFieldLabel('Password Baru'),
+
                     TextField(
-                      obscureText: true,
+                      controller: _nameController,
+                      decoration:
+                      entokInputDecoration(
+                        'Nama Lengkap',
+                        Icons.person_outline_rounded,
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    const _PageFieldLabel(
+                      'Username',
+                    ),
+
+                    TextField(
+                      controller:
+                      _usernameController,
+                      decoration:
+                      entokInputDecoration(
+                        'Username',
+                        Icons.badge_outlined,
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    const _PageFieldLabel(
+                      'Password Baru',
+                    ),
+
+                    TextField(
+                      controller: _passwordController,
+                      obscureText: _hidePassword,
                       decoration: entokInputDecoration(
                         'Password Baru',
                         Icons.lock_outline_rounded,
-                        suffixIcon: const Icon(Icons.visibility_off_rounded, color: Colors.grey, size: 28),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _hidePassword
+                                ? Icons.visibility_off_rounded
+                                : Icons.visibility_rounded,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _hidePassword = !_hidePassword;
+                            });
+                          },
+                        ),
                       ),
                     ),
+
                     const SizedBox(height: 54),
-                    EntokPrimaryButton(label: 'SIMPAN PERUBAHAN', onPressed: () => Navigator.pop(context)),
+
+                    EntokPrimaryButton(
+                      label:
+                      'SIMPAN PERUBAHAN',
+                      onPressed:
+                      _saveProfile,
+                    ),
                   ],
                 ),
               ),
@@ -578,19 +788,89 @@ class ContactAdminScreen extends StatelessWidget {
           constraints: const BoxConstraints(maxWidth: 450),
           child: Column(
             children: [
-              const EntokTopHeader(title: 'Hubungi Admin', showBack: true),
+              const EntokTopHeader(
+                title: 'Hubungi Admin EntokFlow',
+                showBack: true
+              ),
+
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 80, 24, 24),
+                  padding: const EdgeInsets.fromLTRB(
+                    24,
+                    80, // sebelumnya 80, saya perkecil
+                    24,
+                    24,
+                  ),
                   child: Column(
                     children: [
-                      const CircleAvatar(radius: 58, backgroundColor: EntokColors.mint, child: Icon(Icons.chat_bubble_rounded, color: EntokColors.green, size: 58)),
-                      const SizedBox(height: 56),
-                      const Text('Butuh Bantuan?', textAlign: TextAlign.center, style: TextStyle(fontSize: 26, color: EntokColors.text, fontWeight: FontWeight.w900)),
-                      const SizedBox(height: 24),
-                      const Text('Tim admin kami siap membantu Anda. Tekan tombol di bawah untuk menyalin nomor WhatsApp kami.', textAlign: TextAlign.center, style: TextStyle(fontSize: 15, color: EntokColors.muted, height: 1.35)),
-                      const Spacer(),
-                      EntokPrimaryButton(label: 'SALIN NOMOR WHATSAPP', icon: Icons.phone_android_rounded, onPressed: () => Navigator.pop(context)),
+                      const CircleAvatar(
+                        radius: 58,
+                        backgroundColor: EntokColors.mint,
+                        child: Icon(
+                          Icons.chat_bubble_rounded,
+                          color: EntokColors.green,
+                          size: 58,
+                        ),
+                      ),
+
+                      const SizedBox(height: 40),
+
+                      const Text(
+                        'Butuh Bantuan?',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 26,
+                          color: EntokColors.text,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      const Text(
+                        'Tim admin kami siap membantu Anda. Tekan tombol di bawah untuk menyalin nomor WhatsApp kami.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: EntokColors.muted,
+                          height: 1.35,
+                        ),
+                      ),
+
+                      const SizedBox(height: 30),
+
+                      EntokPrimaryButton(
+                        label: 'HUBUNGI ADMIN',
+                        icon: Icons.phone_android_rounded,
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              behavior: SnackBarBehavior.floating,
+                              backgroundColor: EntokColors.warning,
+                              margin: const EdgeInsets.all(16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              content: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.info_rounded,
+                                    color: Colors.white,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  const Expanded(
+                                    child: Text(
+                                      'Nomor admin belum dikonfigurasi di aplikasi.',
+                                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              duration: const Duration(seconds: 3),
+                            ),
+                          );
+                        },
+                      ),
                     ],
                   ),
                 ),
@@ -630,23 +910,23 @@ class UsageGuideScreen extends StatelessWidget {
                     const SizedBox(height: 28),
                     for (var i = 0; i < items.length; i++) ...[
                       EntokCard(
-                        padding: const EdgeInsets.all(22),
+                        padding: const EdgeInsets.all(16),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Container(
-                              width: 48,
-                              height: 48,
+                              width: 40,
+                              height: 40,
                               decoration: BoxDecoration(color: EntokColors.mint, borderRadius: BorderRadius.circular(14)),
-                              child: Center(child: Text('${i + 1}', style: const TextStyle(color: EntokColors.green, fontSize: 18, fontWeight: FontWeight.w900))),
+                              child: Center(child: Text('${i + 1}', style: const TextStyle(color: EntokColors.green, fontSize: 15, fontWeight: FontWeight.w900))),
                             ),
-                            const SizedBox(width: 22),
+                            const SizedBox(width: 14),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(items[i].$1, style: const TextStyle(fontSize: 18, color: EntokColors.text, fontWeight: FontWeight.w900)),
-                                  const SizedBox(height: 12),
+                                  const SizedBox(height: 8),
                                   Text(items[i].$2, style: const TextStyle(fontSize: 14, color: EntokColors.muted, height: 1.45)),
                                 ],
                               ),
@@ -677,17 +957,44 @@ class _AccountMenuTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 18),
+      padding: const EdgeInsets.only(bottom: 14),
       child: EntokCard(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 15),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 10,
+        ),
         child: InkWell(
+          borderRadius: BorderRadius.circular(18),
           onTap: onTap,
           child: Row(
             children: [
-              EntokIconBox(icon: icon),
-              const SizedBox(width: 16),
-              Expanded(child: Text(title, style: const TextStyle(fontSize: 17, color: EntokColors.text, fontWeight: FontWeight.w900))),
-              const Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 34),
+
+              SizedBox(
+                width: 46,
+                height: 46,
+                child: EntokIconBox(
+                  icon: icon,
+                ),
+              ),
+
+              const SizedBox(width: 14),
+
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    color: EntokColors.text,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: Colors.grey,
+                size: 28,
+              ),
             ],
           ),
         ),

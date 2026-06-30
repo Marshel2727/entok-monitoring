@@ -91,6 +91,32 @@ class ApiService {
     await prefs.remove(_userKey);
   }
 
+  Future<AppUser> updateProfile({
+    required String name,
+    required String username,
+    String? password,
+    String? profileImage,
+  }) async {
+    final response = await _send(
+      'PUT',
+      '/auth/profile',
+      body: {
+        'name': name,
+        'username': username,
+        if (password != null && password.isNotEmpty) 'password': password,
+        if (profileImage != null && profileImage.isNotEmpty) 'profile_image': profileImage,
+      },
+    );
+
+    final userData = Map<String, dynamic>.from(response['data'] ?? {});
+    _user = AppUser.fromJson(userData);
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_userKey, jsonEncode(_user!.toJson()));
+
+    return _user!;
+  }
+
   Future<List<KeeperTask>> getTasks() async {
     final response = await _send('GET', '/tasks', auth: false);
     return _dataList(response).map((item) => KeeperTask.fromJson(item)).toList();
@@ -207,6 +233,9 @@ class ApiService {
           break;
         case 'GET':
           response = await http.get(uri, headers: headers);
+          break;
+        case 'PUT':
+          response = await http.put(uri, headers: headers, body: jsonEncode(body ?? {}));
           break;
         default:
           throw ApiException('Method API tidak didukung: $method');

@@ -11,6 +11,7 @@ class User(db.Model):
     id = db.Column(db.String(50), primary_key=True, default=lambda: str(uuid.uuid4()))
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(100), unique=True, nullable=True)
+    profile_image = db.Column(db.String(255), nullable=True)
     username = db.Column(db.String(50), unique=True, nullable=False, index=True)
     password = db.Column(db.String(255), nullable=False)
     role = db.Column(db.Enum('PENGAWAS', 'PENJAGA', name='user_roles'), nullable=False)
@@ -37,6 +38,7 @@ class User(db.Model):
             'nama': self.name,
             'name': self.name,
             'email': self.email,
+            'profile_image': self.profile_image,
             'username': self.username,
             'role': self.role,
             'shift': self.shift,

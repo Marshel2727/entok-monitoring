@@ -71,6 +71,16 @@ def register(current_user):
     res, code = auth_service.register_user(data)
     return jsonify(res), code
 
+@auth_bp.route('/profile', methods=['PUT'])
+@token_required
+def update_profile(current_user):
+    data, error = load_or_error(UserUpdateSchema(partial=True), request.get_json())
+    if error:
+        return jsonify(error[0]), error[1]
+
+    res, code = auth_service.update_profile(current_user.id, data)
+    return jsonify(res), code
+
 @auth_bp.route('/register-public', methods=['POST'])
 def register_public():
     data, error = load_or_error(PublicRegisterSchema(), request.get_json())

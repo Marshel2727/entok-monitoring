@@ -292,8 +292,10 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
     final isSelected = _selectedChecklistIndex == index;
     final isCompact = isDone && !showBatchDetail && !isSelected;
 
-    var isWaktunya = false;
-    if (!isDone) {
+    final timingStatus = _taskTimingStatus(item, isDone);
+    var isWaktunya = timingStatus.isDue;
+    final isLate = timingStatus.isLate;
+    if (!isDone && !timingStatus.hasSchedule) {
       if (index == 0) {
         isWaktunya = true;
       } else {
@@ -301,16 +303,44 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
       }
     }
 
-    final statusColor = isDone ? const Color(0xFF26D057) : (isWaktunya ? const Color(0xFFC79121) : const Color(0xFF757575));
-    final statusIcon = isDone ? Icons.check_circle_rounded : Icons.access_time_rounded;
+    Color statusColor;
+    IconData statusIcon;
+    if (isDone) {
+      statusColor = const Color(0xFF26D057);
+      statusIcon = Icons.check_circle_rounded;
+    } else if (isLate) {
+      statusColor = const Color(0xFFE53935);
+      statusIcon = Icons.access_time_filled_rounded;
+    } else if (isWaktunya) {
+      statusColor = const Color(0xFFC79121);
+      statusIcon = Icons.access_time_filled_rounded;
+    } else {
+      statusColor = const Color(0xFF757575);
+      statusIcon = Icons.access_time_rounded;
+    }
 
     var lineLinkColor = const Color(0xFF757575);
     if (isDone) {
       if (index + 1 < widget.kegiatanList.length) {
-        lineLinkColor = widget.kegiatanList[index + 1]['isDone'] == true ? const Color(0xFF26D057) : const Color(0xFFC79121);
+        final nextItem = widget.kegiatanList[index + 1];
+        final nextDone = nextItem['isDone'] == true;
+        final nextTiming = _taskTimingStatus(nextItem, nextDone);
+        if (nextDone) {
+          lineLinkColor = const Color(0xFF26D057);
+        } else if (nextTiming.isLate) {
+          lineLinkColor = const Color(0xFFE53935);
+        } else if (nextTiming.isDue) {
+          lineLinkColor = const Color(0xFFC79121);
+        } else {
+          lineLinkColor = const Color(0xFF757575);
+        }
       } else {
         lineLinkColor = const Color(0xFF26D057);
       }
+    } else if (isLate) {
+      lineLinkColor = const Color(0xFFE53935);
+    } else if (isWaktunya) {
+      lineLinkColor = const Color(0xFFC79121);
     }
 
     return IntrinsicHeight(
@@ -345,19 +375,34 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                   });
                 },
                 child: Container(
-                  padding: EdgeInsets.all(isCompact ? 12 : 13),
+                  padding: EdgeInsets.all(isCompact ? 14 : 16),
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(22),
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Colors.white, Color(0xFFF8FFF9)],
+                    ),
+                    borderRadius: BorderRadius.circular(24),
                     border: Border.all(
-                      color: isSelected || isWaktunya ? EntokColors.green : EntokColors.border,
-                      width: isSelected || isWaktunya ? 2 : 1,
+                      color: isSelected
+                          ? EntokColors.green
+                          : isLate
+                              ? const Color(0xFFE53935)
+                              : isWaktunya
+                                  ? EntokColors.warning
+                                  : EntokColors.border,
+                      width: isSelected || isWaktunya || isLate ? 2 : 1,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.045),
-                        blurRadius: 12,
-                        offset: const Offset(0, 6),
+                        color: EntokColors.green.withValues(alpha: 0.05),
+                        blurRadius: 16,
+                        offset: const Offset(0, 8),
+                      ),
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.03),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),
@@ -366,7 +411,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                     children: [
                       Row(
                         children: [
-                          _statusBadge(isDone, isWaktunya),
+                          _statusBadge(isDone, isWaktunya, isLate),
                           const Spacer(),
                           Text(
                             item['time'] ?? '',
@@ -382,7 +427,19 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _taskAvatar(item, size: isCompact ? 48 : 52),
+                          Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(18),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.08),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: _taskAvatar(item, size: isCompact ? 50 : 58),
+                          ),
                           const SizedBox(width: 11),
                           Expanded(
                             child: Column(
@@ -393,10 +450,10 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
+                                    fontSize: isCompact ? 17 : 18,
                                     fontWeight: FontWeight.w900,
-                                    fontSize: isCompact ? 18 : 19,
-                                    height: 1.12,
                                     color: EntokColors.text,
+                                    height: 1.2,
                                   ),
                                 ),
                                 const SizedBox(height: 6),
@@ -404,13 +461,13 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                                   item['desc'] ?? '',
                                   maxLines: isCompact ? 1 : 2,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontSize: 13, height: 1.25, color: EntokColors.muted, fontWeight: FontWeight.w600),
+                                  style: const TextStyle(fontSize: 13, height: 1.4, color: EntokColors.muted, fontWeight: FontWeight.w600),
                                 ),
                               ],
                             ),
                           ),
                           const SizedBox(width: 8),
-                          _checkBubble(isDone),
+                          _checkBubble(isDone, isWaktunya, isLate),
                         ],
                       ),
                       if (isFeedingTask) ...[
@@ -435,12 +492,12 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                           width: double.infinity,
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: const Color(0xFF1B5E20),
-                              elevation: 0,
-                              side: const BorderSide(color: Colors.black12),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              backgroundColor: EntokColors.green,
+                              foregroundColor: Colors.white,
+                              elevation: 8,
+                              shadowColor: EntokColors.green.withValues(alpha: 0.35),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
                             ),
                             onPressed: widget.isSyncing || taskId.isEmpty
                                 ? null
@@ -485,30 +542,58 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
     );
   }
 
-  Widget _statusBadge(bool isDone, bool isWaktunya) {
+  Widget _statusBadge(bool isDone, bool isWaktunya, bool isLate) {
+    final color = isDone
+        ? EntokColors.green
+        : isLate
+            ? const Color(0xFFE53935)
+            : isWaktunya
+                ? EntokColors.warning
+                : EntokColors.muted;
     return Container(
-      padding: EdgeInsets.zero,
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(999),
+      ),
       child: Text(
-        isDone ? 'SELESAI' : (isWaktunya ? 'WAKTUNYA' : 'BELUM WAKTUNYA'),
+        isDone ? 'SELESAI' : (isLate ? 'TERLAMBAT' : (isWaktunya ? 'WAKTUNYA' : 'BELUM WAKTUNYA')),
         style: TextStyle(
-          color: isDone ? EntokColors.green : (isWaktunya ? EntokColors.warning : EntokColors.muted),
-          fontSize: 12,
+          color: color,
+          fontSize: 11,
           fontWeight: FontWeight.w900,
         ),
       ),
     );
   }
 
-  Widget _checkBubble(bool isDone) {
+  Widget _checkBubble(bool isDone, bool isWaktunya, bool isLate) {
+    final color = isDone
+        ? const Color(0xFF26D057)
+        : isLate
+            ? const Color(0xFFE53935)
+            : isWaktunya
+                ? const Color(0xFFC79121)
+                : const Color(0xFFD8DEE7);
     return Container(
       width: 30,
       height: 30,
       decoration: BoxDecoration(
-        color: isDone ? const Color(0xFF26D057) : Colors.white,
+        color: isDone
+            ? const Color(0xFF26D057)
+            : isLate
+                ? const Color(0xFFFFEBEE)
+                : isWaktunya
+                    ? const Color(0xFFFFF8E1)
+                    : Colors.white,
         shape: BoxShape.circle,
-        border: Border.all(color: isDone ? EntokColors.green : const Color(0xFFD8DEE7), width: 3),
+        border: Border.all(color: color, width: 3),
       ),
-      child: isDone ? const Icon(Icons.check, color: Colors.white, size: 16) : null,
+      child: isDone
+          ? const Icon(Icons.check, color: Colors.white, size: 16)
+          : isLate || isWaktunya
+              ? Icon(Icons.schedule_rounded, color: color, size: 16)
+              : null,
     );
   }
 
@@ -1269,6 +1354,58 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
     return value.toStringAsFixed(2);
   }
 
+  _TaskTimingStatus _taskTimingStatus(Map<String, dynamic> item, bool isDone) {
+    if (isDone) return const _TaskTimingStatus(hasSchedule: false, isDue: false, isLate: false);
+
+    final scheduledAt = _scheduledDateTime(item);
+    if (scheduledAt == null) {
+      return const _TaskTimingStatus(hasSchedule: false, isDue: false, isLate: false);
+    }
+
+    final differenceMinutes = DateTime.now().difference(scheduledAt).inMinutes;
+    return _TaskTimingStatus(
+      hasSchedule: true,
+      isDue: differenceMinutes >= 0 && differenceMinutes <= 30,
+      isLate: differenceMinutes > 30,
+    );
+  }
+
+  DateTime? _scheduledDateTime(Map<String, dynamic> item) {
+    final rawTime = '${item['time'] ?? item['waktu'] ?? ''}'.trim();
+    if (rawTime.isEmpty) return null;
+
+    final normalized = rawTime
+        .toUpperCase()
+        .replaceAll('WITA', '')
+        .replaceAll('WIB', '')
+        .replaceAll('WIT', '')
+        .replaceAll('.', ':')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+
+    final match = RegExp(r'^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$').firstMatch(normalized);
+    if (match == null) return null;
+
+    var hour = int.tryParse(match.group(1) ?? '');
+    final minute = int.tryParse(match.group(2) ?? '');
+    final meridiem = match.group(3);
+    if (hour == null || minute == null || minute < 0 || minute > 59) return null;
+
+    if (meridiem != null) {
+      if (hour < 1 || hour > 12) return null;
+      if (meridiem == 'AM') {
+        hour = hour == 12 ? 0 : hour;
+      } else if (hour < 12) {
+        hour += 12;
+      }
+    } else if (hour < 0 || hour > 23) {
+      return null;
+    }
+
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day, hour, minute);
+  }
+
   String _timeOfDay(DateTime value) {
     final hour = value.hour.toString().padLeft(2, '0');
     final minute = value.minute.toString().padLeft(2, '0');
@@ -1282,6 +1419,18 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
     return '${days[now.weekday - 1]}, ${now.day} ${months[now.month - 1]} ${now.year}';
   }
+}
+
+class _TaskTimingStatus {
+  final bool hasSchedule;
+  final bool isDue;
+  final bool isLate;
+
+  const _TaskTimingStatus({
+    required this.hasSchedule,
+    required this.isDue,
+    required this.isLate,
+  });
 }
 
 class _BatchPhaseGroup {

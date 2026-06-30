@@ -5,6 +5,7 @@ class AppUser {
   final String role;
   final String? shift;
   final String? status;
+  final String? profileImage;
 
   const AppUser({
     required this.id,
@@ -13,6 +14,7 @@ class AppUser {
     required this.role,
     this.shift,
     this.status,
+    this.profileImage,
   });
 
   factory AppUser.fromJson(Map<String, dynamic> json) {
@@ -23,6 +25,7 @@ class AppUser {
       role: '${json['role'] ?? 'PENJAGA'}',
       shift: json['shift']?.toString(),
       status: json['status']?.toString(),
+      profileImage: json['profile_image']?.toString(),
     );
   }
 
@@ -33,6 +36,7 @@ class AppUser {
         'role': role,
         'shift': shift,
         'status': status,
+        'profile_image': profileImage,
       };
 }
 

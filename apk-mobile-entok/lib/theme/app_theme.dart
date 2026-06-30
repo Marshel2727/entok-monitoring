@@ -35,6 +35,7 @@ class EntokTopHeader extends StatelessWidget {
   final String title;
   final String? subtitle;
   final IconData? actionIcon;
+  final String? profileImage;
   final VoidCallback? onAction;
   final bool showBack;
   final IconData? badgeIcon;
@@ -44,6 +45,7 @@ class EntokTopHeader extends StatelessWidget {
     required this.title,
     this.subtitle,
     this.actionIcon,
+    this.profileImage,
     this.onAction,
     this.showBack = false,
     this.badgeIcon,
@@ -127,7 +129,15 @@ class EntokTopHeader extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: Icon(actionIcon ?? badgeIcon, color: EntokColors.green, size: 28),
+                child: ClipOval(
+                  child: profileImage != null && profileImage!.isNotEmpty
+                      ? Image.network(
+                          profileImage!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Icon(actionIcon ?? badgeIcon, color: EntokColors.green, size: 28),
+                        )
+                      : Icon(actionIcon ?? badgeIcon, color: EntokColors.green, size: 28),
+                ),
               ),
             ),
           ],

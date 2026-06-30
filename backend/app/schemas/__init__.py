@@ -69,6 +69,7 @@ class UserUpdateSchema(UserSchema):
     name = fields.Str(validate=validate.Length(min=2, max=100))
     username = fields.Str(validate=validate.Length(min=3, max=50))
     password = fields.Str(load_only=True, allow_none=True, validate=validate.Length(min=0, max=255))
+    profile_image = fields.Str(allow_none=True, load_default=None)
     role = fields.Str(validate=validate.OneOf(['PENGAWAS', 'PENJAGA']))
 
 

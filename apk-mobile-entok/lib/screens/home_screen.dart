@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/keeper_models.dart';
+import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -61,7 +62,8 @@ class HomeScreen extends StatelessWidget {
                       const SizedBox(height: 16),
                     ],
                     _buildProgressCard(progressPercent, totalSelesai, totalKegiatan),
-                    const SizedBox(height: 28),
+                    _buildTipsCard(),
+                    const SizedBox(height: 24),
                     _buildChecklistSection(),
                     const SizedBox(height: 24),
                   ],
@@ -76,10 +78,69 @@ class HomeScreen extends StatelessWidget {
 
   Widget _buildHeader(BuildContext context) {
     return EntokTopHeader(
-      title: 'Selamat Pagi, ${user?.name ?? 'Penjaga'}!',
+      title: 'Selamat Beraktivitas, ${user?.name ?? 'Penjaga'}!',
       subtitle: isSyncing ? 'Menyinkronkan data...' : 'Berikut kegiatan hari ini',
       actionIcon: Icons.person_rounded,
+      profileImage: user?.profileImage != null && user!.profileImage!.isNotEmpty ? ApiService().assetUrl(user!.profileImage) : null,
       onAction: onOpenAccount,
+    );
+  }
+
+  Widget _buildTipsCard() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [
+              Color(0xFFE8FFF0),
+              Color(0xFFF8FFFA),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: const Color(0xFFC9F0D7)),
+          boxShadow: [
+            BoxShadow(
+              color: EntokColors.green.withValues(alpha: 0.08),
+              blurRadius: 12,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 54,
+              height: 54,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF4CC),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(Icons.wb_sunny_rounded, color: Colors.orange, size: 30),
+            ),
+            const SizedBox(width: 14),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Tips Hari Ini',
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: EntokColors.text),
+                  ),
+                  SizedBox(height: 6),
+                  Text(
+                    'Pastikan kandang selalu bersih dan kering agar entok tetap sehat, nyaman, dan terhindar dari penyakit.',
+                    style: TextStyle(fontSize: 14, color: EntokColors.muted, height: 1.5, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -228,23 +289,54 @@ class HomeScreen extends StatelessWidget {
                 final item = kegiatanList[index];
                 final bool isDone = item['isDone'] ?? false;
 
-                return EntokCard(
+                return Container(
                   padding: const EdgeInsets.all(16),
-                  radius: 26,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(24),
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Colors.white, Color(0xFFF7FFF9)],
+                    ),
+                    border: Border.all(color: const Color(0xFFD9F3E2)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: EntokColors.green.withValues(alpha: 0.08),
+                        blurRadius: 14,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
                   child: Row(
                     children: [
                       Container(
-                        width: 54,
-                        height: 54,
+                        width: 68,
+                        height: 68,
                         decoration: BoxDecoration(
-                          color: EntokColors.green,
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.08),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: item['imageUrl'] != null
-                              ? Image.network(item['imageUrl'], fit: BoxFit.cover)
-                              : Icon(item['icon'] ?? Icons.assignment_rounded, color: Colors.white, size: 30),
+                          borderRadius: BorderRadius.circular(18),
+                          child: item['imageUrl'] != null && item['imageUrl'].toString().isNotEmpty
+                              ? Image.network(
+                                  item['imageUrl'],
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Container(
+                                    color: EntokColors.green,
+                                    child: Icon(item['icon'] ?? Icons.assignment_rounded, color: Colors.white, size: 30),
+                                  ),
+                                )
+                              : Container(
+                                  color: EntokColors.green,
+                                  child: Icon(item['icon'] ?? Icons.assignment_rounded, color: Colors.white, size: 30),
+                                ),
                         ),
                       ),
                       const SizedBox(width: 14),
@@ -255,37 +347,42 @@ class HomeScreen extends StatelessWidget {
                             Text(
                               item['title'] ?? '',
                               style: const TextStyle(
-                                fontSize: 19,
+                                fontSize: 16.5,
                                 fontWeight: FontWeight.w900,
                                 color: EntokColors.text,
+                                height: 1.2,
                                 decoration: TextDecoration.none,
                               ),
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 6),
                             Text(
                               item['desc'] ?? item['time'] ?? '',
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
-                                fontSize: 14,
+                                fontSize: 13,
                                 color: EntokColors.muted,
-                                height: 1.35,
+                                height: 1.45,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
                           ],
                         ),
                       ),
                       const SizedBox(width: 12),
-                      Container(
-                        width: 30,
-                        height: 30,
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 250),
+                        width: 34,
+                        height: 34,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: isDone ? EntokColors.green : Colors.white,
                           border: Border.all(
-                            color: isDone ? EntokColors.green : Colors.black54,
-                            width: 2.5,
+                            color: isDone ? EntokColors.green : const Color(0xFFD8DEE5),
+                            width: 2,
                           ),
                         ),
-                        child: isDone ? const Icon(Icons.check, size: 18, color: Colors.white) : null,
+                        child: isDone ? const Icon(Icons.check_rounded, size: 16, color: Colors.white) : null,
                       ),
                     ],
                   ),

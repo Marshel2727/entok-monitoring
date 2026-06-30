@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from flask import current_app
 from app.utils.db import db
 from app.models.user import User
+from app.utils.uploads import save_base64_image_if_needed
 
 def generate_token(user):
     """Generates a JWT Token for the logged in user, valid for 24 hours."""
@@ -80,6 +81,43 @@ def register_user(data):
         'message': 'Akun berhasil didaftarkan',
         'data': new_user.to_dict()
     }, 201
+
+def update_profile(user_id, data):
+    """Update profil milik user yang sedang login."""
+    user = User.query.get(user_id)
+    if not user:
+        return {'status': 'error', 'message': 'Pengguna tidak ditemukan'}, 404
+
+    if 'name' in data:
+        user.name = data['name'].strip()
+
+    if 'username' in data:
+        username = data['username'].lower().strip()
+        if not username:
+            return {'status': 'error', 'message': 'Username wajib diisi'}, 400
+
+        existing_user = User.query.filter_by(username=username).first()
+        if existing_user and existing_user.id != user.id:
+            return {'status': 'error', 'message': f'Username "{username}" sudah digunakan'}, 400
+
+        user.username = username
+
+    if data.get('password'):
+        user.set_password(data['password'].strip())
+
+    if data.get('profile_image'):
+        try:
+            user.profile_image = save_base64_image_if_needed(data['profile_image'], 'profiles')
+        except ValueError as exc:
+            return {'status': 'error', 'message': str(exc)}, 400
+
+    db.session.commit()
+
+    return {
+        'status': 'success',
+        'message': 'Profil berhasil diperbarui',
+        'data': user.to_dict()
+    }, 200
 
 def update_user(user_id, data):
     """Updates an existing user's credentials or status."""

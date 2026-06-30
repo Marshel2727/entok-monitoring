@@ -45,6 +45,7 @@ class _PanduanScreenState extends State<PanduanScreen> {
             title: 'Panduan',
             subtitle: 'Panduan kerja dan racikan pakan',
             actionIcon: Icons.person_rounded,
+            profileImage: widget.api.user?.profileImage != null && widget.api.user!.profileImage!.isNotEmpty ? widget.api.assetUrl(widget.api.user!.profileImage) : null,
             onAction: widget.onOpenAccount,
           ),
           Expanded(
@@ -223,20 +224,30 @@ class _GuideTile extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 22),
       child: EntokCard(
-        color: const Color(0xFFEAF8F1),
-        borderColor: const Color(0xFFC8F0DC),
-        radius: 24,
-        padding: const EdgeInsets.all(16),
-        elevated: false,
+        color: Colors.white,
+        borderColor: const Color(0xFFD7F3E5),
+        radius: 26,
+        padding: const EdgeInsets.all(18),
+        elevated: true,
         child: InkWell(
           onTap: onTap,
           child: Row(
             children: [
               Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
-                child: Icon(data.iconTopik, color: EntokColors.green, size: 32),
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(colors: [EntokColors.green, Color(0xFF53D77C)]),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: EntokColors.green.withValues(alpha: 0.35),
+                      blurRadius: 14,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: Icon(data.iconTopik, color: Colors.white, size: 34),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -250,9 +261,19 @@ class _GuideTile extends StatelessWidget {
                 ),
               ),
               Container(
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: const Color(0xFFE2EFE8))),
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
                 child: const Icon(Icons.arrow_forward_rounded, color: EntokColors.green, size: 30),
               ),
             ],
@@ -278,11 +299,11 @@ class _RecipeCard extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 22),
       child: EntokCard(
-        color: const Color(0xFFEAF8F1),
+        color: Colors.white,
         borderColor: const Color(0xFFC8F0DC),
         radius: 24,
         padding: const EdgeInsets.all(18),
-        elevated: false,
+        elevated: true,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

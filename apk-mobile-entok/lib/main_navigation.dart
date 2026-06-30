@@ -383,10 +383,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Widget
   }
 
   Future<void> _openAccount() async {
-    await Navigator.push<void>(
+    final updatedUser = await Navigator.push<AppUser?>(
       context,
       MaterialPageRoute(
         builder: (context) => AccountScreen(
+          api: widget.api,
           user: widget.api.user,
           onLogout: widget.onLogout,
           onNotificationSettingsChanged: _syncCurrentNotifications,
@@ -394,6 +395,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Widget
       ),
     );
 
+    if (updatedUser != null && mounted) {
+      setState(() {});
+    }
     unawaited(_syncCurrentNotifications());
   }
 
