@@ -230,6 +230,7 @@ bool loadScaleMap(bool showMessage) {
     nextItems[nextItemCount].target = obj["target"] | 0.0;
     nextItems[nextItemCount].weight = obj["weighed"] | 0.0;
     nextItems[nextItemCount].saved = obj["saved"] | false;
+    nextItems[nextItemCount].synced = nextItems[nextItemCount].saved;
 
     nextItemCount++;
   }
@@ -250,7 +251,8 @@ bool loadScaleMap(bool showMessage) {
   }
 
   weighingStarted = false;
-  currentIndex = firstUnsavedIndex();
+  int nextMissing = firstMissingIndex();
+  currentIndex = nextMissing >= 0 ? nextMissing : 0;
   currentWeight = 0;
 
   showTargetReadyScreen();
@@ -299,6 +301,11 @@ void sendBulkData() {
     return;
   }
 
+  int pendingSend = firstCompleteUnsyncedPhaseIndex();
+  if (pendingSend >= 0 && !samePhaseIndex(currentIndex, pendingSend)) {
+    currentIndex = pendingSend;
+  }
+
   int missing = firstMissingIndexInPhase(currentIndex);
   if (missing >= 0) {
     currentIndex = missing;
@@ -307,6 +314,24 @@ void sendBulkData() {
     printLine(1, String(savedCountInPhase(currentIndex)) + "/" + String(phaseItemCount(currentIndex)));
     delay(1500);
     displayCurrentItem();
+    return;
+  }
+
+  if (isPhaseSynced(currentIndex)) {
+    int nextMissing = firstMissingIndex();
+    if (nextMissing >= 0) {
+      currentIndex = nextMissing;
+      weighingStarted = true;
+      printLine(0, "FASE SDH KIRIM");
+      printLine(1, "Lanjut " + phaseDisplayName(currentIndex));
+      delay(1200);
+      displayCurrentItem();
+    } else {
+      printLine(0, "SEMUA TERKIRIM");
+      printLine(1, "#=AMBIL BARU");
+      delay(1500);
+      showTargetReadyScreen();
+    }
     return;
   }
 
@@ -390,6 +415,10 @@ void sendBulkData() {
   http.end();
 
   if (httpCode >= 200 && httpCode < 300) {
+    for (int i = start; i < end; i++) {
+      scaleItems[i].synced = true;
+    }
+
     printLine(0, "FASE TERKIRIM");
     printLine(1, phaseName);
     delay(1500);

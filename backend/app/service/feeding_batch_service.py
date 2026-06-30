@@ -230,6 +230,17 @@ def _batch_has_scale_data(batch):
     return any(item.weighed_amount > 0 or item.deducted_amount > 0 for item in batch.ingredients)
 
 
+def _batch_scale_is_complete(batch):
+    return bool(batch.ingredients) and all((item.weighed_amount or 0) > 0 for item in batch.ingredients)
+
+
+def _select_scale_batch(batches):
+    for batch in batches:
+        if not _batch_scale_is_complete(batch):
+            return batch
+    return batches[-1] if batches else None
+
+
 def _planned_signature(ingredients):
     return sorted([
         (
@@ -384,10 +395,11 @@ def _get_active_batch_for_scale(date_str, user_id=None):
     if error:
         return None, error, 400
 
-    batch = FeedingBatch.query.filter(
+    batches = FeedingBatch.query.filter(
         FeedingBatch.batch_date == batch_date,
         FeedingBatch.status == 'PREPARING'
-    ).order_by(FeedingBatch.created_at.desc()).first()
+    ).order_by(FeedingBatch.created_at.asc()).all()
+    batch = _select_scale_batch(batches)
 
     if batch:
         response, code = create_batch(user_id, batch_date.isoformat(), batch.task_id, batch.task_execution_id)

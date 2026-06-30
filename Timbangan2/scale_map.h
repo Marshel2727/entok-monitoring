@@ -15,6 +15,7 @@ struct ScaleItem {
   float target;
   float weight;
   bool saved;
+  bool synced;
 };
 
 ScaleItem scaleItems[MAX_ITEMS];
@@ -62,6 +63,18 @@ int firstMissingIndex() {
   }
 
   return -1;
+}
+
+bool hasMissingItems() {
+  return firstMissingIndex() >= 0;
+}
+
+bool isSyncedItem(int index) {
+  if (index < 0 || index >= itemCount) {
+    return false;
+  }
+
+  return scaleItems[index].saved && scaleItems[index].synced;
 }
 
 bool samePhaseIndex(int leftIndex, int rightIndex) {
@@ -134,6 +147,60 @@ int firstMissingIndexInPhase(int index) {
   }
 
   return -1;
+}
+
+bool hasUnsyncedSavedItemInPhase(int index) {
+  int start = phaseStartIndex(index);
+  int end = phaseEndIndex(index);
+
+  for (int i = start; i < end; i++) {
+    if (scaleItems[i].saved && !scaleItems[i].synced) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+int firstUnsyncedSavedIndex() {
+  for (int i = 0; i < itemCount; i++) {
+    if (scaleItems[i].saved && !scaleItems[i].synced) {
+      return i;
+    }
+  }
+
+  return -1;
+}
+
+int firstCompleteUnsyncedPhaseIndex() {
+  for (int i = 0; i < itemCount; i++) {
+    if (scaleItems[i].saved && !scaleItems[i].synced && firstMissingIndexInPhase(i) < 0) {
+      return i;
+    }
+  }
+
+  return -1;
+}
+
+bool hasUnsyncedSavedItems() {
+  return firstUnsyncedSavedIndex() >= 0;
+}
+
+bool allItemsSynced() {
+  return itemCount > 0 && firstMissingIndex() < 0 && !hasUnsyncedSavedItems();
+}
+
+bool isPhaseSynced(int index) {
+  int start = phaseStartIndex(index);
+  int end = phaseEndIndex(index);
+
+  for (int i = start; i < end; i++) {
+    if (!scaleItems[i].saved || !scaleItems[i].synced) {
+      return false;
+    }
+  }
+
+  return end > start;
 }
 
 String phaseDisplayName(int index) {
