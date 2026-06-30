@@ -55,29 +55,32 @@ void saveCurrentAndNext() {
     return;
   }
 
+  int savedIndex = currentIndex;
   float stableWeight = readWeightStable();
 
-  scaleItems[currentIndex].weight = stableWeight;
-  scaleItems[currentIndex].saved = true;
+  scaleItems[savedIndex].weight = stableWeight;
+  scaleItems[savedIndex].saved = true;
 
-  printLine(0, "SIMPAN #" + twoDigit(scaleItems[currentIndex].kode));
-  printLine(1, String(scaleItems[currentIndex].labelShort) + " " + String(stableWeight, 3));
+  printLine(0, "SIMPAN #" + twoDigit(scaleItems[savedIndex].kode));
+  printLine(1, String(scaleItems[savedIndex].labelShort) + " " + String(stableWeight, 3));
   delay(1000);
 
-  if (currentIndex < itemCount - 1) {
+  int nextInPhase = firstMissingIndexInPhase(savedIndex);
+  if (nextInPhase >= 0) {
     printLine(0, "AUTO TARE...");
-    printLine(1, "Bahan berikut");
+    printLine(1, "Bahan fase ini");
     scale.tare(AUTO_TARE_SAMPLES);
     currentWeight = 0;
     displayWeight = 0;
     displayWeightReady = false;
 
-    currentIndex++;
+    currentIndex = nextInPhase;
     delay(700);
     displayCurrentItem();
   } else {
-    printLine(0, "SELESAI " + String(savedCount()) + "/" + String(itemCount));
-    printLine(1, "D=KIRIM");
+    currentIndex = savedIndex;
+    printLine(0, "FASE LENGKAP");
+    printLine(1, "D=KIRIM " + phaseDisplayName(savedIndex));
     delay(1500);
   }
 }
@@ -137,8 +140,8 @@ void showSummary() {
     return;
   }
 
-  printLine(0, "PROGRESS");
-  printLine(1, String(savedCount()) + "/" + String(itemCount) + " D=KIRIM");
+  printLine(0, "PROGRESS FASE");
+  printLine(1, String(savedCountInPhase(currentIndex)) + "/" + String(phaseItemCount(currentIndex)) + " D=KIRIM");
   delay(1500);
 
   if (weighingStarted) {

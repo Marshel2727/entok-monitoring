@@ -534,6 +534,8 @@ def _find_batch_ingredient(batch, feed, label, phase=None, phase_id=None):
 
 def _normalize_scale_reading_data(data):
     timbangan_id = data.get('timbangan_id', 2)
+    ingredient_id = data.get('ingredient_id')
+    feed_id = (data.get('feed_id') or '').strip() or None
     label = (data.get('label') or data.get('feed_name') or '').strip()
     phase = (data.get('phase') or data.get('fase') or '').strip()
     phase_id = (data.get('phase_id') or data.get('fase_id') or '').strip() or None
@@ -541,8 +543,13 @@ def _normalize_scale_reading_data(data):
     unit = (data.get('unit') or 'kg').strip()
     mode = (data.get('mode') or 'SET').strip().upper()
 
-    if not label:
+    if not ingredient_id and not label:
         return None, {'status': 'error', 'message': 'Label bahan wajib dikirim dari timbangan'}, 400
+
+    try:
+        ingredient_id = int(ingredient_id) if ingredient_id is not None else None
+    except (TypeError, ValueError):
+        return None, {'status': 'error', 'message': 'ingredient_id harus berupa angka'}, 400
 
     try:
         value = float(value)
@@ -557,6 +564,8 @@ def _normalize_scale_reading_data(data):
 
     return {
         'timbangan_id': timbangan_id,
+        'ingredient_id': ingredient_id,
+        'feed_id': feed_id,
         'label': label,
         'phase': phase,
         'phase_id': phase_id,
@@ -567,6 +576,7 @@ def _normalize_scale_reading_data(data):
 
 
 def _apply_scale_reading_to_batch(batch, timbangan, reading_data):
+    ingredient_id = reading_data['ingredient_id']
     label = reading_data['label']
     phase = reading_data['phase']
     phase_id = reading_data['phase_id']
@@ -574,10 +584,15 @@ def _apply_scale_reading_to_batch(batch, timbangan, reading_data):
     unit = reading_data['unit']
     mode = reading_data['mode']
 
-    feed = _find_feed_by_name(label)
-    ingredient, ingredient_error = _find_batch_ingredient(batch, feed, label, phase, phase_id)
-    if ingredient_error:
-        return None, {'status': 'error', 'message': ingredient_error}, 400
+    if ingredient_id:
+        ingredient = FeedingBatchIngredient.query.filter_by(id=ingredient_id, batch_id=batch.id).first()
+        if not ingredient:
+            return None, {'status': 'error', 'message': 'Bahan komposisi fase tidak ditemukan di batch aktif'}, 400
+    else:
+        feed = _find_feed_by_name(label)
+        ingredient, ingredient_error = _find_batch_ingredient(batch, feed, label, phase, phase_id)
+        if ingredient_error:
+            return None, {'status': 'error', 'message': ingredient_error}, 400
 
     new_amount = value if mode == 'SET' else ingredient.weighed_amount + value
     ingredient.weighed_amount = round(new_amount, 3)

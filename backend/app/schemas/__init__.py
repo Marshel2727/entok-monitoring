@@ -276,6 +276,8 @@ class FeedingBatchIngredientSchema(BaseSchema):
 
 class FeedingBatchScaleReadingSchema(BaseSchema):
     batch_id = UUIDString(allow_none=True)
+    ingredient_id = fields.Int(validate=validate.Range(min=1))
+    feed_id = UUIDString(allow_none=True)
     timbangan_id = fields.Int(load_default=2, validate=validate.Range(min=1))
     label = fields.Str(validate=validate.Length(min=1, max=100))
     feed_name = fields.Str(validate=validate.Length(min=1, max=100))
@@ -285,15 +287,16 @@ class FeedingBatchScaleReadingSchema(BaseSchema):
     fase_id = UUIDString(allow_none=True)
     value = fields.Float(validate=validate.Range(min=0))
     amount = fields.Float(validate=validate.Range(min=0))
+    planned_amount = fields.Float(validate=validate.Range(min=0))
     unit = fields.Str(load_default='kg', validate=validate.Length(min=1, max=20))
     mode = fields.Str(load_default='SET', validate=validate.OneOf(['SET', 'ADD']))
     date = fields.Str(allow_none=True, validate=validate.Regexp(r'^\d{4}-\d{2}-\d{2}$', error='Format tanggal harus YYYY-MM-DD.'))
 
     @validates_schema
     def validate_aliases(self, data, **kwargs):
-        if not data.get('label') and not data.get('feed_name'):
+        if not data.get('ingredient_id') and not data.get('label') and not data.get('feed_name'):
             raise ValidationError({'label': ['label atau feed_name wajib diisi.']})
-        if not data.get('phase') and not data.get('fase') and not data.get('phase_id') and not data.get('fase_id'):
+        if not data.get('ingredient_id') and not data.get('phase') and not data.get('fase') and not data.get('phase_id') and not data.get('fase_id'):
             raise ValidationError({'fase': ['phase/fase atau phase_id wajib diisi.']})
         if data.get('value') is None and data.get('amount') is None:
             raise ValidationError({'value': ['value atau amount wajib diisi.']})
@@ -301,6 +304,8 @@ class FeedingBatchScaleReadingSchema(BaseSchema):
 
 class FeedingBatchScaleReadingBulkItemSchema(BaseSchema):
     batch_id = UUIDString(allow_none=True)
+    ingredient_id = fields.Int(validate=validate.Range(min=1))
+    feed_id = UUIDString(allow_none=True)
     timbangan_id = fields.Int(validate=validate.Range(min=1))
     label = fields.Str(validate=validate.Length(min=1, max=100))
     feed_name = fields.Str(validate=validate.Length(min=1, max=100))
@@ -310,6 +315,7 @@ class FeedingBatchScaleReadingBulkItemSchema(BaseSchema):
     fase_id = UUIDString(allow_none=True)
     value = fields.Float(validate=validate.Range(min=0))
     amount = fields.Float(validate=validate.Range(min=0))
+    planned_amount = fields.Float(validate=validate.Range(min=0))
     unit = fields.Str(validate=validate.Length(min=1, max=20))
     mode = fields.Str(validate=validate.OneOf(['SET', 'ADD']))
     date = fields.Str(allow_none=True, validate=validate.Regexp(r'^\d{4}-\d{2}-\d{2}$', error='Format tanggal harus YYYY-MM-DD.'))
@@ -317,9 +323,9 @@ class FeedingBatchScaleReadingBulkItemSchema(BaseSchema):
 
     @validates_schema
     def validate_aliases(self, data, **kwargs):
-        if not data.get('label') and not data.get('feed_name'):
+        if not data.get('ingredient_id') and not data.get('label') and not data.get('feed_name'):
             raise ValidationError({'label': ['label atau feed_name wajib diisi.']})
-        if not data.get('phase') and not data.get('fase') and not data.get('phase_id') and not data.get('fase_id'):
+        if not data.get('ingredient_id') and not data.get('phase') and not data.get('fase') and not data.get('phase_id') and not data.get('fase_id'):
             raise ValidationError({'fase': ['phase/fase atau phase_id wajib diisi.']})
         if data.get('value') is None and data.get('amount') is None:
             raise ValidationError({'value': ['value atau amount wajib diisi.']})
