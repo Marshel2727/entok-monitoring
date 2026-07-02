@@ -802,6 +802,14 @@ export default function ChecklistPenjagaPage({
   const visibleFeedingBatch = isFeedingTask(activeTask)
     ? activeTaskBatch
     : pickBestFeedingBatch(feedingBatches) || feedingBatch || null;
+  const portalDateLabel = new Date().toLocaleDateString('id-ID', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'Asia/Makassar',
+  });
+  const batchSummaryView = buildFeedingBatchView(visibleFeedingBatch);
   const activeTaskBatchView = buildFeedingBatchView(activeTaskBatch);
   const isFeedingBatchFinal = activeTaskBatchView.isFinalized;
   const needsFeedingFinalization = (task?: PenjagaTaskItem | null) => isFeedingTask(task) && !isFeedingBatchFinalForTask(task);
@@ -2461,7 +2469,7 @@ export default function ChecklistPenjagaPage({
       <div style={{
         flex: 1,
         padding: isStandalone ? '24px' : '0px',
-        maxWidth: '1200px',
+        maxWidth: '1280px',
         margin: '0 auto',
         width: '100%'
       }}>
@@ -2494,15 +2502,59 @@ export default function ChecklistPenjagaPage({
             </span>
           </div>
         )}
+
+        <div className="portal-desktop-only" style={{
+          marginBottom: '18px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'stretch',
+          gap: '14px'
+        }}>
+          <div className="panel" style={{
+            flex: 1,
+            padding: '18px 20px',
+            backgroundColor: '#ffffff',
+            color: '#1a202c',
+            fontFamily: 'var(--font-sans)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            gap: '16px',
+            alignItems: 'center'
+          }}>
+            <div>
+              <div style={{ fontSize: '11px', fontWeight: '900', color: '#15D36B', letterSpacing: '0.7px', textTransform: 'uppercase' }}>
+                Portal Penjaga
+              </div>
+              <h1 style={{ fontSize: '22px', lineHeight: 1.2, marginTop: '4px', fontWeight: '900', color: 'var(--pub-primary)' }}>
+                Fokus Kerja Hari Ini
+              </h1>
+              <p style={{ fontSize: '12px', color: '#718096', marginTop: '6px' }}>
+                {portalDateLabel} - {remainingCount} tugas tersisa dari {totalCount} jadwal.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              <div style={{ padding: '10px 12px', borderRadius: '10px', backgroundColor: '#f8f9fc', border: '1px solid #edf2f7', minWidth: '116px' }}>
+                <div style={{ fontSize: '10px', color: '#718096', fontWeight: '800', textTransform: 'uppercase' }}>Progress</div>
+                <div style={{ fontSize: '18px', color: '#15D36B', fontWeight: '900', marginTop: '2px' }}>{progressPercent}%</div>
+              </div>
+              <div style={{ padding: '10px 12px', borderRadius: '10px', backgroundColor: '#f8f9fc', border: '1px solid #edf2f7', minWidth: '136px' }}>
+                <div style={{ fontSize: '10px', color: '#718096', fontWeight: '800', textTransform: 'uppercase' }}>Batch</div>
+                <div style={{ fontSize: '12px', color: batchSummaryView.batch ? '#2d3748' : '#718096', fontWeight: '900', marginTop: '5px' }}>
+                  {batchSummaryView.batch ? batchSummaryView.statusLabel : 'Belum disiapkan'}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
         
         {/* Laptop Layout (LP) vs Mobile Layout (HP) */}
-        <div className="portal-responsive-container" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '24px' }}>
+        <div className="portal-responsive-container" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.05fr) minmax(360px, 0.95fr)', gap: '22px', alignItems: 'start' }}>
           
           {/* Left Column: Stats & Active Task */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             
             {/* Progress Panel */}
-            <div className="panel" style={{ padding: '24px', backgroundColor: '#ffffff', color: '#1a202c', fontFamily: 'var(--font-sans)' }}>
+            <div className="panel" style={{ padding: '20px', backgroundColor: '#ffffff', color: '#1a202c', fontFamily: 'var(--font-sans)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
                 <div style={{ position: 'relative', width: '80px', height: '80px', flexShrink: 0 }}>
                   <svg width="80" height="80" viewBox="0 0 36 36">
@@ -2524,10 +2576,13 @@ export default function ChecklistPenjagaPage({
                     {progressPercent}%
                   </div>
                 </div>
-                <div>
-                  <h2 style={{ fontSize: '20px', fontWeight: '800', color: 'var(--pub-primary)' }}>Progress Checklist Hari Ini</h2>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '10px', fontWeight: '900', color: '#15D36B', letterSpacing: '0.7px', textTransform: 'uppercase' }}>
+                    Ringkasan Shift
+                  </div>
+                  <h2 style={{ fontSize: '18px', fontWeight: '900', color: 'var(--pub-primary)', marginTop: '3px' }}>Progress Checklist Hari Ini</h2>
                   <p style={{ fontSize: '13px', color: '#4a5568', marginTop: '4px' }}>
-                    Telah menyelesaikan <strong>{completedCount} dari {totalCount}</strong> tugas rutin harian Anda.
+                    <strong>{completedCount} selesai</strong>, {remainingCount} tugas masih perlu dipantau.
                   </p>
                   <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
                     <button className="retro-btn" onClick={handleResetSimulation} style={{ display: 'flex', gap: '6px', fontSize: '11px', padding: '4px 10px' }}>
@@ -2569,9 +2624,9 @@ export default function ChecklistPenjagaPage({
             </div>
 
             {/* Active Task Card */}
-            <div className="panel" style={{ padding: '24px', backgroundColor: '#ffffff', color: '#1a202c', fontFamily: 'var(--font-sans)' }}>
-              <h3 style={{ fontSize: '14px', fontWeight: '800', color: '#718096', letterSpacing: '0.5px', marginBottom: '16px', textTransform: 'uppercase' }}>
-                📢 TUGAS YANG HARUS DILAKUKAN SEKARANG
+            <div className="panel" style={{ padding: '24px', backgroundColor: '#ffffff', color: '#1a202c', fontFamily: 'var(--font-sans)', border: activeTask ? '1.5px solid rgba(21, 211, 107, 0.35)' : '1px solid #edf2f7' }}>
+              <h3 style={{ fontSize: '13px', fontWeight: '900', color: '#2d3748', letterSpacing: '0.5px', marginBottom: '16px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <LuSignal size={16} color="#15D36B" /> Tugas Prioritas Sekarang
               </h3>
               
               {activeTask ? (
@@ -2580,7 +2635,7 @@ export default function ChecklistPenjagaPage({
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <h4 style={{ fontSize: '18px', fontWeight: '800', color: '#15D36B' }}>{activeTask.nama}</h4>
                       <span style={{ fontSize: '11px', backgroundColor: '#fff5f5', color: '#e53e3e', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold' }}>
-                        Target: {activeTask.waktu}
+                        Target {activeTask.waktu}
                       </span>
                     </div>
                     <p style={{ fontSize: '13px', color: '#4a5568', marginTop: '8px', lineHeight: '1.5' }}>
@@ -2589,7 +2644,7 @@ export default function ChecklistPenjagaPage({
                     {activeTask.nama.toLowerCase().includes("beri pakan") && renderCompositionDropdown()}
                     
                     <div style={{ margin: '14px 0', padding: '12px', backgroundColor: '#f7f9fc', borderRadius: '8px', fontSize: '12px', color: '#4a5568', borderLeft: '3px solid #15D36B' }}>
-                      <strong>💡 Instruksi Detail:</strong> {activeTask.infoDetail}
+                      <strong>Instruksi detail:</strong> {activeTask.infoDetail}
                     </div>
 
                     <div style={{ display: 'flex', gap: '10px', marginTop: '14px' }}>
@@ -2641,7 +2696,7 @@ export default function ChecklistPenjagaPage({
                 </div>
               ) : (
                 <div style={{ textAlign: 'center', padding: '30px 0', color: '#15D36B', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-                  <div style={{ fontSize: '40px' }}>{hasTasks ? '✓' : '-'}</div>
+                  <div style={{ fontSize: '40px' }}>{hasTasks ? <LuCheck size={38} /> : '-'}</div>
                   <h4 style={{ fontSize: '18px', fontWeight: '800' }}>{hasTasks ? 'Kerja Bagus! Semua Tugas Selesai.' : 'Tidak Ada Tugas Hari Ini'}</h4>
                   <p style={{ fontSize: '13px', color: '#718096', maxWidth: '400px' }}>
                     {hasTasks
@@ -2651,6 +2706,8 @@ export default function ChecklistPenjagaPage({
                 </div>
               )}
             </div>
+
+            {renderFeedingBatchPanel(visibleFeedingBatch)}
 
             {/* Tips of the day */}
             <div style={{
@@ -2688,9 +2745,9 @@ export default function ChecklistPenjagaPage({
           {/* Right Column: Timeline Checklist */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             
-            <div className="panel" style={{ padding: '24px', backgroundColor: '#ffffff', color: '#1a202c', fontFamily: 'var(--font-sans)' }}>
-              <h3 style={{ fontSize: '14px', fontWeight: '800', color: '#718096', letterSpacing: '0.5px', marginBottom: '20px', textTransform: 'uppercase' }}>
-                📋 TIMELINE PROGRESS KEGIATAN
+            <div className="panel" style={{ padding: '20px', backgroundColor: '#ffffff', color: '#1a202c', fontFamily: 'var(--font-sans)' }}>
+              <h3 style={{ fontSize: '13px', fontWeight: '900', color: '#2d3748', letterSpacing: '0.5px', marginBottom: '18px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <LuClock size={16} color="#15D36B" /> Timeline Kegiatan
               </h3>
               
               <div style={{ padding: '0 0 0 10px', position: 'relative' }}>
@@ -2706,7 +2763,7 @@ export default function ChecklistPenjagaPage({
                   zIndex: 1
                 }}></div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', position: 'relative', zIndex: 10 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', position: 'relative', zIndex: 10 }}>
                   {tasksList.map((task, index) => {
                     const isCompleted = completedTasks[task.id];
                     const isActive = activeTaskId === task.id;
@@ -2756,8 +2813,8 @@ export default function ChecklistPenjagaPage({
                             style={{
                               border: isCompleted ? '1.5px solid #15D36B' : isActive ? '1.5px solid #fbbf24' : '1px solid #e2e8f0',
                               backgroundColor: isCompleted ? 'rgba(21, 211, 107, 0.01)' : '#ffffff',
-                              borderRadius: '12px',
-                              padding: '12px 16px',
+                              borderRadius: '10px',
+                              padding: '11px 14px',
                               cursor: 'pointer',
                               display: 'flex',
                               justifyContent: 'space-between',
@@ -2805,12 +2862,6 @@ export default function ChecklistPenjagaPage({
                             </div>
                           </div>
                         </div>
-                        {task.nama.toLowerCase().includes("beri pakan") && (
-                          <div onClick={(e) => e.stopPropagation()}>
-                            {renderCompositionDropdown()}
-                          </div>
-                        )}
-
                       </div>
                     );
                   })}
@@ -2819,9 +2870,9 @@ export default function ChecklistPenjagaPage({
             </div>
 
             {/* Panduan Kerja Standar Operasional (SOP) */}
-            <div className="panel" style={{ padding: '24px', backgroundColor: '#ffffff', color: '#1a202c', fontFamily: 'var(--font-sans)' }}>
-              <h3 style={{ fontSize: '14px', fontWeight: '800', color: '#718096', letterSpacing: '0.5px', marginBottom: '16px', textTransform: 'uppercase' }}>
-                📋 PANDUAN KERJA STANDAR OPERASIONAL (SOP)
+            <div className="panel" style={{ padding: '20px', backgroundColor: '#ffffff', color: '#1a202c', fontFamily: 'var(--font-sans)' }}>
+              <h3 style={{ fontSize: '13px', fontWeight: '900', color: '#2d3748', letterSpacing: '0.5px', marginBottom: '14px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <LuBookOpen size={16} color="#15D36B" /> SOP Singkat
               </h3>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 {tasksList.map((guide, idx) => (
@@ -2856,18 +2907,16 @@ export default function ChecklistPenjagaPage({
                       <span style={{ fontSize: '9px', fontWeight: '800', color: '#15D36B', textTransform: 'uppercase' }}>SOP {idx + 1}</span>
                       <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#2d3748', marginTop: '2px' }}>{guide.nama}</div>
                     </div>
-                    <span style={{ color: '#15D36B', fontWeight: 'bold' }}>→</span>
+                    <span style={{ color: '#15D36B', fontWeight: 'bold' }}>{'>'}</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            {renderFeedingBatchPanel(visibleFeedingBatch)}
-
             {/* Panduan Mixing Guide Card (LP Screen Bottom section) */}
-            <div className="panel" style={{ padding: '24px', backgroundColor: '#ffffff', color: '#1a202c', fontFamily: 'var(--font-sans)' }}>
-              <h3 style={{ fontSize: '14px', fontWeight: '800', color: '#718096', letterSpacing: '0.5px', marginBottom: '16px', textTransform: 'uppercase' }}>
-                📋 ACUAN COMPOSITION PAKAN HARI INI
+            <div className="panel" style={{ padding: '20px', backgroundColor: '#ffffff', color: '#1a202c', fontFamily: 'var(--font-sans)' }}>
+              <h3 style={{ fontSize: '13px', fontWeight: '900', color: '#2d3748', letterSpacing: '0.5px', marginBottom: '14px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <LuClipboardList size={16} color="#15D36B" /> Acuan Komposisi Pakan
               </h3>
               
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
