@@ -439,6 +439,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Widget
         isLiveBatchPolling: _currentIndex == _checklistTabIndex && _hasPreparingBatch && !_hasBatchSyncIssue,
         hasBatchSyncIssue: _hasBatchSyncIssue,
         lastBatchSyncAt: _lastBatchSyncAt,
+        profileImage: widget.api.user?.profileImage != null && widget.api.user!.profileImage!.isNotEmpty ? widget.api.assetUrl(widget.api.user!.profileImage) : null,
         onStatusChanged: _toggleTask,
         onCreateFeedingBatch: _createFeedingBatch,
         onFinalizeFeedingBatch: _finalizeFeedingBatch,

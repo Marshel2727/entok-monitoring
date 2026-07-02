@@ -14,6 +14,7 @@ class ChecklistScreen extends StatefulWidget {
   final bool isLiveBatchPolling;
   final bool hasBatchSyncIssue;
   final DateTime? lastBatchSyncAt;
+  final String? profileImage;
   final Future<void> Function(String taskId, bool status) onStatusChanged;
   final Future<void> Function(String taskId, [String? taskExecutionId]) onCreateFeedingBatch;
   final Future<void> Function(String batchId) onFinalizeFeedingBatch;
@@ -34,6 +35,7 @@ class ChecklistScreen extends StatefulWidget {
     required this.isLiveBatchPolling,
     required this.hasBatchSyncIssue,
     required this.lastBatchSyncAt,
+    this.profileImage,
     required this.onStatusChanged,
     required this.onCreateFeedingBatch,
     required this.onFinalizeFeedingBatch,
@@ -196,7 +198,15 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                   ),
                 ],
               ),
-              child: Icon(widget.isSyncing ? Icons.sync_rounded : Icons.person_rounded, color: EntokColors.green, size: 25),
+              child: ClipOval(
+                child: !widget.isSyncing && widget.profileImage != null && widget.profileImage!.isNotEmpty
+                    ? Image.network(
+                        widget.profileImage!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const Icon(Icons.person_rounded, color: EntokColors.green, size: 25),
+                      )
+                    : Icon(widget.isSyncing ? Icons.sync_rounded : Icons.person_rounded, color: EntokColors.green, size: 25),
+              ),
             ),
           ),
         ],
@@ -466,8 +476,6 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                               ],
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          _checkBubble(isDone, isWaktunya, isLate),
                         ],
                       ),
                       if (isFeedingTask) ...[
@@ -564,36 +572,6 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
           fontWeight: FontWeight.w900,
         ),
       ),
-    );
-  }
-
-  Widget _checkBubble(bool isDone, bool isWaktunya, bool isLate) {
-    final color = isDone
-        ? const Color(0xFF26D057)
-        : isLate
-            ? const Color(0xFFE53935)
-            : isWaktunya
-                ? const Color(0xFFC79121)
-                : const Color(0xFFD8DEE7);
-    return Container(
-      width: 30,
-      height: 30,
-      decoration: BoxDecoration(
-        color: isDone
-            ? const Color(0xFF26D057)
-            : isLate
-                ? const Color(0xFFFFEBEE)
-                : isWaktunya
-                    ? const Color(0xFFFFF8E1)
-                    : Colors.white,
-        shape: BoxShape.circle,
-        border: Border.all(color: color, width: 3),
-      ),
-      child: isDone
-          ? const Icon(Icons.check, color: Colors.white, size: 16)
-          : isLate || isWaktunya
-              ? Icon(Icons.schedule_rounded, color: color, size: 16)
-              : null,
     );
   }
 
@@ -1192,10 +1170,10 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
         padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(color: const Color(0xFF69F0AE), borderRadius: BorderRadius.circular(12)),
+        decoration: BoxDecoration(color: const Color(0xFFFFF4CC), borderRadius: BorderRadius.circular(12)),
         child: Row(
           children: [
-            const Icon(Icons.wb_sunny_rounded, color: Colors.orange, size: 24),
+            const Icon(Icons.wb_sunny_rounded, color: Colors.orange, size: 30),
             const SizedBox(width: 12),
             const Expanded(
               child: Column(

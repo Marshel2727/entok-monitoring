@@ -237,17 +237,26 @@ class _GuideTile extends StatelessWidget {
                 width: 64,
                 height: 64,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(colors: [EntokColors.green, Color(0xFF53D77C)]),
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: EntokColors.green.withValues(alpha: 0.35),
+                      color: Colors.black.withValues(alpha: 0.10),
                       blurRadius: 14,
                       offset: const Offset(0, 6),
                     ),
                   ],
                 ),
-                child: Icon(data.iconTopik, color: Colors.white, size: 34),
+                clipBehavior: Clip.antiAlias,
+                child: Image.network(
+                  data.bannerImageUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(colors: [EntokColors.green, Color(0xFF53D77C)]),
+                    ),
+                    child: Icon(data.iconTopik, color: Colors.white, size: 34),
+                  ),
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(

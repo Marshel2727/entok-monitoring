@@ -81,7 +81,7 @@ class EntokTopHeader extends StatelessWidget {
           ],
           Expanded(
             child: Column(
-              crossAxisAlignment: showBack ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,

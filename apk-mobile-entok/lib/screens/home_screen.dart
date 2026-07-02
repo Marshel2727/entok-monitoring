@@ -62,9 +62,9 @@ class HomeScreen extends StatelessWidget {
                       const SizedBox(height: 16),
                     ],
                     _buildProgressCard(progressPercent, totalSelesai, totalKegiatan),
-                    _buildTipsCard(),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 18),
                     _buildChecklistSection(),
+                    _buildTipsCard(),
                     const SizedBox(height: 24),
                   ],
                 ),
@@ -88,7 +88,7 @@ class HomeScreen extends StatelessWidget {
 
   Widget _buildTipsCard() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.all(18),
@@ -128,7 +128,7 @@ class HomeScreen extends StatelessWidget {
                 children: [
                   Text(
                     'Tips Hari Ini',
-                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: EntokColors.text),
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Color(0xFF0F3E11)),
                   ),
                   SizedBox(height: 6),
                   Text(
@@ -279,12 +279,13 @@ class HomeScreen extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
           ListView.separated(
               shrinkWrap: true,
+              padding: EdgeInsets.zero,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: kegiatanList.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 20),
+              separatorBuilder: (context, index) => const SizedBox(height: 14),
               itemBuilder: (context, index) {
                 final item = kegiatanList[index];
                 final bool isDone = item['isDone'] ?? false;

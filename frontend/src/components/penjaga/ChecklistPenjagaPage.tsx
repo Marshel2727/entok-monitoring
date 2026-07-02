@@ -2455,7 +2455,7 @@ export default function ChecklistPenjagaPage({
 
   // --- MAIN RENDER LOGIC ---
   return (
-    <div className="checklist-page-wrapper" style={{
+    <div className="checklist-page-wrapper light-theme" style={{
       display: 'flex',
       flexDirection: 'column',
       minHeight: isStandalone ? '100vh' : 'auto',

@@ -4,7 +4,9 @@ import '../models/keeper_models.dart';
 import '../services/task_reminder_service.dart';
 import '../theme/app_theme.dart';
 import 'dart:io';
+import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 import 'dart:convert';
 
@@ -182,6 +184,9 @@ class _EditProfileScreenState
 
     final image = await picker.pickImage(
       source: ImageSource.gallery,
+      maxWidth: 1024,
+      maxHeight: 1024,
+      imageQuality: 88,
     );
 
     if (image != null) {
@@ -204,8 +209,7 @@ class _EditProfileScreenState
     String? imageBase64;
 
     if (_profileImage != null) {
-      final bytes = await _profileImage!.readAsBytes();
-      imageBase64 = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+      imageBase64 = await _profileImageToJpegDataUri(_profileImage!);
     }
 
     try {
@@ -237,6 +241,27 @@ class _EditProfileScreenState
       );
 
     }
+  }
+
+  Future<String> _profileImageToJpegDataUri(File file) async {
+    final bytes = await file.readAsBytes();
+    final decoded = img.decodeImage(bytes);
+    if (decoded == null) {
+      throw const FormatException('Format gambar tidak didukung.');
+    }
+
+    final oriented = img.bakeOrientation(decoded);
+    final longestSide = oriented.width > oriented.height ? oriented.width : oriented.height;
+    final resized = longestSide > 640
+        ? img.copyResize(
+            oriented,
+            width: oriented.width >= oriented.height ? 640 : null,
+            height: oriented.height > oriented.width ? 640 : null,
+            interpolation: img.Interpolation.average,
+          )
+        : oriented;
+    final jpegBytes = img.encodeJpg(resized, quality: 82);
+    return 'data:image/jpeg;base64,${base64Encode(jpegBytes)}';
   }
 
   @override
@@ -779,6 +804,40 @@ class SupportScreen extends StatelessWidget {
 class ContactAdminScreen extends StatelessWidget {
   const ContactAdminScreen({super.key});
 
+  static const String _adminWhatsappNumber = '6285341849008';
+
+  Future<void> _openWhatsapp(BuildContext context) async {
+    final message = Uri.encodeComponent('Halo Admin, saya butuh bantuan terkait aplikasi EntokFlow.');
+    final uri = Uri.parse('https://wa.me/$_adminWhatsappNumber?text=$message');
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+
+    if (!opened && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: EntokColors.warning,
+          margin: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          content: const Row(
+            children: [
+              Icon(Icons.info_rounded, color: Colors.white),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'WhatsApp tidak bisa dibuka di perangkat ini.',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
+          ),
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -842,34 +901,7 @@ class ContactAdminScreen extends StatelessWidget {
                       EntokPrimaryButton(
                         label: 'HUBUNGI ADMIN',
                         icon: Icons.phone_android_rounded,
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              behavior: SnackBarBehavior.floating,
-                              backgroundColor: EntokColors.warning,
-                              margin: const EdgeInsets.all(16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              content: Row(
-                                children: [
-                                  const Icon(
-                                    Icons.info_rounded,
-                                    color: Colors.white,
-                                  ),
-                                  const SizedBox(width: 10),
-                                  const Expanded(
-                                    child: Text(
-                                      'Nomor admin belum dikonfigurasi di aplikasi.',
-                                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              duration: const Duration(seconds: 3),
-                            ),
-                          );
-                        },
+                        onPressed: () => _openWhatsapp(context),
                       ),
                     ],
                   ),

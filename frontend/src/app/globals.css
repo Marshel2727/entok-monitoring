@@ -1812,8 +1812,27 @@ body {
    PORTAL KEEPER THEME ADAPTATIONS (DARK & LIGHT MODE SYNCHRONIZATION)
    ========================================================================== */
 .checklist-page-wrapper {
+  --bg-primary: #f7f9fc;
+  --bg-secondary: #edfdf4;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f8fffb;
+  --bg-input: #f7fafc;
+  --accent: #15d36b;
+  --accent-glow: rgba(21, 211, 107, 0.18);
+  --accent-light: #15d36b;
+  --accent-dark: #047857;
+  --warning: #f59e0b;
+  --warning-glow: rgba(245, 158, 11, 0.14);
+  --danger: #e53935;
+  --danger-glow: rgba(229, 57, 53, 0.12);
+  --text-primary: #1a202c;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --border: #e2e8f0;
+  --border-glow: rgba(21, 211, 107, 0.18);
   background-color: var(--bg-primary) !important;
   color: var(--text-primary) !important;
+  color-scheme: light;
   transition: all 0.2s ease;
 }
 

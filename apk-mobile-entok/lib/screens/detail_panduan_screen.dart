@@ -352,60 +352,10 @@ class _DetailPanduanScreenState extends State<DetailPanduanScreen> {
                   ),
                 ),
 
-                const SliverToBoxAdapter(child: SizedBox(height: 80)),
+                const SliverToBoxAdapter(child: SizedBox(height: 24)),
               ],
             ),
-            // ==================== BOTTOM NAVIGATION BAR ====================
-            bottomNavigationBar: Container(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              decoration: BoxDecoration(
-                color: const Color(0xFF26D057),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, -2),
-                  )
-                ],
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildNavItem(Icons.home_outlined, 'Home', 0),
-                  _buildNavItem(Icons.assignment_outlined, 'Checklist', 1),
-                  _buildNavItem(Icons.help_center_rounded, 'Panduan', 2), // Halaman aktif pakai ikon solid
-                ],
-              ),
-            ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(IconData iconData, String label, int index) {
-    return InkWell(
-      onTap: () {
-        if (index == 2) {
-          // Jika tekan Panduan, cukup kembali ke halaman list panduan
-          Navigator.pop(context);
-        } else {
-          // Jika tekan Home (0) atau Checklist (1), lempar nilai indeksnya ke halaman utama
-          Navigator.pop(context, index);
-        }
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(iconData, color: Colors.white, size: 26),
-            const SizedBox(height: 3),
-            Text(
-              label,
-              style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500),
-            ),
-          ],
         ),
       ),
     );

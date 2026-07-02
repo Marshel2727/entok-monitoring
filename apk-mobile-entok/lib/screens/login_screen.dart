@@ -124,20 +124,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                     ),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: null,
-                        child: Text(
-                          'Lupa Password?',
-                          style: TextStyle(
-                            color: EntokColors.green.withValues(alpha: 0.65),
-                            fontSize: 14,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                    ),
                     const SizedBox(height: 26),
                     EntokPrimaryButton(
                       label: _isLoading ? 'MEMPROSES...' : 'MASUK',
