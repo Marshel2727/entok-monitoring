@@ -170,7 +170,7 @@ bool loadScaleMap(bool showMessage) {
     return false;
   }
 
-  DynamicJsonDocument doc(12288);
+  DynamicJsonDocument doc(24576);
   DeserializationError error = deserializeJson(doc, response);
 
   if (error) {
@@ -218,16 +218,19 @@ bool loadScaleMap(bool showMessage) {
     }
 
     nextItems[nextItemCount].kode = obj["kode"] | (nextItemCount + 1);
+    nextItems[nextItemCount].ingredientId = obj["ingredient_id"] | 0;
 
     setText(nextItems[nextItemCount].phase, sizeof(nextItems[nextItemCount].phase), phase);
     setText(nextItems[nextItemCount].phaseShort, sizeof(nextItems[nextItemCount].phaseShort), obj["phase_short"] | "");
     setText(nextItems[nextItemCount].label, sizeof(nextItems[nextItemCount].label), label);
     setText(nextItems[nextItemCount].labelShort, sizeof(nextItems[nextItemCount].labelShort), obj["label_short"] | "");
+    setText(nextItems[nextItemCount].feedId, sizeof(nextItems[nextItemCount].feedId), obj["feed_id"] | "");
     setText(nextItems[nextItemCount].phaseId, sizeof(nextItems[nextItemCount].phaseId), obj["phase_id"] | "");
 
     nextItems[nextItemCount].target = obj["target"] | 0.0;
     nextItems[nextItemCount].weight = obj["weighed"] | 0.0;
     nextItems[nextItemCount].saved = obj["saved"] | false;
+    nextItems[nextItemCount].synced = nextItems[nextItemCount].saved;
 
     nextItemCount++;
   }
@@ -248,9 +251,11 @@ bool loadScaleMap(bool showMessage) {
   }
 
   weighingStarted = false;
-  currentIndex = firstUnsavedIndex();
+  int nextMissing = firstMissingIndex();
+  currentIndex = nextMissing >= 0 ? nextMissing : 0;
   currentWeight = 0;
 
+  saveLocalCache();
   showTargetReadyScreen();
   return true;
 }
@@ -262,6 +267,31 @@ void resetLocalDataAfterSend() {
   jumpInput = "";
   currentWeight = 0;
   weighingStarted = false;
+  clearLocalCache();
+}
+
+void addScaleItemPayload(JsonObject obj, int itemIndex) {
+  obj["kode"] = scaleItems[itemIndex].kode;
+  if (scaleItems[itemIndex].ingredientId > 0) {
+    obj["ingredient_id"] = scaleItems[itemIndex].ingredientId;
+  }
+
+  obj["phase"] = scaleItems[itemIndex].phase;
+  obj["fase"] = scaleItems[itemIndex].phase;
+  obj["label"] = scaleItems[itemIndex].label;
+  obj["feed_name"] = scaleItems[itemIndex].label;
+  obj["value"] = scaleItems[itemIndex].weight;
+  obj["amount"] = scaleItems[itemIndex].weight;
+  obj["planned_amount"] = scaleItems[itemIndex].target;
+
+  if (strlen(scaleItems[itemIndex].feedId) > 0) {
+    obj["feed_id"] = scaleItems[itemIndex].feedId;
+  }
+
+  if (strlen(scaleItems[itemIndex].phaseId) > 0) {
+    obj["phase_id"] = scaleItems[itemIndex].phaseId;
+    obj["fase_id"] = scaleItems[itemIndex].phaseId;
+  }
 }
 
 void sendBulkData() {
@@ -273,14 +303,37 @@ void sendBulkData() {
     return;
   }
 
-  int missing = firstMissingIndex();
+  int pendingSend = firstCompleteUnsyncedPhaseIndex();
+  if (pendingSend >= 0 && !samePhaseIndex(currentIndex, pendingSend)) {
+    currentIndex = pendingSend;
+  }
+
+  int missing = firstMissingIndexInPhase(currentIndex);
   if (missing >= 0) {
     currentIndex = missing;
     weighingStarted = true;
-    printLine(0, "BELUM LENGKAP");
-    printLine(1, scaleItems[missing].labelShort);
+    printLine(0, "FASE BLM LENGKAP");
+    printLine(1, String(savedCountInPhase(currentIndex)) + "/" + String(phaseItemCount(currentIndex)));
     delay(1500);
     displayCurrentItem();
+    return;
+  }
+
+  if (isPhaseSynced(currentIndex)) {
+    int nextMissing = firstMissingIndex();
+    if (nextMissing >= 0) {
+      currentIndex = nextMissing;
+      weighingStarted = true;
+      printLine(0, "FASE SDH KIRIM");
+      printLine(1, "Lanjut " + phaseDisplayName(currentIndex));
+      delay(1200);
+      displayCurrentItem();
+    } else {
+      printLine(0, "SEMUA TERKIRIM");
+      printLine(1, "#=AMBIL BARU");
+      delay(1500);
+      showTargetReadyScreen();
+    }
     return;
   }
 
@@ -299,13 +352,24 @@ void sendBulkData() {
     return;
   }
 
-  printLine(0, "KIRIM DATA...");
-  printLine(1, String(itemCount) + " item");
+  int start = phaseStartIndex(currentIndex);
+  int end = phaseEndIndex(currentIndex);
+  int phaseItems = end - start;
+  String phaseName = phaseDisplayName(currentIndex);
 
-  DynamicJsonDocument doc(12288);
+  printLine(0, "KIRIM FASE...");
+  printLine(1, phaseName + " " + String(phaseItems) + " item");
+
+  DynamicJsonDocument doc(24576);
   doc["timbangan_id"] = TIMBANGAN_ID;
   doc["mode"] = "SET";
   doc["unit"] = "kg";
+  doc["scope"] = "PHASE";
+  doc["phase"] = scaleItems[start].phase;
+
+  if (strlen(scaleItems[start].phaseId) > 0) {
+    doc["phase_id"] = scaleItems[start].phaseId;
+  }
 
   if (strlen(activeBatchId) > 0) {
     doc["batch_id"] = activeBatchId;
@@ -313,16 +377,9 @@ void sendBulkData() {
 
   JsonArray arr = doc.createNestedArray("items");
 
-  for (int i = 0; i < itemCount; i++) {
+  for (int i = start; i < end; i++) {
     JsonObject obj = arr.createNestedObject();
-    obj["kode"] = scaleItems[i].kode;
-    obj["phase"] = scaleItems[i].phase;
-    obj["label"] = scaleItems[i].label;
-    obj["value"] = scaleItems[i].weight;
-
-    if (strlen(scaleItems[i].phaseId) > 0) {
-      obj["phase_id"] = scaleItems[i].phaseId;
-    }
+    addScaleItemPayload(obj, i);
   }
 
   String payload;
@@ -360,11 +417,36 @@ void sendBulkData() {
   http.end();
 
   if (httpCode >= 200 && httpCode < 300) {
-    printLine(0, "KIRIM SUKSES");
-    printLine(1, "Cek web");
-    delay(2000);
-    resetLocalDataAfterSend();
-    showHomeScreen();
+    for (int i = start; i < end; i++) {
+      scaleItems[i].synced = true;
+    }
+    saveLocalCache();
+
+    printLine(0, "FASE TERKIRIM");
+    printLine(1, phaseName);
+    delay(1500);
+
+    int nextMissing = firstMissingIndex();
+    if (nextMissing >= 0) {
+      currentIndex = nextMissing;
+      weighingStarted = true;
+
+      printLine(0, "AUTO TARE...");
+      printLine(1, "Fase berikut");
+      scale.tare(AUTO_TARE_SAMPLES);
+      currentWeight = 0;
+      displayWeight = 0;
+      displayWeightReady = false;
+      delay(700);
+
+      displayCurrentItem();
+    } else {
+      printLine(0, "SEMUA TERKIRIM");
+      printLine(1, "Cek web");
+      delay(2000);
+      resetLocalDataAfterSend();
+      showHomeScreen();
+    }
   } else {
     printLine(0, "KIRIM GAGAL");
     printLine(1, httpCodeText(httpCode));

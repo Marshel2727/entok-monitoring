@@ -829,8 +829,8 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
   }
 
   Widget _batchLiveLine(FeedingBatch batch) {
-    final isLive = batch.isPreparing && !widget.hasBatchSyncIssue && widget.isLiveBatchPolling;
-    final isIssue = batch.isPreparing && widget.hasBatchSyncIssue;
+    final isLive = batch.status == 'PREPARING' && !widget.hasBatchSyncIssue && widget.isLiveBatchPolling;
+    final isIssue = batch.status == 'PREPARING' && widget.hasBatchSyncIssue;
     final color = isIssue
         ? const Color(0xFFE53E3E)
         : isLive
@@ -842,6 +842,8 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
             ? 'LIVE'
             : batch.isFinalized
                 ? 'FINAL'
+                : batch.isReadyToFinalize
+                    ? 'SIAP FINAL'
                 : 'SIAP';
     final timeText = widget.lastBatchSyncAt == null ? '' : ' - update ${_timeOfDay(widget.lastBatchSyncAt!)}';
 
@@ -870,13 +872,17 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
         ? 'BELUM ADA'
         : batch.isFinalized
             ? 'SIAP'
+            : batch.isReadyToFinalize
+                ? 'SIAP FINAL'
             : 'DIRACIK';
     final color = batch == null
         ? const Color(0xFF757575)
         : batch.isFinalized
             ? const Color(0xFF1B5E20)
+            : batch.isReadyToFinalize
+                ? const Color(0xFF047857)
             : const Color(0xFFC79121);
-    final borderColor = batch?.isFinalized == true ? const Color(0xFF15D36B) : const Color(0xFFF59E0B);
+    final borderColor = batch?.isFinalized == true || batch?.isReadyToFinalize == true ? const Color(0xFF15D36B) : const Color(0xFFF59E0B);
     return DecoratedBox(
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.14),
@@ -1295,6 +1301,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
 
   int _batchRank(FeedingBatch batch) {
     if (batch.isFinalized) return 4;
+    if (batch.isReadyToFinalize) return 3;
     if (batch.isPreparing && batch.hasScaleData) return 3;
     if (batch.isPreparing) return 2;
     return 1;

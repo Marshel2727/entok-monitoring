@@ -16,8 +16,8 @@ export type FeedingBatchView = {
   batch: FeedingBatch | null;
   isPreparing: boolean;
   isFinalized: boolean;
-  statusLabel: 'FINAL' | 'DIRACIK' | 'BELUM ADA';
-  mobileStatusLabel: 'SIAP' | 'DIRACIK' | 'BELUM ADA';
+  statusLabel: 'FINAL' | 'SIAP FINAL' | 'DIRACIK' | 'BELUM ADA';
+  mobileStatusLabel: 'SIAP' | 'SIAP FINAL' | 'DIRACIK' | 'BELUM ADA';
   groupedItems: FeedingBatchGroup[];
   totalItems: FeedingBatchTotal[];
   hasItems: boolean;
@@ -33,6 +33,7 @@ function hasBatchScaleData(batch: FeedingBatch) {
 
 function getBatchRank(batch: FeedingBatch) {
   if (batch.status === 'FINALIZED') return 4;
+  if (batch.status === 'READY_TO_FINALIZE') return 3;
   if (batch.status === 'PREPARING' && hasBatchScaleData(batch)) return 3;
   if (batch.status === 'PREPARING') return 2;
   return 1;
@@ -110,15 +111,16 @@ export function getBatchTotalsByFeed(batch?: FeedingBatch | null) {
 
 export function buildFeedingBatchView(batch?: FeedingBatch | null): FeedingBatchView {
   const selectedBatch = batch || null;
-  const isPreparing = selectedBatch?.status === 'PREPARING';
+  const isPreparing = selectedBatch?.status === 'PREPARING' || selectedBatch?.status === 'READY_TO_FINALIZE';
   const isFinalized = selectedBatch?.status === 'FINALIZED';
+  const isReadyToFinalize = selectedBatch?.status === 'READY_TO_FINALIZE';
 
   return {
     batch: selectedBatch,
     isPreparing,
     isFinalized,
-    statusLabel: isFinalized ? 'FINAL' : selectedBatch ? 'DIRACIK' : 'BELUM ADA',
-    mobileStatusLabel: isFinalized ? 'SIAP' : selectedBatch ? 'DIRACIK' : 'BELUM ADA',
+    statusLabel: isFinalized ? 'FINAL' : isReadyToFinalize ? 'SIAP FINAL' : selectedBatch ? 'DIRACIK' : 'BELUM ADA',
+    mobileStatusLabel: isFinalized ? 'SIAP' : isReadyToFinalize ? 'SIAP FINAL' : selectedBatch ? 'DIRACIK' : 'BELUM ADA',
     groupedItems: groupBatchItemsByPhase(selectedBatch),
     totalItems: getBatchTotalsByFeed(selectedBatch),
     hasItems: Boolean(selectedBatch && selectedBatch.ingredients.length > 0),

@@ -24,6 +24,9 @@ byte colPins[COLS] = {COL1_PIN, COL2_PIN, COL3_PIN, COL4_PIN};
 
 Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 
+int forceSaveIndex = -1;
+unsigned long forceSaveUntil = 0;
+
 bool requireStarted() {
   if (itemCount == 0) {
     showHomeScreen();
@@ -44,8 +47,29 @@ void startWeighing() {
     return;
   }
 
+  int pendingSend = firstCompleteUnsyncedPhaseIndex();
+  if (pendingSend >= 0) {
+    currentIndex = pendingSend;
+    weighingStarted = true;
+    printLine(0, "FASE LENGKAP");
+    printLine(1, "D=KIRIM " + phaseDisplayName(pendingSend));
+    delay(1500);
+    return;
+  }
+
+  int nextMissing = firstMissingIndex();
+  if (nextMissing < 0) {
+    weighingStarted = false;
+    currentWeight = 0;
+    printLine(0, "SEMUA TERKIRIM");
+    printLine(1, "#=AMBIL BARU");
+    delay(1500);
+    showTargetReadyScreen();
+    return;
+  }
+
   weighingStarted = true;
-  currentIndex = firstUnsavedIndex();
+  currentIndex = nextMissing;
   currentWeight = readWeightFast();
   displayCurrentItem();
 }
@@ -55,29 +79,56 @@ void saveCurrentAndNext() {
     return;
   }
 
+  int savedIndex = currentIndex;
+  if (isSyncedItem(savedIndex)) {
+    printLine(0, "SUDAH TERKIRIM");
+    printLine(1, "#" + twoDigit(scaleItems[savedIndex].kode));
+    delay(1200);
+    displayCurrentItem();
+    return;
+  }
+
   float stableWeight = readWeightStable();
+  bool forceSave = forceSaveIndex == savedIndex && millis() <= forceSaveUntil;
 
-  scaleItems[currentIndex].weight = stableWeight;
-  scaleItems[currentIndex].saved = true;
+  if (!forceSave && !isWeightWithinTolerance(savedIndex, stableWeight)) {
+    forceSaveIndex = savedIndex;
+    forceSaveUntil = millis() + WEIGHT_OVERRIDE_MS;
+    printLine(0, "BERAT MELESET");
+    printLine(1, "B=PAKSA " + kgText(stableWeight));
+    delay(1500);
+    displayCurrentItem();
+    return;
+  }
 
-  printLine(0, "SIMPAN #" + twoDigit(scaleItems[currentIndex].kode));
-  printLine(1, String(scaleItems[currentIndex].labelShort) + " " + String(stableWeight, 3));
+  forceSaveIndex = -1;
+  forceSaveUntil = 0;
+
+  scaleItems[savedIndex].weight = stableWeight;
+  scaleItems[savedIndex].saved = true;
+  scaleItems[savedIndex].synced = false;
+  saveLocalCache();
+
+  printLine(0, "SIMPAN #" + twoDigit(scaleItems[savedIndex].kode));
+  printLine(1, String(scaleItems[savedIndex].labelShort) + " " + String(stableWeight, 3));
   delay(1000);
 
-  if (currentIndex < itemCount - 1) {
+  int nextInPhase = firstMissingIndexInPhase(savedIndex);
+  if (nextInPhase >= 0) {
     printLine(0, "AUTO TARE...");
-    printLine(1, "Bahan berikut");
+    printLine(1, "Bahan fase ini");
     scale.tare(AUTO_TARE_SAMPLES);
     currentWeight = 0;
     displayWeight = 0;
     displayWeightReady = false;
 
-    currentIndex++;
+    currentIndex = nextInPhase;
     delay(700);
     displayCurrentItem();
   } else {
-    printLine(0, "SELESAI " + String(savedCount()) + "/" + String(itemCount));
-    printLine(1, "D=KIRIM");
+    currentIndex = savedIndex;
+    printLine(0, "FASE LENGKAP");
+    printLine(1, "D=KIRIM " + phaseDisplayName(savedIndex));
     delay(1500);
   }
 }
@@ -99,8 +150,18 @@ void clearCurrentItem() {
     return;
   }
 
+  if (isSyncedItem(currentIndex)) {
+    printLine(0, "SDH TERKIRIM");
+    printLine(1, "Tidak dihapus");
+    delay(1200);
+    displayCurrentItem();
+    return;
+  }
+
   scaleItems[currentIndex].weight = 0;
   scaleItems[currentIndex].saved = false;
+  scaleItems[currentIndex].synced = false;
+  saveLocalCache();
 
   printLine(0, "HAPUS ITEM");
   printLine(1, "#" + twoDigit(scaleItems[currentIndex].kode));
@@ -126,7 +187,27 @@ void jumpToItem() {
     return;
   }
 
-  currentIndex = target - 1;
+  int targetIndex = target - 1;
+  int requiredIndex = firstMissingIndex();
+  if (requiredIndex >= 0 && !samePhaseIndex(targetIndex, requiredIndex) && !isSyncedItem(targetIndex)) {
+    printLine(0, "IKUT URUTAN");
+    printLine(1, phaseDisplayName(requiredIndex));
+    delay(1200);
+    currentIndex = requiredIndex;
+    weighingStarted = true;
+    displayCurrentItem();
+    return;
+  }
+
+  if (weighingStarted && hasUnsyncedSavedItemInPhase(currentIndex) && !samePhaseIndex(currentIndex, targetIndex)) {
+    printLine(0, "KIRIM FASE DULU");
+    printLine(1, "Tekan D");
+    delay(1200);
+    displayCurrentItem();
+    return;
+  }
+
+  currentIndex = targetIndex;
   weighingStarted = true;
   displayCurrentItem();
 }
@@ -137,8 +218,21 @@ void showSummary() {
     return;
   }
 
-  printLine(0, "PROGRESS");
-  printLine(1, String(savedCount()) + "/" + String(itemCount) + " D=KIRIM");
+  int pendingSend = firstCompleteUnsyncedPhaseIndex();
+  if (pendingSend >= 0) {
+    currentIndex = pendingSend;
+  }
+
+  if (!hasMissingItems() && !hasUnsyncedSavedItems()) {
+    printLine(0, "SEMUA TERKIRIM");
+    printLine(1, "#=AMBIL BARU");
+    delay(1500);
+    showTargetReadyScreen();
+    return;
+  }
+
+  printLine(0, "PROGRESS FASE");
+  printLine(1, String(savedCountInPhase(currentIndex)) + "/" + String(phaseItemCount(currentIndex)) + " D=KIRIM");
   delay(1500);
 
   if (weighingStarted) {
@@ -188,6 +282,9 @@ void handleKeypad() {
       jumpToItem();
     } else if (itemCount == 0) {
       loadScaleMap(true);
+    } else if (allItemsSynced()) {
+      resetLocalDataAfterSend();
+      loadScaleMap(true);
     } else if (!weighingStarted) {
       startWeighing();
     } else {
@@ -203,7 +300,14 @@ void setup() {
   setupDisplay();
   setupScale();
   connectWiFi();
-  showHomeScreen();
+  if (loadLocalCache()) {
+    printLine(0, "DATA TERSIMPAN");
+    printLine(1, "D=KIRIM/#=LANJUT");
+    delay(1500);
+    showTargetReadyScreen();
+  } else {
+    showHomeScreen();
+  }
 }
 
 void loop() {

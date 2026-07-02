@@ -27,8 +27,27 @@ void showHomeScreen() {
 }
 
 void showTargetReadyScreen() {
+  int pendingIndex = firstCompleteUnsyncedPhaseIndex();
+  if (pendingIndex >= 0) {
+    currentIndex = pendingIndex;
+    printLine(0, "FASE LENGKAP");
+    printLine(1, "D=KIRIM " + phaseDisplayName(pendingIndex));
+    return;
+  }
+
+  int nextIndex = firstMissingIndex();
+  if (itemCount > 0 && nextIndex < 0) {
+    printLine(0, "SEMUA TERKIRIM");
+    printLine(1, "#=AMBIL BARU");
+    return;
+  }
+
   printLine(0, "TARGET SIAP");
-  printLine(1, "#=MULAI " + String(itemCount) + " item");
+  if (nextIndex >= 0) {
+    printLine(1, "#=MULAI " + phaseDisplayName(nextIndex));
+  } else {
+    printLine(1, "#=MULAI " + String(itemCount) + " item");
+  }
 }
 
 void showStartPrompt() {
