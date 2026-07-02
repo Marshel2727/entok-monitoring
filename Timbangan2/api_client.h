@@ -255,6 +255,7 @@ bool loadScaleMap(bool showMessage) {
   currentIndex = nextMissing >= 0 ? nextMissing : 0;
   currentWeight = 0;
 
+  saveLocalCache();
   showTargetReadyScreen();
   return true;
 }
@@ -266,6 +267,7 @@ void resetLocalDataAfterSend() {
   jumpInput = "";
   currentWeight = 0;
   weighingStarted = false;
+  clearLocalCache();
 }
 
 void addScaleItemPayload(JsonObject obj, int itemIndex) {
@@ -418,6 +420,7 @@ void sendBulkData() {
     for (int i = start; i < end; i++) {
       scaleItems[i].synced = true;
     }
+    saveLocalCache();
 
     printLine(0, "FASE TERKIRIM");
     printLine(1, phaseName);

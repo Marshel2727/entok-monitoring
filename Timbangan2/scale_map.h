@@ -1,7 +1,20 @@
 #ifndef SCALE_MAP_H
 #define SCALE_MAP_H
 
+#include <Preferences.h>
 #include "config.h"
+
+#ifndef WEIGHT_TOLERANCE_PERCENT
+#define WEIGHT_TOLERANCE_PERCENT 15.0
+#endif
+
+#ifndef WEIGHT_TOLERANCE_MIN_KG
+#define WEIGHT_TOLERANCE_MIN_KG 0.030
+#endif
+
+#ifndef WEIGHT_OVERRIDE_MS
+#define WEIGHT_OVERRIDE_MS 6000
+#endif
 
 struct ScaleItem {
   int kode;
@@ -28,9 +41,111 @@ float currentWeight = 0;
 unsigned long lastWeightRead = 0;
 bool weighingStarted = false;
 
+const uint32_t SCALE_CACHE_VERSION = 20260630;
+
+struct ScaleCacheSnapshot {
+  uint32_t version;
+  int itemCount;
+  int currentIndex;
+  char activeBatchId[60];
+  ScaleItem items[MAX_ITEMS];
+};
+
+ScaleCacheSnapshot cacheSnapshot;
+
 void setText(char* dest, size_t size, const char* value) {
   strncpy(dest, value ? value : "", size - 1);
   dest[size - 1] = '\0';
+}
+
+void saveLocalCache() {
+  cacheSnapshot.version = SCALE_CACHE_VERSION;
+  cacheSnapshot.itemCount = itemCount;
+  cacheSnapshot.currentIndex = currentIndex;
+  setText(cacheSnapshot.activeBatchId, sizeof(cacheSnapshot.activeBatchId), activeBatchId);
+
+  for (int i = 0; i < MAX_ITEMS; i++) {
+    cacheSnapshot.items[i] = scaleItems[i];
+  }
+
+  Preferences prefs;
+  if (prefs.begin("timb2", false)) {
+    prefs.putBytes("snapshot", &cacheSnapshot, sizeof(cacheSnapshot));
+    prefs.end();
+  }
+}
+
+void clearLocalCache() {
+  Preferences prefs;
+  if (prefs.begin("timb2", false)) {
+    prefs.remove("snapshot");
+    prefs.end();
+  }
+}
+
+bool loadLocalCache() {
+  Preferences prefs;
+  if (!prefs.begin("timb2", true)) {
+    return false;
+  }
+
+  if (prefs.getBytesLength("snapshot") != sizeof(ScaleCacheSnapshot)) {
+    prefs.end();
+    return false;
+  }
+
+  size_t readBytes = prefs.getBytes("snapshot", &cacheSnapshot, sizeof(cacheSnapshot));
+  prefs.end();
+
+  if (readBytes != sizeof(cacheSnapshot) || cacheSnapshot.version != SCALE_CACHE_VERSION) {
+    return false;
+  }
+
+  if (cacheSnapshot.itemCount <= 0 || cacheSnapshot.itemCount > MAX_ITEMS) {
+    return false;
+  }
+
+  itemCount = cacheSnapshot.itemCount;
+  currentIndex = cacheSnapshot.currentIndex;
+  if (currentIndex < 0 || currentIndex >= itemCount) {
+    currentIndex = 0;
+  }
+
+  setText(activeBatchId, sizeof(activeBatchId), cacheSnapshot.activeBatchId);
+  for (int i = 0; i < itemCount; i++) {
+    scaleItems[i] = cacheSnapshot.items[i];
+  }
+
+  jumpInput = "";
+  currentWeight = 0;
+  weighingStarted = false;
+  return strlen(activeBatchId) > 0;
+}
+
+float weightToleranceKg(float target) {
+  float tolerance = target * (WEIGHT_TOLERANCE_PERCENT / 100.0);
+  if (tolerance < WEIGHT_TOLERANCE_MIN_KG) {
+    tolerance = WEIGHT_TOLERANCE_MIN_KG;
+  }
+  return tolerance;
+}
+
+bool isWeightWithinTolerance(int index, float weight) {
+  if (index < 0 || index >= itemCount) {
+    return true;
+  }
+
+  float target = scaleItems[index].target;
+  if (target <= 0) {
+    return true;
+  }
+
+  float diff = weight - target;
+  if (diff < 0) {
+    diff = -diff;
+  }
+
+  return diff <= weightToleranceKg(target);
 }
 
 int savedCount() {

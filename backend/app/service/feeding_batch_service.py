@@ -13,6 +13,8 @@ from app.realtime import emit_realtime_event
 from app.service.activity_service import create_log
 
 PHASE_ORDER = ('starter', 'grower 1', 'grower 2', 'finisher')
+MUTABLE_BATCH_STATUSES = ('PREPARING', 'READY_TO_FINALIZE')
+VISIBLE_BATCH_STATUSES = ('PREPARING', 'READY_TO_FINALIZE', 'FINALIZED')
 
 
 def _emit_batch_updated(action, batch, extra=None):
@@ -234,6 +236,13 @@ def _batch_scale_is_complete(batch):
     return bool(batch.ingredients) and all((item.weighed_amount or 0) > 0 for item in batch.ingredients)
 
 
+def _sync_batch_weighing_status(batch):
+    if batch.status not in MUTABLE_BATCH_STATUSES:
+        return
+
+    batch.status = 'READY_TO_FINALIZE' if _batch_scale_is_complete(batch) else 'PREPARING'
+
+
 def _select_scale_batch(batches):
     for batch in batches:
         if not _batch_scale_is_complete(batch):
@@ -307,7 +316,7 @@ def get_today_batch(date_str=None, task_id=None, task_execution_id=None):
 
     query = FeedingBatch.query.filter(
         FeedingBatch.batch_date == batch_date,
-        FeedingBatch.status.in_(('PREPARING', 'FINALIZED'))
+        FeedingBatch.status.in_(VISIBLE_BATCH_STATUSES)
     )
     batch = _apply_task_scope(query, resolved_task_id, resolved_execution_id).order_by(FeedingBatch.created_at.desc()).first()
     return {
@@ -323,7 +332,7 @@ def get_today_batches(date_str=None):
 
     batches = FeedingBatch.query.filter(
         FeedingBatch.batch_date == batch_date,
-        FeedingBatch.status.in_(('PREPARING', 'FINALIZED'))
+        FeedingBatch.status.in_(VISIBLE_BATCH_STATUSES)
     ).order_by(FeedingBatch.created_at.desc()).all()
 
     return {
@@ -343,7 +352,7 @@ def create_batch(user_id, date_str=None, task_id=None, task_execution_id=None):
 
     query = FeedingBatch.query.filter(
         FeedingBatch.batch_date == batch_date,
-        FeedingBatch.status.in_(('PREPARING', 'FINALIZED'))
+        FeedingBatch.status.in_(VISIBLE_BATCH_STATUSES)
     )
     existing = _apply_task_scope(query, resolved_task_id, resolved_execution_id).order_by(FeedingBatch.created_at.desc()).first()
     if existing:
@@ -397,7 +406,7 @@ def _get_active_batch_for_scale(date_str, user_id=None):
 
     batches = FeedingBatch.query.filter(
         FeedingBatch.batch_date == batch_date,
-        FeedingBatch.status == 'PREPARING'
+        FeedingBatch.status.in_(MUTABLE_BATCH_STATUSES)
     ).order_by(FeedingBatch.created_at.asc()).all()
     batch = _select_scale_batch(batches)
 
@@ -416,7 +425,7 @@ def _get_active_batch_for_scale(date_str, user_id=None):
 
     batch_id = response.get('data', {}).get('id')
     batch = FeedingBatch.query.get(batch_id) if batch_id else None
-    if not batch or batch.status != 'PREPARING':
+    if not batch or batch.status not in MUTABLE_BATCH_STATUSES:
         return None, {'status': 'error', 'message': 'Batch racikan aktif tidak tersedia'}, 400
 
     return batch, None, 200
@@ -429,7 +438,7 @@ def _get_batch_for_scale(date_str=None, user_id=None, batch_id=None):
     batch = FeedingBatch.query.get(batch_id)
     if not batch:
         return None, {'status': 'error', 'message': 'Batch racikan dari timbangan tidak ditemukan'}, 404
-    if batch.status != 'PREPARING':
+    if batch.status not in MUTABLE_BATCH_STATUSES:
         return None, {'status': 'error', 'message': 'Batch racikan sudah tidak bisa menerima data timbangan'}, 400
 
     if date_str:
@@ -609,6 +618,7 @@ def _apply_scale_reading_to_batch(batch, timbangan, reading_data):
     new_amount = value if mode == 'SET' else ingredient.weighed_amount + value
     ingredient.weighed_amount = round(new_amount, 3)
     ingredient.variance_amount = round(ingredient.weighed_amount - ingredient.planned_amount, 3)
+    _sync_batch_weighing_status(batch)
 
     timbangan.status = 'ONLINE'
     reading = TimbanganReading(
@@ -760,7 +770,7 @@ def record_weight(batch_id, ingredient_id, amount, user_id=None, timbangan_id=2)
     batch = FeedingBatch.query.get(batch_id)
     if not batch:
         return {'status': 'error', 'message': 'Batch racikan tidak ditemukan'}, 404
-    if batch.status != 'PREPARING':
+    if batch.status not in MUTABLE_BATCH_STATUSES:
         return {'status': 'error', 'message': 'Batch racikan sudah tidak bisa diubah'}, 400
 
     ingredient = FeedingBatchIngredient.query.filter_by(id=ingredient_id, batch_id=batch_id).first()
@@ -777,6 +787,7 @@ def record_weight(batch_id, ingredient_id, amount, user_id=None, timbangan_id=2)
 
     ingredient.weighed_amount = round(amount, 3)
     ingredient.variance_amount = round(ingredient.weighed_amount - ingredient.planned_amount, 3)
+    _sync_batch_weighing_status(batch)
 
     timbangan = Timbangan.query.get(timbangan_id)
     if timbangan:
@@ -817,7 +828,7 @@ def finalize_batch(batch_id, user_id=None):
         return {'status': 'error', 'message': 'Batch racikan tidak ditemukan'}, 404
     if batch.status == 'FINALIZED':
         return {'status': 'success', 'message': 'Batch racikan sudah final', 'data': batch.to_dict()}, 200
-    if batch.status != 'PREPARING':
+    if batch.status not in MUTABLE_BATCH_STATUSES:
         return {'status': 'error', 'message': 'Batch racikan tidak bisa difinalisasi'}, 400
 
     missing = [f'{item.phase} - {item.feed_name}' for item in batch.ingredients if item.weighed_amount <= 0]

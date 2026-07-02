@@ -24,6 +24,9 @@ byte colPins[COLS] = {COL1_PIN, COL2_PIN, COL3_PIN, COL4_PIN};
 
 Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 
+int forceSaveIndex = -1;
+unsigned long forceSaveUntil = 0;
+
 bool requireStarted() {
   if (itemCount == 0) {
     showHomeScreen();
@@ -86,10 +89,25 @@ void saveCurrentAndNext() {
   }
 
   float stableWeight = readWeightStable();
+  bool forceSave = forceSaveIndex == savedIndex && millis() <= forceSaveUntil;
+
+  if (!forceSave && !isWeightWithinTolerance(savedIndex, stableWeight)) {
+    forceSaveIndex = savedIndex;
+    forceSaveUntil = millis() + WEIGHT_OVERRIDE_MS;
+    printLine(0, "BERAT MELESET");
+    printLine(1, "B=PAKSA " + kgText(stableWeight));
+    delay(1500);
+    displayCurrentItem();
+    return;
+  }
+
+  forceSaveIndex = -1;
+  forceSaveUntil = 0;
 
   scaleItems[savedIndex].weight = stableWeight;
   scaleItems[savedIndex].saved = true;
   scaleItems[savedIndex].synced = false;
+  saveLocalCache();
 
   printLine(0, "SIMPAN #" + twoDigit(scaleItems[savedIndex].kode));
   printLine(1, String(scaleItems[savedIndex].labelShort) + " " + String(stableWeight, 3));
@@ -143,6 +161,7 @@ void clearCurrentItem() {
   scaleItems[currentIndex].weight = 0;
   scaleItems[currentIndex].saved = false;
   scaleItems[currentIndex].synced = false;
+  saveLocalCache();
 
   printLine(0, "HAPUS ITEM");
   printLine(1, "#" + twoDigit(scaleItems[currentIndex].kode));
@@ -281,7 +300,14 @@ void setup() {
   setupDisplay();
   setupScale();
   connectWiFi();
-  showHomeScreen();
+  if (loadLocalCache()) {
+    printLine(0, "DATA TERSIMPAN");
+    printLine(1, "D=KIRIM/#=LANJUT");
+    delay(1500);
+    showTargetReadyScreen();
+  } else {
+    showHomeScreen();
+  }
 }
 
 void loop() {

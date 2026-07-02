@@ -22,7 +22,7 @@ export interface FeedingBatch {
   task_id?: string | null;
   task_execution_id?: string | null;
   keeper_id: string | null;
-  status: 'PREPARING' | 'FINALIZED' | 'CANCELLED';
+  status: 'PREPARING' | 'READY_TO_FINALIZE' | 'FINALIZED' | 'CANCELLED';
   tolerance_percent: number;
   created_at: string | null;
   finalized_at: string | null;

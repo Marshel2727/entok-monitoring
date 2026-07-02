@@ -253,7 +253,7 @@ class FeedingBatchSchema(BaseSchema):
     task_id = UUIDString(allow_none=True)
     task_execution_id = UUIDString(allow_none=True)
     keeper_id = UUIDString(dump_only=True)
-    status = fields.Str(dump_only=True, validate=validate.OneOf(['PREPARING', 'FINALIZED', 'CANCELLED']))
+    status = fields.Str(dump_only=True, validate=validate.OneOf(['PREPARING', 'READY_TO_FINALIZE', 'FINALIZED', 'CANCELLED']))
     tolerance_percent = fields.Float(load_default=10.0, validate=validate.Range(min=0, max=100))
     notes = fields.Str(allow_none=True, validate=validate.Length(max=1000))
 

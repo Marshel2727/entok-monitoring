@@ -7,9 +7,9 @@ from app.models.user import User
 from app.utils.uploads import save_base64_image_if_needed
 
 def generate_token(user):
-    """Generates a JWT Token for the logged in user, valid for 24 hours."""
+    """Generates a JWT Token for the logged in user, valid for 30 days."""
     payload = {
-        'exp': datetime.utcnow() + timedelta(days=1),
+        'exp': datetime.utcnow() + timedelta(days=30),
         'iat': datetime.utcnow(),
         'sub': user.id,
         'role': user.role,
