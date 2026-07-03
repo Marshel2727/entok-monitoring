@@ -60,7 +60,7 @@ export function selectFeedingBatchForTask(
   if (!isFeedingTaskName(task?.nama)) return null;
 
   const taskId = task?.task_id || task?.id;
-  const executionId = task?.execution_id || task?.id;
+  const executionId = task?.execution_id;
   const executionBatches = executionId
     ? batches.filter((batch) => batch.task_execution_id === executionId)
     : [];

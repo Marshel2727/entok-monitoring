@@ -21,7 +21,7 @@ import { FeedItem, FormulasiItem, PenjagaTaskItem, PanduanLangkah } from '@/type
 import { DailyChecklistItem } from '@/services/task';
 import { FeedingBatch } from '@/services/feedingBatch';
 import { resolveAssetUrl } from '@/services/api';
-import { buildFeedingBatchView, isFeedingTaskName, pickBestFeedingBatch, selectFeedingBatchForTask } from '@/domain/feeding/feedingBatchView';
+import { buildFeedingBatchView, isFeedingTaskName, selectFeedingBatchForTask } from '@/domain/feeding/feedingBatchView';
 import { useFeedback } from '@/components/shared/FeedbackProvider';
 
 interface ChecklistPenjagaPageProps {
@@ -65,7 +65,6 @@ export default function ChecklistPenjagaPage({
   jumlahGrower2 = 18,
   jumlahFinisher = 10,
   checklist,
-  feedingBatch,
   feedingBatches = [],
   onToggleTask,
   onCreateFeedingBatch,
@@ -153,6 +152,11 @@ export default function ChecklistPenjagaPage({
   };
 
   const handleCreateBatch = async (taskId?: string, taskExecutionId?: string) => {
+    if (!taskId && !taskExecutionId) {
+      showToast('warning', 'Pilih misi Beri Pakan dulu sebelum menyiapkan batch racikan.');
+      return;
+    }
+
     try {
       await onCreateFeedingBatch?.(taskId, taskExecutionId);
     } catch (err) {
@@ -196,8 +200,11 @@ export default function ChecklistPenjagaPage({
     }
   };
 
-  const renderFeedingBatchPanel = (sourceBatch?: FeedingBatch | null) => {
-    const view = buildFeedingBatchView(sourceBatch ?? feedingBatch);
+  const renderFeedingBatchPanel = (sourceBatch?: FeedingBatch | null, task?: PenjagaTaskItem | null) => {
+    const taskId = task?.task_id || task?.id;
+    const taskExecutionId = task?.execution_id;
+    const canCreateScopedBatch = Boolean(onCreateFeedingBatch && (taskId || taskExecutionId));
+    const view = buildFeedingBatchView(sourceBatch || null);
     const { batch, isPreparing, isFinalized, groupedItems, totalItems } = view;
 
     return (
@@ -239,25 +246,28 @@ export default function ChecklistPenjagaPage({
             gap: '12px'
           }}>
             <span style={{ fontSize: '12px', color: '#4a5568', lineHeight: '1.5' }}>
-              Menunggu data dari Timbangan 2. Target bisa disiapkan dulu dari formulasi dan populasi hari ini.
+              {task
+                ? 'Menunggu data dari Timbangan 2. Target bisa disiapkan dulu dari formulasi dan populasi hari ini.'
+                : 'Pilih misi Beri Pakan untuk menyiapkan target racikan. Batch tidak lagi dibuat secara global.'}
             </span>
-            <button
-              onClick={() => handleCreateBatch()}
-              disabled={!onCreateFeedingBatch}
-              style={{
-                border: '1px solid #15D36B',
-                backgroundColor: '#15D36B',
-                color: '#ffffff',
-                borderRadius: '8px',
-                padding: '10px 12px',
-                fontSize: '11px',
-                fontWeight: '800',
-                cursor: onCreateFeedingBatch ? 'pointer' : 'not-allowed',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              SIAPKAN TARGET
-            </button>
+            {canCreateScopedBatch && (
+              <button
+                onClick={() => handleCreateBatch(taskId, taskExecutionId)}
+                style={{
+                  border: '1px solid #15D36B',
+                  backgroundColor: '#15D36B',
+                  color: '#ffffff',
+                  borderRadius: '8px',
+                  padding: '10px 12px',
+                  fontSize: '11px',
+                  fontWeight: '800',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                SIAPKAN TARGET
+              </button>
+            )}
           </div>
         )}
 
@@ -414,9 +424,12 @@ export default function ChecklistPenjagaPage({
     );
   };
 
-  const renderMobileFeedingBatchPanel = (batch: FeedingBatch | null | undefined = feedingBatch, task?: PenjagaTaskItem | null) => {
+  const renderMobileFeedingBatchPanel = (batch?: FeedingBatch | null, task?: PenjagaTaskItem | null) => {
     const view = buildFeedingBatchView(batch);
     const { isPreparing, isFinalized, groupedItems, totalItems, hasItems } = view;
+    const taskId = task?.task_id || task?.id;
+    const taskExecutionId = task?.execution_id;
+    const canCreateScopedBatch = Boolean(onCreateFeedingBatch && (taskId || taskExecutionId));
 
     return (
       <div style={{
@@ -468,18 +481,18 @@ export default function ChecklistPenjagaPage({
               Target racikan belum disiapkan. Data Timbangan 2 akan masuk ke batch setelah target tersedia.
             </div>
             <button
-              onClick={() => handleCreateBatch(task?.task_id || task?.id, task?.execution_id)}
-              disabled={!onCreateFeedingBatch}
+              onClick={() => handleCreateBatch(taskId, taskExecutionId)}
+              disabled={!canCreateScopedBatch}
               style={{
                 width: '100%',
                 border: 'none',
-                backgroundColor: '#15D36B',
+                backgroundColor: canCreateScopedBatch ? '#15D36B' : '#cbd5e0',
                 color: '#ffffff',
                 borderRadius: '8px',
                 padding: '10px',
                 fontSize: '11px',
                 fontWeight: '900',
-                cursor: onCreateFeedingBatch ? 'pointer' : 'not-allowed'
+                cursor: canCreateScopedBatch ? 'pointer' : 'not-allowed'
               }}
             >
               Siapkan Target Racikan
@@ -798,10 +811,13 @@ export default function ChecklistPenjagaPage({
     return selectFeedingBatchForTask(feedingBatches, task);
   };
   const isFeedingBatchFinalForTask = (task?: PenjagaTaskItem | null) => getFeedingBatchForTask(task)?.status === 'FINALIZED';
+  const visibleFeedingTask = isFeedingTask(activeTask)
+    ? activeTask
+    : tasksList.find((task) => isFeedingTask(task) && !completedTasks[task.id])
+      || tasksList.find((task) => isFeedingTask(task))
+      || null;
   const activeTaskBatch = getFeedingBatchForTask(activeTask);
-  const visibleFeedingBatch = isFeedingTask(activeTask)
-    ? activeTaskBatch
-    : pickBestFeedingBatch(feedingBatches) || feedingBatch || null;
+  const visibleFeedingBatch = getFeedingBatchForTask(visibleFeedingTask);
   const portalDateLabel = new Date().toLocaleDateString('id-ID', {
     weekday: 'long',
     day: 'numeric',
@@ -874,7 +890,8 @@ export default function ChecklistPenjagaPage({
   };
 
   const handleResetSimulation = async () => {
-    const confirmMsg = feedingBatch
+    const hasBatchData = feedingBatches.length > 0;
+    const confirmMsg = hasBatchData
       ? "Apakah Anda yakin ingin mereset seluruh kegiatan hari ini beserta batch racikan pakan? Data stok yang sudah dipotong akan dikembalikan."
       : "Apakah Anda yakin ingin mereset seluruh kegiatan hari ini?";
 
@@ -907,9 +924,6 @@ export default function ChecklistPenjagaPage({
           }
         }
 
-        if (feedingBatch && onCancelFeedingBatch) {
-          await onCancelFeedingBatch();
-        }
       }
     } catch (err) {
       showToast('error', errorMessage(err, 'Gagal mereset status tugas.'));
@@ -2065,7 +2079,7 @@ export default function ChecklistPenjagaPage({
 
             {tasksList.some((task) => isFeedingTask(task)) && (
               <div style={{ padding: '0 16px 12px 16px' }}>
-                {renderMobileFeedingBatchPanel(visibleFeedingBatch)}
+                {renderMobileFeedingBatchPanel(visibleFeedingBatch, visibleFeedingTask)}
               </div>
             )}
 
@@ -2707,7 +2721,7 @@ export default function ChecklistPenjagaPage({
               )}
             </div>
 
-            {renderFeedingBatchPanel(visibleFeedingBatch)}
+            {renderFeedingBatchPanel(visibleFeedingBatch, visibleFeedingTask)}
 
             {/* Tips of the day */}
             <div style={{

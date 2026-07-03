@@ -29,7 +29,6 @@ export default function PenjagaPortal() {
   const [formulations, setFormulations] = useState<FormulasiItem[]>([]);
   const [populations, setPopulations] = useState<PopulationPhase[]>([]);
   const [tasks, setTasks] = useState<PenjagaTaskItem[]>([]);
-  const [feedingBatch, setFeedingBatch] = useState<FeedingBatch | null>(null);
   const [feedingBatches, setFeedingBatches] = useState<FeedingBatch[]>([]);
   const [loadingPortal, setLoadingPortal] = useState(true);
 
@@ -52,7 +51,6 @@ export default function PenjagaPortal() {
       setTasks(tasksRes.status === 'fulfilled' ? tasksRes.value || [] : []);
       const loadedBatches = batchRes.status === 'fulfilled' ? batchRes.value || [] : [];
       setFeedingBatches(loadedBatches);
-      setFeedingBatch(loadedBatches.find((batch) => !batch.task_id && !batch.task_execution_id) || null);
 
       [checkRes, feedsRes, formulationRes, populationRes, tasksRes, batchRes].forEach((result) => {
         if (result.status === 'rejected') {
@@ -111,22 +109,24 @@ export default function PenjagaPortal() {
   };
 
   const handleCreateFeedingBatch = async (taskId?: string, taskExecutionId?: string) => {
+    if (!taskId && !taskExecutionId) {
+      throw new Error('Batch racikan harus dibuat dari misi pakan tertentu.');
+    }
+
     const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Makassar' });
     await feedingBatchService.createBatch(today, taskId, taskExecutionId);
     await fetchDailyData();
   };
 
   const handleFinalizeFeedingBatch = async (batchId?: string) => {
-    const targetBatchId = batchId || feedingBatch?.id;
-    if (!targetBatchId) return;
-    await feedingBatchService.finalizeBatch(targetBatchId);
+    if (!batchId) return;
+    await feedingBatchService.finalizeBatch(batchId);
     await fetchDailyData();
   };
 
   const handleCancelFeedingBatch = async (batchId?: string) => {
-    const targetBatchId = batchId || feedingBatch?.id;
-    if (!targetBatchId) return;
-    await feedingBatchService.cancelBatch(targetBatchId);
+    if (!batchId) return;
+    await feedingBatchService.cancelBatch(batchId);
     await fetchDailyData();
   };
 
@@ -165,7 +165,6 @@ export default function PenjagaPortal() {
   return (
     <ChecklistPenjagaPage
       checklist={checklist}
-      feedingBatch={feedingBatch}
       feedingBatches={feedingBatches}
       feedList={feeds}
       formulasiList={formulations}

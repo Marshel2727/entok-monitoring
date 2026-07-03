@@ -1,5 +1,6 @@
 from datetime import datetime
 import pytz
+from sqlalchemy import or_
 
 from app.utils.db import db
 from app.models.feed import Feed, FeedTransaction
@@ -244,10 +245,11 @@ def _sync_batch_weighing_status(batch):
 
 
 def _select_scale_batch(batches):
-    for batch in batches:
+    scoped_batches = [batch for batch in batches if batch.task_id or batch.task_execution_id]
+    for batch in scoped_batches:
         if not _batch_scale_is_complete(batch):
             return batch
-    return batches[-1] if batches else None
+    return scoped_batches[-1] if scoped_batches else None
 
 
 def _planned_signature(ingredients):
@@ -346,6 +348,12 @@ def create_batch(user_id, date_str=None, task_id=None, task_execution_id=None):
     if error:
         return error, 400
 
+    if not task_id and not task_execution_id:
+        return {
+            'status': 'error',
+            'message': 'Batch racikan harus terhubung ke misi pakan. Siapkan target dari card tugas Beri Pakan.'
+        }, 400
+
     resolved_task_id, resolved_execution_id, error, code = _resolve_task_scope(batch_date, task_id, task_execution_id)
     if error:
         return error, code
@@ -406,7 +414,11 @@ def _get_active_batch_for_scale(date_str, user_id=None):
 
     batches = FeedingBatch.query.filter(
         FeedingBatch.batch_date == batch_date,
-        FeedingBatch.status.in_(MUTABLE_BATCH_STATUSES)
+        FeedingBatch.status.in_(MUTABLE_BATCH_STATUSES),
+        or_(
+            FeedingBatch.task_id.isnot(None),
+            FeedingBatch.task_execution_id.isnot(None)
+        )
     ).order_by(FeedingBatch.created_at.asc()).all()
     batch = _select_scale_batch(batches)
 
@@ -419,16 +431,10 @@ def _get_active_batch_for_scale(date_str, user_id=None):
         batch = FeedingBatch.query.get(batch_id) if batch_id else batch
         return batch, None, 200
 
-    response, code = create_batch(user_id, batch_date.isoformat())
-    if code not in (200, 201):
-        return None, response, code
-
-    batch_id = response.get('data', {}).get('id')
-    batch = FeedingBatch.query.get(batch_id) if batch_id else None
-    if not batch or batch.status not in MUTABLE_BATCH_STATUSES:
-        return None, {'status': 'error', 'message': 'Batch racikan aktif tidak tersedia'}, 400
-
-    return batch, None, 200
+    return None, {
+        'status': 'error',
+        'message': 'Belum ada batch racikan misi pakan aktif. Siapkan target racikan dari card tugas Beri Pakan.'
+    }, 400
 
 
 def _get_batch_for_scale(date_str=None, user_id=None, batch_id=None):
