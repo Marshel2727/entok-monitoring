@@ -173,7 +173,14 @@ class PopulationSchema(BaseSchema):
     id = UUIDString(dump_only=True)
     phase_id = UUIDString(allow_none=True)
     fase = fields.Str(required=True, validate=validate.Length(min=3, max=100))
-    nilaiBaru = fields.Int(required=True, validate=validate.Range(min=0))
+    nilaiBaru = fields.Int(allow_none=True, validate=validate.Range(min=0))
+    mode = fields.Str(load_default='SET', validate=validate.OneOf(['ADD', 'SUBTRACT', 'SET']))
+    jumlah = fields.Int(allow_none=True, validate=validate.Range(min=0))
+
+    @validates_schema
+    def validate_population_value(self, data, **kwargs):
+        if data.get('jumlah') is None and data.get('nilaiBaru') is None:
+            raise ValidationError({'jumlah': ['Jumlah wajib diisi.']})
 
 
 class PopulationLogSchema(BaseSchema):

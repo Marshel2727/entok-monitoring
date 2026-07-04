@@ -30,14 +30,18 @@ def get_current_populations():
         'data': {(p.growth_phase.name if p.growth_phase else p.phase): p.total_ducks for p in populations}
     }, 200
 
-def update_population(phase, new_value, user_id=None):
-    if new_value < 0:
+def update_population(phase, value, user_id=None, mode='SET'):
+    if value < 0:
         return {'status': 'error', 'message': 'Jumlah populasi bebek tidak boleh negatif'}, 400
 
+    mode = (mode or 'SET').upper()
+    if mode not in ('ADD', 'SUBTRACT', 'SET'):
+        return {'status': 'error', 'message': 'Mode perubahan populasi tidak valid'}, 400
+
     growth_phase = get_or_create_growth_phase(phase)
-    pop = Population.query.filter_by(phase_id=growth_phase.id).first()
+    pop = Population.query.filter_by(phase_id=growth_phase.id).with_for_update().first()
     if not pop:
-        pop = Population.query.filter_by(phase=phase).first()
+        pop = Population.query.filter_by(phase=phase).with_for_update().first()
 
     if not pop:
         # Create new phase record if not found
@@ -49,6 +53,19 @@ def update_population(phase, new_value, user_id=None):
         pop.phase = growth_phase.name
 
     old_value = pop.total_ducks
+    if mode == 'ADD':
+        new_value = old_value + value
+    elif mode == 'SUBTRACT':
+        new_value = old_value - value
+    else:
+        new_value = value
+
+    if new_value < 0:
+        return {
+            'status': 'error',
+            'message': f'Populasi fase [{growth_phase.name}] tidak boleh kurang dari 0 ekor.'
+        }, 400
+
     if old_value == new_value:
         return {
             'status': 'success',
@@ -76,7 +93,12 @@ def update_population(phase, new_value, user_id=None):
     db.session.commit()
 
     # Write system activity audit log
-    create_log("SISTEM", f"Populasi fase \"{growth_phase.name}\" diperbarui: {old_value} -> {new_value} ekor ({sign}{diff}).", user_id)
+    mode_label = {
+        'ADD': 'Tambah',
+        'SUBTRACT': 'Kurangi',
+        'SET': 'Set total',
+    }[mode]
+    create_log("SISTEM", f"Populasi fase \"{growth_phase.name}\" diperbarui: {old_value} -> {new_value} ekor ({mode_label}, {sign}{diff}).", user_id)
 
     return {
         'status': 'success',
@@ -85,6 +107,8 @@ def update_population(phase, new_value, user_id=None):
             'phase_id': growth_phase.id,
             'phase': growth_phase.name,
             'total_ducks': new_value,
+            'mode': mode,
+            'change_amount': value,
             'log': history_log.to_dict()
         }
     }, 200

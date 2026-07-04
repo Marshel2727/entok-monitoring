@@ -10,6 +10,7 @@ import {
 } from 'react-icons/lu';
 import { PopulasiLog } from '@/types';
 import { useFeedback } from '@/components/shared/FeedbackProvider';
+import type { PopulationUpdateMode } from '@/services/population';
 
 interface KelolaPopulasiPageProps {
   jumlahStarter: number;
@@ -17,7 +18,7 @@ interface KelolaPopulasiPageProps {
   jumlahGrower2: number;
   jumlahFinisher: number;
   populasiHistory: PopulasiLog[];
-  onUpdateFasePopulasi: (fase: string, newVal: number) => void;
+  onUpdateFasePopulasi: (fase: string, jumlah: number, mode: PopulationUpdateMode) => void;
   onDeleteLog: (id: string) => void;
 }
 
@@ -40,6 +41,7 @@ export default function KelolaPopulasiPage({
   const { showToast } = useFeedback();
   const [selectedFase, setSelectedFase] = useState<string>("");
   const [popInput, setPopInput] = useState<string>("");
+  const [updateMode, setUpdateMode] = useState<PopulationUpdateMode>("ADD");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,8 +54,12 @@ export default function KelolaPopulasiPage({
       showToast('warning', 'Masukkan jumlah entok yang valid, minimal 0.');
       return;
     }
+    if (updateMode === 'SUBTRACT' && val > getFaseCount(selectedFase)) {
+      showToast('warning', 'Jumlah yang dikurangi melebihi populasi saat ini.');
+      return;
+    }
     
-    onUpdateFasePopulasi(selectedFase, val);
+    onUpdateFasePopulasi(selectedFase, val, updateMode);
     setPopInput("");
   };
 
@@ -68,6 +74,21 @@ export default function KelolaPopulasiPage({
   const jumlahBibit = jumlahStarter + jumlahGrower1;
   const jumlahInduk = jumlahGrower2 + jumlahFinisher;
   const totalBebek = jumlahBibit + jumlahInduk;
+  const selectedCount = selectedFase ? getFaseCount(selectedFase) : 0;
+  const inputValue = parseInt(popInput);
+  const previewValue = !selectedFase || isNaN(inputValue)
+    ? null
+    : updateMode === 'ADD'
+      ? selectedCount + inputValue
+      : updateMode === 'SUBTRACT'
+        ? Math.max(0, selectedCount - inputValue)
+        : inputValue;
+  const actionLabel = updateMode === 'ADD'
+    ? 'Tambah Populasi'
+    : updateMode === 'SUBTRACT'
+      ? 'Kurangi Populasi'
+      : 'Set Total Populasi';
+  const inputLabel = updateMode === 'SET' ? 'Total Populasi Baru (Ekor)' : 'Jumlah Perubahan (Ekor)';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', fontFamily: 'var(--font-sans)', color: 'var(--text-primary)' }}>
@@ -95,22 +116,40 @@ export default function KelolaPopulasiPage({
             </div>
 
             <div className="form-group">
-              <label className="form-label">Masukkan Jumlah Entok (Ekor)</label>
-              <div style={{ display: 'flex', gap: '10px' }}>
+              <label className="form-label">Mode Perubahan</label>
+              <select
+                className="form-select"
+                value={updateMode}
+                onChange={(e) => setUpdateMode(e.target.value as PopulationUpdateMode)}
+              >
+                <option value="ADD">Tambah</option>
+                <option value="SUBTRACT">Kurangi</option>
+                <option value="SET">Set Total</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">{inputLabel}</label>
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                 <input
                   type="number"
                   className="form-input"
-                  placeholder={selectedFase ? `Saat ini: ${getFaseCount(selectedFase)} ekor` : "Pilih fase terlebih dahulu"}
+                  placeholder={selectedFase ? `Saat ini: ${selectedCount} ekor` : "Pilih fase terlebih dahulu"}
                   value={popInput}
                   onChange={(e) => setPopInput(e.target.value)}
                   min="0"
-                  style={{ flex: 1 }}
+                  style={{ flex: '1 1 180px' }}
                   required
                 />
-                <button type="submit" className="retro-btn" style={{ padding: '0 20px', fontWeight: 'bold', minWidth: '120px', cursor: 'pointer' }}>
-                  PERBARUI
+                <button type="submit" className="retro-btn" style={{ padding: '0 20px', fontWeight: 'bold', minWidth: '160px', cursor: 'pointer' }}>
+                  {actionLabel}
                 </button>
               </div>
+              {selectedFase && previewValue !== null && (
+                <div style={{ marginTop: '8px', fontSize: '11px', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
+                  Preview: {selectedCount} ekor -&gt; <strong style={{ color: 'var(--text-primary)' }}>{previewValue} ekor</strong>
+                </div>
+              )}
             </div>
           </div>
         </form>

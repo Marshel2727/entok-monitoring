@@ -710,7 +710,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                       Expanded(
                         flex: 13,
                         child: _primaryActionButton(
-                          'Finalisasi',
+                          'Finalisasi & Potong Stok',
                           Icons.done_all_rounded,
                           () => _confirmBatchAction(
                             title: 'Finalisasi batch?',
@@ -882,6 +882,8 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
 
   Widget _phaseGroupCard(_BatchPhaseGroup group) {
     final first = group.items.isEmpty ? null : group.items.first;
+    final plannedTotal = group.items.fold<double>(0, (sum, item) => sum + item.plannedAmount);
+    final weighedTotal = group.items.fold<double>(0, (sum, item) => sum + item.weighedAmount);
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -909,8 +911,40 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                   ),
                 ),
                 Text(
-                  '${first?.populationCount ?? 0} ekor - target ${_fmt(first?.targetConsumption ?? 0)} gr/ekor',
+                  '${first?.populationCount ?? 0} ekor | Timbang ${_formatKg(weighedTotal)} / ${_formatKg(plannedTotal)}',
                   style: const TextStyle(color: Color(0xFF68758F), fontSize: 8, fontWeight: FontWeight.w700),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+            decoration: const BoxDecoration(border: Border(top: BorderSide(color: Color(0xFFE8EEF2)))),
+            child: const Row(
+              children: [
+                Expanded(
+                  flex: 5,
+                  child: Text(
+                    'Bahan',
+                    style: TextStyle(fontSize: 8, color: Color(0xFF68758F), fontWeight: FontWeight.w900),
+                  ),
+                ),
+                Expanded(
+                  flex: 3,
+                  child: Text(
+                    'Target',
+                    textAlign: TextAlign.right,
+                    style: TextStyle(fontSize: 8, color: Color(0xFF68758F), fontWeight: FontWeight.w900),
+                  ),
+                ),
+                SizedBox(width: 8),
+                Expanded(
+                  flex: 3,
+                  child: Text(
+                    'Timbang',
+                    textAlign: TextAlign.right,
+                    style: TextStyle(fontSize: 8, color: Color(0xFF68758F), fontWeight: FontWeight.w900),
+                  ),
                 ),
               ],
             ),
@@ -924,56 +958,45 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
   Widget _batchIngredientTile(FeedingBatchIngredient item) {
     final hasScaleData = _hasBatchScaleData(item);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
       decoration: const BoxDecoration(
         border: Border(top: BorderSide(color: Color(0xFFE8EEF2))),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: const BoxDecoration(color: Color(0xFFEEF8F1), shape: BoxShape.circle),
-            child: Icon(_feedIcon(item.feedName), color: const Color(0xFF1B5E20), size: 18),
+          Expanded(
+            flex: 5,
+            child: Text(
+              item.feedName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 10, color: Color(0xFF102033), fontWeight: FontWeight.w900),
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Text(
+              _formatKg(item.plannedAmount, item.unit),
+              textAlign: TextAlign.right,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 10, color: Color(0xFF102033), fontWeight: FontWeight.w800),
+            ),
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        item.feedName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 11, color: Color(0xFF102033), fontWeight: FontWeight.w900),
-                      ),
-                    ),
-                    _scaleDataBadge(item),
-                  ],
-                ),
-                const SizedBox(height: 7),
-                Row(
-                  children: [
-                    Expanded(child: _batchMetric('Target', _formatKg(item.plannedAmount, item.unit))),
-                    const SizedBox(width: 5),
-                    Expanded(child: _batchMetric('Timbang', _formatKg(item.weighedAmount, item.unit), color: hasScaleData ? const Color(0xFF102033) : const Color(0xFFA8B6C8))),
-                    const SizedBox(width: 5),
-                    Expanded(child: _batchMetric('Terpotong', _formatKg(item.deductedAmount, item.unit))),
-                    const SizedBox(width: 5),
-                    Expanded(
-                      child: _batchMetric(
-                        'Selisih',
-                        '${item.varianceAmount > 0 ? '+' : ''}${_formatKg(item.varianceAmount, item.unit)}',
-                        color: _varianceColor(item),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+            flex: 3,
+            child: Text(
+              _formatKg(item.weighedAmount, item.unit),
+              textAlign: TextAlign.right,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 10,
+                color: hasScaleData ? const Color(0xFF102033) : const Color(0xFFA8B6C8),
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ),
         ],
@@ -1028,50 +1051,40 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
 
   Widget _stockSummaryCard(List<_FeedBatchTotal> totalItems, bool isFinalized) {
     return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: const Color(0xFFF8FAFF),
         borderRadius: BorderRadius.circular(9),
         border: Border.all(color: const Color(0xFFDFE8F3)),
       ),
-      clipBehavior: Clip.antiAlias,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(9),
-            decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: Color(0xFFE8EEF2)))),
-            child: const Row(
-              children: [
-                Icon(Icons.inventory_2_outlined, color: Color(0xFF15D36B), size: 13),
-                SizedBox(width: 7),
-                Expanded(
+          const Text(
+            'Potong stok:',
+            style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Color(0xFF102033)),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              for (final item in totalItems)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: const Color(0xFFE2EAF2)),
+                  ),
                   child: Text(
-                    'Total Pemotongan Stok Saat Finalisasi',
-                    style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Color(0xFF102033)),
+                    '${item.feedName} ${_formatKg(isFinalized ? item.deducted : item.weighed)}',
+                    style: const TextStyle(fontSize: 9, color: Color(0xFF102033), fontWeight: FontWeight.w800),
                   ),
                 ),
-              ],
-            ),
+            ],
           ),
-          for (final item in totalItems)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
-              decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: Color(0xFFEEF2F5)))),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      item.feedName,
-                      style: const TextStyle(fontSize: 9, color: Color(0xFF102033), fontWeight: FontWeight.w900),
-                    ),
-                  ),
-                  Text(
-                    'Target ${_formatKg(item.planned)}\nPotong ${_formatKg(isFinalized ? item.deducted : item.weighed)}',
-                    textAlign: TextAlign.right,
-                    style: const TextStyle(fontSize: 9, color: Color(0xFF68758F), height: 1.32, fontWeight: FontWeight.w700),
-                  ),
-                ],
-              ),
-            ),
         ],
       ),
     );
@@ -1101,7 +1114,10 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
       child: ElevatedButton.icon(
         onPressed: widget.isSyncing ? null : () => onPressed(),
         icon: Icon(icon, size: 15),
-        label: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900)),
+        label: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900)),
+        ),
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF15D36B),
           foregroundColor: Colors.white,

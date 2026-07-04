@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { populationService, PopulationPhase } from '@/services/population';
+import type { PopulationUpdateMode } from '@/services/population';
 import { PopulasiLog } from '@/types';
 import KelolaPopulasiPage from '@/components/populasi/KelolaPopulasiPage';
 import { useFeedback } from '@/components/shared/FeedbackProvider';
@@ -35,9 +36,9 @@ export default function PopulasiPage() {
     return () => window.clearTimeout(timer);
   }, []);
 
-  const handleUpdateFasePopulasi = async (fase: string, newVal: number) => {
+  const handleUpdateFasePopulasi = async (fase: string, jumlah: number, mode: PopulationUpdateMode) => {
     try {
-      await populationService.updatePopulation(fase, newVal);
+      await populationService.updatePopulation(fase, jumlah, mode);
       await fetchPopulations();
     } catch (err) {
       console.error(err);

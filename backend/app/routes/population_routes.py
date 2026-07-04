@@ -22,10 +22,13 @@ def update_population(current_user):
         return jsonify(error[0]), error[1]
 
     phase = data.get('fase')
-    new_value = data.get('nilaiBaru')
-    new_val_int = int(new_value)
+    mode = (data.get('mode') or 'SET').upper()
+    raw_value = data.get('jumlah')
+    if raw_value is None:
+        raw_value = data.get('nilaiBaru')
+    value_int = int(raw_value)
         
-    res, code = population_service.update_population(phase, new_val_int, current_user.id)
+    res, code = population_service.update_population(phase, value_int, current_user.id, mode)
     return jsonify(res), code
 
 @population_bp.route('/logs', methods=['GET'])

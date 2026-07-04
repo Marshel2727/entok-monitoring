@@ -9,6 +9,8 @@ export interface PopulationPhase {
   last_updated: string;
 }
 
+export type PopulationUpdateMode = 'ADD' | 'SUBTRACT' | 'SET';
+
 export const populationService = {
   getPopulations: async () => {
     const res = await api.getCached<{ status: string; data: { [key: string]: number } }>('/populations', 30000);
@@ -22,10 +24,12 @@ export const populationService = {
     }));
   },
 
-  updatePopulation: async (fase: string, nilaiBaru: number) => {
+  updatePopulation: async (fase: string, jumlah: number, mode: PopulationUpdateMode = 'SET') => {
     return api.post<{ status: string; message: string; data: unknown }>('/populations', {
       fase,
-      nilaiBaru,
+      mode,
+      jumlah,
+      ...(mode === 'SET' ? { nilaiBaru: jumlah } : {}),
     });
   },
 
