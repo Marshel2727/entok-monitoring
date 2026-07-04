@@ -19,7 +19,7 @@ import {
 } from 'react-icons/lu';
 import { FeedItem, FormulasiItem, PenjagaTaskItem, PanduanLangkah } from '@/types';
 import { DailyChecklistItem } from '@/services/task';
-import { FeedingBatch } from '@/services/feedingBatch';
+import { FeedingBatch, FeedingBatchIngredient } from '@/services/feedingBatch';
 import { resolveAssetUrl } from '@/services/api';
 import { buildFeedingBatchView, isFeedingTaskName, selectFeedingBatchForTask } from '@/domain/feeding/feedingBatchView';
 import { useFeedback } from '@/components/shared/FeedbackProvider';
@@ -144,11 +144,36 @@ export default function ChecklistPenjagaPage({
     return `${numeric.toFixed(2).replace('.', ',')} kg`;
   };
 
-  const getBatchVarianceColor = (variance: number) => {
-    const absVariance = Math.abs(Number(variance || 0));
-    if (absVariance <= 0.05) return '#15D36B';
-    if (absVariance <= 0.15) return '#f59e0b';
-    return '#e53e3e';
+  const batchWarningTolerancePercent = 35;
+  const batchWarningMinKg = 0.03;
+
+  const getBatchWarningLimitKg = (plannedAmount?: number) => {
+    const planned = Math.abs(Number(plannedAmount || 0));
+    return Math.max(planned * (batchWarningTolerancePercent / 100), batchWarningMinKg);
+  };
+
+  const hasBatchScaleData = (item: FeedingBatchIngredient) => {
+    return Number(item.weighed_amount || 0) > 0 || Number(item.deducted_amount || 0) > 0;
+  };
+
+  const isBatchItemWarning = (item: FeedingBatchIngredient) => {
+    if (!hasBatchScaleData(item)) return false;
+    return Math.abs(Number(item.variance_amount || 0)) > getBatchWarningLimitKg(item.planned_amount);
+  };
+
+  const getBatchVarianceColorForItem = (item: FeedingBatchIngredient) => {
+    if (!hasBatchScaleData(item)) return '#a0aec0';
+    return isBatchItemWarning(item) ? '#f59e0b' : '#15D36B';
+  };
+
+  const getBatchItemStatus = (item: FeedingBatchIngredient) => {
+    if (!hasBatchScaleData(item)) {
+      return { label: 'MENUNGGU', color: '#856404', backgroundColor: '#fff3cd' };
+    }
+    if (isBatchItemWarning(item)) {
+      return { label: 'PERLU CEK', color: '#92400e', backgroundColor: '#ffedd5' };
+    }
+    return { label: 'MASUK', color: '#155724', backgroundColor: '#d4edda' };
   };
 
   const handleCreateBatch = async (taskId?: string, taskExecutionId?: string) => {
@@ -164,10 +189,12 @@ export default function ChecklistPenjagaPage({
     }
   };
 
-  const handleFinalizeBatch = async (batchId?: string) => {
+  const handleFinalizeBatch = async (batchId?: string, hasWarningItems = false) => {
     const confirmed = await confirmAction({
       title: 'Finalisasi Racikan',
-      message: 'Finalisasi racikan akan memotong stok sesuai hasil timbang. Lanjutkan?',
+      message: hasWarningItems
+        ? 'Ada bahan dengan selisih besar dan perlu dicek. Stok tetap akan dipotong sesuai data timbang yang masuk. Lanjutkan?'
+        : 'Finalisasi racikan akan memotong stok sesuai hasil timbang. Lanjutkan?',
       confirmLabel: 'Finalisasi',
       tone: 'warning',
     });
@@ -206,6 +233,7 @@ export default function ChecklistPenjagaPage({
     const canCreateScopedBatch = Boolean(onCreateFeedingBatch && (taskId || taskExecutionId));
     const view = buildFeedingBatchView(sourceBatch || null);
     const { batch, isPreparing, isFinalized, groupedItems, totalItems } = view;
+    const hasWarningItems = groupedItems.some((group) => group.items.some(isBatchItemWarning));
 
     return (
       <div className="panel" style={{ padding: '24px', backgroundColor: '#ffffff', color: '#1a202c', fontFamily: 'var(--font-sans)' }}>
@@ -312,7 +340,8 @@ export default function ChecklistPenjagaPage({
                       </thead>
                       <tbody>
                         {group.items.map((item) => {
-                          const hasScaleData = Number(item.weighed_amount || 0) > 0;
+                          const hasScaleData = hasBatchScaleData(item);
+                          const itemStatus = getBatchItemStatus(item);
                           return (
                             <tr key={item.id} style={{ borderBottom: '1px solid #edf2f7' }}>
                               <td style={{ padding: '10px 8px', fontSize: '12px', fontWeight: '800', color: '#2d3748' }}>
@@ -332,7 +361,7 @@ export default function ChecklistPenjagaPage({
                                 textAlign: 'right',
                                 fontSize: '12px',
                                 fontWeight: '800',
-                                color: getBatchVarianceColor(item.variance_amount)
+                                color: getBatchVarianceColorForItem(item)
                               }}>
                                 {item.variance_amount > 0 ? '+' : ''}{formatBatchKg(item.variance_amount)}
                               </td>
@@ -340,12 +369,12 @@ export default function ChecklistPenjagaPage({
                                 <span style={{
                                   fontSize: '9px',
                                   fontWeight: '800',
-                                  color: hasScaleData ? '#155724' : '#856404',
-                                  backgroundColor: hasScaleData ? '#d4edda' : '#fff3cd',
+                                  color: itemStatus.color,
+                                  backgroundColor: itemStatus.backgroundColor,
                                   borderRadius: '999px',
                                   padding: '3px 8px'
                                 }}>
-                                  {hasScaleData ? 'MASUK' : 'MENUNGGU'}
+                                  {itemStatus.label}
                                 </span>
                               </td>
                             </tr>
@@ -379,7 +408,7 @@ export default function ChecklistPenjagaPage({
 
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', alignItems: 'center', marginTop: '16px', flexWrap: 'wrap' }}>
               <span style={{ fontSize: '11px', color: '#718096' }}>
-                Toleransi selisih: {batch.tolerance_percent}% per bahan.
+                Selisih besar hanya menjadi peringatan. Data tetap bisa difinalisasi.
               </span>
               {isPreparing && (
                 <div style={{ display: 'flex', gap: '8px' }}>
@@ -400,7 +429,7 @@ export default function ChecklistPenjagaPage({
                     BATAL
                   </button>
                   <button
-                    onClick={() => handleFinalizeBatch(batch.id)}
+                    onClick={() => handleFinalizeBatch(batch.id, hasWarningItems)}
                     disabled={!onFinalizeFeedingBatch}
                     style={{
                       border: '1px solid #15D36B',
@@ -430,6 +459,7 @@ export default function ChecklistPenjagaPage({
     const taskId = task?.task_id || task?.id;
     const taskExecutionId = task?.execution_id;
     const canCreateScopedBatch = Boolean(onCreateFeedingBatch && (taskId || taskExecutionId));
+    const hasWarningItems = groupedItems.some((group) => group.items.some(isBatchItemWarning));
 
     return (
       <div style={{
@@ -523,7 +553,8 @@ export default function ChecklistPenjagaPage({
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     {group.items.map((item) => {
-                      const hasScaleData = Number(item.weighed_amount || 0) > 0;
+                      const hasScaleData = hasBatchScaleData(item);
+                      const itemStatus = getBatchItemStatus(item);
                       return (
                         <div key={item.id} style={{
                           padding: '11px 10px',
@@ -559,13 +590,13 @@ export default function ChecklistPenjagaPage({
                                 alignItems: 'center',
                                 fontSize: '8px',
                                 fontWeight: '900',
-                                color: hasScaleData ? '#155724' : '#856404',
-                                backgroundColor: hasScaleData ? '#d4edda' : '#fff3cd',
+                                color: itemStatus.color,
+                                backgroundColor: itemStatus.backgroundColor,
                                 borderRadius: '999px',
                                 padding: '4px 8px',
                                 whiteSpace: 'nowrap'
                               }}>
-                                {hasScaleData ? 'MASUK' : 'MENUNGGU'}
+                                {itemStatus.label}
                               </span>
                             </div>
 
@@ -573,7 +604,7 @@ export default function ChecklistPenjagaPage({
                               {renderMobileBatchMetric('Target', formatBatchKg(item.planned_amount))}
                               {renderMobileBatchMetric('Timbang', formatBatchKg(item.weighed_amount), hasScaleData ? '#102033' : '#a8b6c8')}
                               {renderMobileBatchMetric('Terpotong', formatBatchKg(item.deducted_amount))}
-                              {renderMobileBatchMetric('Selisih', `${item.variance_amount > 0 ? '+' : ''}${formatBatchKg(item.variance_amount)}`, getBatchVarianceColor(item.variance_amount))}
+                              {renderMobileBatchMetric('Selisih', `${item.variance_amount > 0 ? '+' : ''}${formatBatchKg(item.variance_amount)}`, getBatchVarianceColorForItem(item))}
                             </div>
                           </div>
                         </div>
@@ -605,7 +636,7 @@ export default function ChecklistPenjagaPage({
             {isPreparing && (
               <div style={{ marginTop: '14px' }}>
                 <div style={{ fontSize: '10px', color: '#68758f', marginBottom: '10px' }}>
-                  Toleransi selisih: {batch.tolerance_percent}% per bahan.
+                  Selisih besar hanya menjadi peringatan. Data tetap bisa difinalisasi.
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '0.9fr 1.35fr', gap: '8px' }}>
                 <button
@@ -625,7 +656,7 @@ export default function ChecklistPenjagaPage({
                   Batal
                 </button>
                 <button
-                  onClick={() => handleFinalizeBatch(batch.id)}
+                  onClick={() => handleFinalizeBatch(batch.id, hasWarningItems)}
                   disabled={!onFinalizeFeedingBatch}
                   style={{
                     border: 'none',
@@ -827,6 +858,7 @@ export default function ChecklistPenjagaPage({
   });
   const batchSummaryView = buildFeedingBatchView(visibleFeedingBatch);
   const activeTaskBatchView = buildFeedingBatchView(activeTaskBatch);
+  const activeTaskBatchHasWarning = activeTaskBatchView.groupedItems.some((group) => group.items.some(isBatchItemWarning));
   const isFeedingBatchFinal = activeTaskBatchView.isFinalized;
   const needsFeedingFinalization = (task?: PenjagaTaskItem | null) => isFeedingTask(task) && !isFeedingBatchFinalForTask(task);
 
@@ -1773,7 +1805,8 @@ export default function ChecklistPenjagaPage({
                                   </div>
                                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                                     {group.items.map((item) => {
-                                      const hasScaleData = Number(item.weighed_amount || 0) > 0;
+                                      const hasScaleData = hasBatchScaleData(item);
+                                      const itemStatus = getBatchItemStatus(item);
                                       return (
                                         <div key={item.id} style={{
                                           display: 'grid',
@@ -1787,7 +1820,7 @@ export default function ChecklistPenjagaPage({
                                             <div style={{ fontSize: '11px', fontWeight: '900', color: '#2d3748' }}>{item.feed_name}</div>
                                             <div style={{ fontSize: '9px', color: '#718096', marginTop: '2px' }}>
                                               Target {formatBatchKg(item.planned_amount)} | Selisih{' '}
-                                              <span style={{ color: getBatchVarianceColor(item.variance_amount), fontWeight: '900' }}>
+                                              <span style={{ color: getBatchVarianceColorForItem(item), fontWeight: '900' }}>
                                                 {item.variance_amount > 0 ? '+' : ''}{formatBatchKg(item.variance_amount)}
                                               </span>
                                             </div>
@@ -1801,12 +1834,12 @@ export default function ChecklistPenjagaPage({
                                               marginTop: '2px',
                                               fontSize: '8px',
                                               fontWeight: '900',
-                                              color: hasScaleData ? '#155724' : '#856404',
-                                              backgroundColor: hasScaleData ? '#d4edda' : '#fff3cd',
+                                              color: itemStatus.color,
+                                              backgroundColor: itemStatus.backgroundColor,
                                               borderRadius: '999px',
                                               padding: '2px 6px'
                                             }}>
-                                              {hasScaleData ? 'MASUK' : 'MENUNGGU'}
+                                              {itemStatus.label}
                                             </div>
                                           </div>
                                         </div>
@@ -1852,7 +1885,7 @@ export default function ChecklistPenjagaPage({
                                   Batal
                                 </button>
                                 <button
-                                  onClick={() => handleFinalizeBatch(activeTaskBatchView.batch?.id)}
+                                  onClick={() => handleFinalizeBatch(activeTaskBatchView.batch?.id, activeTaskBatchHasWarning)}
                                   disabled={!onFinalizeFeedingBatch}
                                   style={{
                                     border: 'none',

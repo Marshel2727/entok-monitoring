@@ -50,6 +50,9 @@ class ChecklistScreen extends StatefulWidget {
 }
 
 class _ChecklistScreenState extends State<ChecklistScreen> {
+  static const double _batchWarningTolerancePercent = 35;
+  static const double _batchWarningMinKg = 0.03;
+
   int? _selectedChecklistIndex;
   final Set<String> _expandedBatchKeys = <String>{};
 
@@ -589,6 +592,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
     final isFinalized = batch?.isFinalized == true;
     final isPreparing = batch?.isPreparing == true;
     final currentBatch = batch;
+    final hasWarningItems = ingredients.any(_isBatchItemWarning);
 
     return Container(
       width: double.infinity,
@@ -683,7 +687,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                 if (currentBatch != null && isPreparing) ...[
                   const SizedBox(height: 10),
                   Text(
-                    'Toleransi selisih: ${_fmt(currentBatch.tolerancePercent)}% per bahan.',
+                    'Selisih besar hanya menjadi peringatan. Data tetap bisa difinalisasi.',
                     style: const TextStyle(fontSize: 10, color: Color(0xFF68758F), fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 8),
@@ -710,7 +714,9 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                           Icons.done_all_rounded,
                           () => _confirmBatchAction(
                             title: 'Finalisasi batch?',
-                            message: 'Stok pakan akan dipotong sesuai data timbang yang masuk.',
+                            message: hasWarningItems
+                                ? 'Ada bahan dengan selisih besar dan perlu dicek. Stok tetap akan dipotong sesuai data timbang yang masuk. Lanjutkan?'
+                                : 'Stok pakan akan dipotong sesuai data timbang yang masuk.',
                             action: () => widget.onFinalizeFeedingBatch(currentBatch.id),
                           ),
                         ),
@@ -916,7 +922,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
   }
 
   Widget _batchIngredientTile(FeedingBatchIngredient item) {
-    final hasScaleData = item.weighedAmount > 0 || item.deductedAmount > 0;
+    final hasScaleData = _hasBatchScaleData(item);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: const BoxDecoration(
@@ -946,7 +952,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                         style: const TextStyle(fontSize: 11, color: Color(0xFF102033), fontWeight: FontWeight.w900),
                       ),
                     ),
-                    _scaleDataBadge(hasScaleData),
+                    _scaleDataBadge(item),
                   ],
                 ),
                 const SizedBox(height: 7),
@@ -962,7 +968,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                       child: _batchMetric(
                         'Selisih',
                         '${item.varianceAmount > 0 ? '+' : ''}${_formatKg(item.varianceAmount, item.unit)}',
-                        color: _varianceColor(item.varianceAmount),
+                        color: _varianceColor(item),
                       ),
                     ),
                   ],
@@ -975,17 +981,21 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
     );
   }
 
-  Widget _scaleDataBadge(bool hasScaleData) {
+  Widget _scaleDataBadge(FeedingBatchIngredient item) {
+    final label = _batchStatusLabel(item);
+    final color = _batchStatusColor(item);
+    final backgroundColor = _batchStatusBackgroundColor(item);
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
-        color: hasScaleData ? const Color(0xFFD4EDDA) : const Color(0xFFFFF3CD),
+        color: backgroundColor,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
-        hasScaleData ? 'MASUK' : 'MENUNGGU',
+        label,
         style: TextStyle(
-          color: hasScaleData ? const Color(0xFF155724) : const Color(0xFF856404),
+          color: color,
           fontSize: 7,
           fontWeight: FontWeight.w900,
         ),
@@ -1317,10 +1327,42 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
     return values;
   }
 
-  Color _varianceColor(double value) {
-    if (value.abs() <= 0.01) return const Color(0xFF155724);
-    if (value > 0) return const Color(0xFFE53E3E);
-    return const Color(0xFFD69E2E);
+  bool _hasBatchScaleData(FeedingBatchIngredient item) {
+    return item.weighedAmount > 0 || item.deductedAmount > 0;
+  }
+
+  double _batchWarningLimitKg(FeedingBatchIngredient item) {
+    final planned = item.plannedAmount.abs();
+    final percentLimit = planned * (_batchWarningTolerancePercent / 100);
+    return percentLimit > _batchWarningMinKg ? percentLimit : _batchWarningMinKg;
+  }
+
+  bool _isBatchItemWarning(FeedingBatchIngredient item) {
+    if (!_hasBatchScaleData(item)) return false;
+    return item.varianceAmount.abs() > _batchWarningLimitKg(item);
+  }
+
+  String _batchStatusLabel(FeedingBatchIngredient item) {
+    if (!_hasBatchScaleData(item)) return 'MENUNGGU';
+    if (_isBatchItemWarning(item)) return 'PERLU CEK';
+    return 'MASUK';
+  }
+
+  Color _batchStatusColor(FeedingBatchIngredient item) {
+    if (!_hasBatchScaleData(item)) return const Color(0xFF856404);
+    if (_isBatchItemWarning(item)) return const Color(0xFF92400E);
+    return const Color(0xFF155724);
+  }
+
+  Color _batchStatusBackgroundColor(FeedingBatchIngredient item) {
+    if (!_hasBatchScaleData(item)) return const Color(0xFFFFF3CD);
+    if (_isBatchItemWarning(item)) return const Color(0xFFFFEDD5);
+    return const Color(0xFFD4EDDA);
+  }
+
+  Color _varianceColor(FeedingBatchIngredient item) {
+    if (!_hasBatchScaleData(item)) return const Color(0xFFA8B6C8);
+    return _isBatchItemWarning(item) ? const Color(0xFFF59E0B) : const Color(0xFF155724);
   }
 
   IconData _feedIcon(String name) {

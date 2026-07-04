@@ -5,7 +5,7 @@
 #include "config.h"
 
 #ifndef WEIGHT_TOLERANCE_PERCENT
-#define WEIGHT_TOLERANCE_PERCENT 15.0
+#define WEIGHT_TOLERANCE_PERCENT 35.0
 #endif
 
 #ifndef WEIGHT_TOLERANCE_MIN_KG
