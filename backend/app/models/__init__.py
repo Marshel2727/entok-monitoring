@@ -4,7 +4,7 @@ from app.models.growth_phase import GrowthPhase
 from app.models.feed import Feed, FeedTransaction
 from app.models.formulation import Formulation
 from app.models.population import Population, PopulationLog
-from app.models.timbangan import Timbangan, TimbanganReading
+from app.models.timbangan import Timbangan, TimbanganReading, TimbanganRequest
 from app.models.task import Task, TaskStep, TaskExecution
 from app.models.feeding_batch import FeedingBatch, FeedingBatchIngredient
 from app.models.catalog import Catalog

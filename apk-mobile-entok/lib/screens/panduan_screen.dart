@@ -43,7 +43,6 @@ class _PanduanScreenState extends State<PanduanScreen> {
         children: [
           EntokTopHeader(
             title: 'Panduan',
-            subtitle: 'Panduan kerja dan racikan pakan',
             actionIcon: Icons.person_rounded,
             profileImage: widget.api.user?.profileImage != null && widget.api.user!.profileImage!.isNotEmpty ? widget.api.assetUrl(widget.api.user!.profileImage) : null,
             onAction: widget.onOpenAccount,

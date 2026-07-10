@@ -1,12 +1,14 @@
 # app/routes/timbangan_routes.py
 from flask import Blueprint, request, jsonify
-from app.utils.decorators import device_key_or_token_required, token_required, roles_allowed
+from app.utils.decorators import device_key_or_token_required, device_key_required, token_required, roles_allowed
+from app.utils.rate_limit import rate_limit
 from app.utils.cache import cached_json
 from app.service import timbangan_service
 from app.schemas import (
     TimbanganReadingSchema,
     TimbanganSchema,
     TimbanganStatusSchema,
+    TimbanganHeartbeatSchema,
     load_or_error,
 )
 
@@ -77,12 +79,47 @@ def update_status(current_user, timbangan_id):
     return jsonify(res), code
 
 
+@timbangan_bp.route('/<int:timbangan_id>/heartbeat', methods=['POST'])
+@device_key_required
+@rate_limit('DEVICE_RATE_LIMIT', 60)
+def heartbeat(timbangan_id):
+    data, error = load_or_error(TimbanganHeartbeatSchema(), request.get_json(silent=True) or {})
+    if error:
+        return jsonify(error[0]), error[1]
+
+    forwarded_for = request.headers.get('X-Forwarded-For', '')
+    last_ip = forwarded_for.split(',')[0].strip() if forwarded_for else request.remote_addr
+    res, code = timbangan_service.record_heartbeat(
+        timbangan_id,
+        data.get('firmware_version'),
+        last_ip,
+    )
+    return jsonify(res), code
+
+
+@timbangan_bp.route('/<int:timbangan_id>/credentials/rotate', methods=['POST'])
+@token_required
+@roles_allowed('PENGAWAS')
+def rotate_device_key(current_user, timbangan_id):
+    res, code = timbangan_service.rotate_device_key(timbangan_id, current_user.id)
+    return jsonify(res), code
+
+
+@timbangan_bp.route('/<int:timbangan_id>/credentials/revoke', methods=['POST'])
+@token_required
+@roles_allowed('PENGAWAS')
+def revoke_device_key(current_user, timbangan_id):
+    res, code = timbangan_service.revoke_device_key(timbangan_id, current_user.id)
+    return jsonify(res), code
+
+
 # ==========================================
 #  READINGS (Data Sensor dari ESP32)
 # ==========================================
 
 @timbangan_bp.route('/readings', methods=['POST'])
 @device_key_or_token_required('PENGAWAS')
+@rate_limit('DEVICE_RATE_LIMIT', 60)
 def add_reading():
     """
     POST /api/timbangan/readings — Terima data dari ESP32.

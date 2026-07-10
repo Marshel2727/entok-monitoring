@@ -103,7 +103,7 @@ export default function PakanPage() {
   const resolveScaleTargetBatch = async (dateStr: string) => {
     const batches = await feedingBatchService.getTodayBatches(dateStr);
     const preparingBatches = batches
-      .filter((batch) => batch.status === 'PREPARING' || batch.status === 'READY_TO_FINALIZE')
+      .filter((batch) => batch.status === 'PREPARING' || batch.status === 'WEIGHING' || batch.status === 'READY_TO_FINALIZE')
       .sort((a, b) => {
         const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
         const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
@@ -153,7 +153,7 @@ export default function PakanPage() {
     try {
       const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Makassar' });
       const batch = await resolveScaleTargetBatch(today) || await feedingBatchService.createBatch(today);
-      if (batch.status !== 'PREPARING' && batch.status !== 'READY_TO_FINALIZE') {
+      if (batch.status !== 'PREPARING' && batch.status !== 'WEIGHING' && batch.status !== 'READY_TO_FINALIZE') {
         throw new Error('Batch racikan hari ini sudah final. Buat hari baru atau batalkan batch yang masih diracik.');
       }
 

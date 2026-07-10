@@ -2,6 +2,7 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
@@ -22,7 +23,7 @@ class TaskReminderService {
   static const _channelId = 'entok_task_reminders_v2';
   static const _channelName = 'Pengingat Tugas';
   static const _channelDescription = 'Notifikasi pengingat sebelum jadwal tugas penjaga.';
-  static const _witaLocationName = 'Asia/Makassar';
+  static const _fallbackLocationName = 'Asia/Makassar';
 
   static const reminderOneMinute = '1';
   static const reminderThirtyMinutes = '30';
@@ -55,7 +56,12 @@ class TaskReminderService {
 
     try {
       tz_data.initializeTimeZones();
-      tz.setLocalLocation(tz.getLocation(_witaLocationName));
+      try {
+        final timezoneInfo = await FlutterTimezone.getLocalTimezone();
+        tz.setLocalLocation(tz.getLocation(timezoneInfo.identifier));
+      } catch (_) {
+        tz.setLocalLocation(tz.getLocation(_fallbackLocationName));
+      }
 
       const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
       const darwinSettings = DarwinInitializationSettings(
@@ -91,7 +97,7 @@ class TaskReminderService {
     await _notifications.show(
       id: _notificationId('test|${DateTime.now().millisecondsSinceEpoch}'),
       title: 'Tes notifikasi Entok',
-      body: 'Notifikasi aktif. Pengingat tugas akan muncul sesuai jadwal WITA.',
+      body: 'Notifikasi aktif. Pengingat tugas akan muncul sesuai waktu HP.',
       notificationDetails: _notificationDetails(),
       payload: 'test',
     );

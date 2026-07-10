@@ -1,0 +1,60 @@
+services:
+  database:
+    image: mysql:8.4
+    container_name: entok_staging_database
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME:-entok_staging}
+      MYSQL_USER: ${DB_USER:-entok_staging}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - entok_staging_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    container_name: entok_staging_backend
+    restart: unless-stopped
+    environment:
+      DB_USER: ${DB_USER:-entok_staging}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_HOST: database
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:-entok_staging}
+      APP_ENV: production
+      PORT: 5000
+      SECRET_KEY: ${SECRET_KEY}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      IOT_DEVICE_API_KEY: ${IOT_DEVICE_API_KEY}
+      ALLOW_LEGACY_DEVICE_KEY: ${ALLOW_LEGACY_DEVICE_KEY:-true}
+      FRONTEND_URL: ${FRONTEND_URL}
+      FARM_TIMEZONE: ${FARM_TIMEZONE:-Asia/Makassar}
+      DEVICE_OFFLINE_SECONDS: ${DEVICE_OFFLINE_SECONDS:-90}
+      LOGIN_RATE_LIMIT: ${LOGIN_RATE_LIMIT:-20}
+      DEVICE_RATE_LIMIT: ${DEVICE_RATE_LIMIT:-240}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      SWAGGER_ENABLED: ${SWAGGER_ENABLED:-false}
+      ALLOW_PUBLIC_REGISTRATION: ${ALLOW_PUBLIC_REGISTRATION:-false}
+    ports:
+      - "5002:5000"
+    volumes:
+      - entok_staging_uploads:/app/app/static/uploads
+    depends_on:
+      database:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/api/system/status', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  entok_staging_mysql_data:
+  entok_staging_uploads:

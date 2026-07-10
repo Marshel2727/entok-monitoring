@@ -4,16 +4,8 @@
 #include <Preferences.h>
 #include "config.h"
 
-#ifndef WEIGHT_TOLERANCE_PERCENT
-#define WEIGHT_TOLERANCE_PERCENT 35.0
-#endif
-
-#ifndef WEIGHT_TOLERANCE_MIN_KG
-#define WEIGHT_TOLERANCE_MIN_KG 0.030
-#endif
-
-#ifndef WEIGHT_OVERRIDE_MS
-#define WEIGHT_OVERRIDE_MS 6000
+#ifndef WEIGHT_ROUND_STEP_KG
+#define WEIGHT_ROUND_STEP_KG 0.05
 #endif
 
 struct ScaleItem {
@@ -36,10 +28,31 @@ char activeBatchId[60] = "";
 
 int itemCount = 0;
 int currentIndex = 0;
-String jumpInput = "";
 float currentWeight = 0;
 unsigned long lastWeightRead = 0;
 bool weighingStarted = false;
+bool resetConfirmPending = false;
+unsigned long resetConfirmStarted = 0;
+bool pendingAutoSend = false;
+unsigned long nextAutoSendAt = 0;
+unsigned int autoSendAttempt = 0;
+unsigned long lastHeartbeatAt = 0;
+unsigned long lastBatchStatusPollAt = 0;
+
+#ifndef RESET_CONFIRM_TIMEOUT_MS
+#define RESET_CONFIRM_TIMEOUT_MS 10000
+#endif
+
+// Model cumulative: wadah TIDAK diturunkan antar item dalam satu fase.
+// stable-read = berat TOTAL di wadah. Berat per item = selisih dari baseline.
+// Baseline harus RAW (sebelum dibulatkan) supaya rounding tidak terakumulasi.
+float phaseBaselineWeight = 0;
+
+// Dipakai untuk menunggu hasil HX711 dari task Core-0 tanpa memblokir loop().
+enum AppState { APP_IDLE, APP_WAIT_STABLE, APP_WAIT_TARE_MANUAL, APP_WAIT_TARE_AUTO };
+AppState appState = APP_IDLE;
+int pendingSaveIndex = -1;
+int pendingNextIndexAfterTare = -1;
 
 const uint32_t SCALE_CACHE_VERSION = 20260630;
 
@@ -116,36 +129,25 @@ bool loadLocalCache() {
     scaleItems[i] = cacheSnapshot.items[i];
   }
 
-  jumpInput = "";
   currentWeight = 0;
   weighingStarted = false;
+  pendingAutoSend = false;
+  for (int i = 0; i < itemCount; i++) {
+    if (scaleItems[i].saved && !scaleItems[i].synced) {
+      pendingAutoSend = true;
+      break;
+    }
+  }
+  nextAutoSendAt = millis() + 3000;
   return strlen(activeBatchId) > 0;
 }
 
-float weightToleranceKg(float target) {
-  float tolerance = target * (WEIGHT_TOLERANCE_PERCENT / 100.0);
-  if (tolerance < WEIGHT_TOLERANCE_MIN_KG) {
-    tolerance = WEIGHT_TOLERANCE_MIN_KG;
-  }
-  return tolerance;
-}
-
-bool isWeightWithinTolerance(int index, float weight) {
-  if (index < 0 || index >= itemCount) {
-    return true;
+float roundToStep(float value, float step) {
+  if (step <= 0) {
+    return value;
   }
 
-  float target = scaleItems[index].target;
-  if (target <= 0) {
-    return true;
-  }
-
-  float diff = weight - target;
-  if (diff < 0) {
-    diff = -diff;
-  }
-
-  return diff <= weightToleranceKg(target);
+  return round(value / step) * step;
 }
 
 int savedCount() {

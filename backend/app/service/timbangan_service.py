@@ -1,4 +1,8 @@
 # app/service/timbangan_service.py
+from datetime import datetime
+import hashlib
+import secrets
+
 from app.utils.db import db
 from app.models.timbangan import Timbangan, TimbanganReading
 from app.models.feed import Feed, FeedTransaction
@@ -146,6 +150,77 @@ def update_timbangan_status(timbangan_id, new_status):
     }, 200
 
 
+def touch_timbangan(timbangan, firmware_version=None, last_ip=None, commit=False):
+    timbangan.status = 'ONLINE'
+    timbangan.last_seen_at = datetime.utcnow()
+    if firmware_version:
+        timbangan.firmware_version = str(firmware_version).strip()[:50]
+    if last_ip:
+        timbangan.last_ip = str(last_ip).strip()[:45]
+    if commit:
+        db.session.commit()
+    return timbangan
+
+
+def record_heartbeat(timbangan_id, firmware_version=None, last_ip=None):
+    timbangan = Timbangan.query.get(timbangan_id)
+    if not timbangan:
+        return {'status': 'error', 'code': 'DEVICE_NOT_FOUND', 'message': 'Timbangan tidak ditemukan'}, 404
+
+    touch_timbangan(timbangan, firmware_version, last_ip, commit=True)
+    payload = timbangan.to_dict()
+    emit_realtime_event('scale_status_updated', {
+        'timbangan_id': timbangan.id,
+        'status': 'ONLINE',
+        'timbangan': payload,
+    })
+    return {
+        'status': 'success',
+        'message': 'Heartbeat perangkat diterima',
+        'data': payload,
+    }, 200
+
+
+def rotate_device_key(timbangan_id, user_id=None):
+    timbangan = Timbangan.query.with_for_update().filter_by(id=timbangan_id).first()
+    if not timbangan:
+        return {'status': 'error', 'code': 'DEVICE_NOT_FOUND', 'message': 'Timbangan tidak ditemukan'}, 404
+
+    plain_key = f'entok-device-{timbangan.id}-{secrets.token_urlsafe(32)}'
+    timbangan.device_key_hash = hashlib.sha256(plain_key.encode('utf-8')).hexdigest()
+    timbangan.device_key_prefix = plain_key[:16]
+    timbangan.device_key_revoked_at = None
+    db.session.commit()
+    create_log('SISTEM', f'Merotasi API key {timbangan.nama}.', user_id)
+
+    return {
+        'status': 'success',
+        'message': 'API key perangkat berhasil dibuat. Simpan key ini karena hanya ditampilkan sekali.',
+        'data': {
+            'timbangan_id': timbangan.id,
+            'device_key': plain_key,
+            'device_key_prefix': timbangan.device_key_prefix,
+        },
+    }, 200
+
+
+def revoke_device_key(timbangan_id, user_id=None):
+    timbangan = Timbangan.query.with_for_update().filter_by(id=timbangan_id).first()
+    if not timbangan:
+        return {'status': 'error', 'code': 'DEVICE_NOT_FOUND', 'message': 'Timbangan tidak ditemukan'}, 404
+
+    timbangan.device_key_revoked_at = datetime.utcnow()
+    timbangan.status = 'OFFLINE'
+    db.session.commit()
+    create_log('SISTEM', f'Mencabut API key {timbangan.nama}.', user_id)
+    emit_realtime_event('scale_status_updated', {
+        'timbangan_id': timbangan.id,
+        'status': 'OFFLINE',
+        'timbangan': timbangan.to_dict(),
+    })
+    return {'status': 'success', 'message': 'API key perangkat berhasil dicabut'}, 200
+
+
 # ==========================================
 #  TIMBANGAN READINGS - Data Sensor
 # ==========================================
@@ -202,7 +277,7 @@ def add_reading(data):
     db.session.add(reading)
 
     # Update status timbangan ke ONLINE (ada data masuk = aktif)
-    timbangan.status = 'ONLINE'
+    touch_timbangan(timbangan)
 
     # Hanya timbangan stok dedicated yang boleh mengoreksi stok fisik.
     # Timbangan MULTI dipakai untuk menimbang racikan, bukan memotong stok

@@ -9,7 +9,7 @@ def get_all_logs():
         'data': [log.to_dict() for log in logs]
     }, 200
 
-def create_log(log_type, description, user_id=None):
+def create_log(log_type, description, user_id=None, commit=True):
     """
     Creates a new audit activity log. 
     Accepts log_type: 'RESTOCK' | 'FORMULASI' | 'INVENTARIS' | 'SISTEM'
@@ -27,7 +27,8 @@ def create_log(log_type, description, user_id=None):
         user_id=actual_user_id
     )
     db.session.add(log)
-    db.session.commit()
+    if commit:
+        db.session.commit()
     return log
 
 def clear_logs(user_id=None):

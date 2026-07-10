@@ -19,6 +19,7 @@ export default function Header() {
     if (pathname.includes('/dashboard/tugas')) return 'MASTER TUGAS SOP PENJAGA';
     if (pathname.includes('/dashboard/akun-penjaga')) return 'KELOLA AKUN PENJAGA';
     if (pathname.includes('/dashboard/riwayat')) return 'RIWAYAT AKTIVITAS';
+    if (pathname.includes('/dashboard/kesehatan-sistem')) return 'KESEHATAN SISTEM';
     if (pathname.includes('/dashboard/notifikasi')) return 'NOTIFIKASI ALARM';
     if (pathname.includes('/dashboard/profil')) return 'PROFIL PENGAWAS';
     return 'DASHBOARD SUPPLY CHAIN ENTOK'.toUpperCase();

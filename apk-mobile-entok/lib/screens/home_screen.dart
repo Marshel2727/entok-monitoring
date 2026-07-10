@@ -285,15 +285,15 @@ class HomeScreen extends StatelessWidget {
               padding: EdgeInsets.zero,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: kegiatanList.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 14),
+              separatorBuilder: (context, index) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final item = kegiatanList[index];
                 final bool isDone = item['isDone'] ?? false;
 
                 return Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: BorderRadius.circular(20),
                     gradient: const LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
@@ -309,10 +309,11 @@ class HomeScreen extends StatelessWidget {
                     ],
                   ),
                   child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Container(
-                        width: 68,
-                        height: 68,
+                        width: 72,
+                        height: 72,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [
@@ -340,13 +341,15 @@ class HomeScreen extends StatelessWidget {
                                 ),
                         ),
                       ),
-                      const SizedBox(width: 14),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               item['title'] ?? '',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
                                 fontSize: 16.5,
                                 fontWeight: FontWeight.w900,
@@ -370,20 +373,41 @@ class HomeScreen extends StatelessWidget {
                           ],
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 250),
-                        width: 34,
-                        height: 34,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: isDone ? EntokColors.green : Colors.white,
-                          border: Border.all(
-                            color: isDone ? EntokColors.green : const Color(0xFFD8DEE5),
-                            width: 2,
-                          ),
+                      const SizedBox(width: 10),
+                      SizedBox(
+                        width: 78,
+                        height: 72,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              item['time'] ?? '',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.right,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: EntokColors.muted,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            const Spacer(),
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 250),
+                              width: 30,
+                              height: 30,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: isDone ? EntokColors.green : Colors.white,
+                                border: Border.all(
+                                  color: isDone ? EntokColors.green : const Color(0xFFD8DEE5),
+                                  width: 2,
+                                ),
+                              ),
+                              child: isDone ? const Icon(Icons.check_rounded, size: 15, color: Colors.white) : null,
+                            ),
+                          ],
                         ),
-                        child: isDone ? const Icon(Icons.check_rounded, size: 16, color: Colors.white) : null,
                       ),
                     ],
                   ),

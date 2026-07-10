@@ -636,7 +636,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                     ),
                     const SizedBox(height: 3),
                     const Text(
-                      'Data Timbangan 2 masuk ke sini. Stok dipotong saat finalisasi.',
+                      'Stok dipotong saat finalisasi.',
                       style: TextStyle(fontSize: 9, color: Color(0xFF68758F), height: 1.4),
                     ),
                     if (currentBatch != null) ...[
@@ -726,7 +726,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                 ],
                 if (currentBatch != null && isFinalized) ...[
                   const SizedBox(height: 8),
-                  const _BatchNotice(message: 'Batch sudah final. Data timbang tersimpan dan stok sudah dipotong.'),
+                  const _BatchNotice(message: 'Batch sudah final. Stok sudah dipotong.'),
                   if (canCollapse && onCollapse != null) ...[
                     const SizedBox(height: 8),
                     _compactTextButton(
@@ -813,8 +813,9 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
   }
 
   Widget _batchLiveLine(FeedingBatch batch) {
-    final isLive = batch.status == 'PREPARING' && !widget.hasBatchSyncIssue && widget.isLiveBatchPolling;
-    final isIssue = batch.status == 'PREPARING' && widget.hasBatchSyncIssue;
+    final isMutable = batch.status == 'PREPARING' || batch.status == 'WEIGHING';
+    final isLive = isMutable && !widget.hasBatchSyncIssue && widget.isLiveBatchPolling;
+    final isIssue = isMutable && widget.hasBatchSyncIssue;
     final color = isIssue
         ? const Color(0xFFE53E3E)
         : isLive
@@ -905,14 +906,20 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Color(0xFF15D36B),
-                      fontSize: 9,
+                      fontSize: 14,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
                 ),
-                Text(
-                  '${first?.populationCount ?? 0} ekor | Timbang ${_formatKg(weighedTotal)} / ${_formatKg(plannedTotal)}',
-                  style: const TextStyle(color: Color(0xFF68758F), fontSize: 8, fontWeight: FontWeight.w700),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    '${first?.populationCount ?? 0} ekor | Timbang ${_formatKg(weighedTotal)} / ${_formatKg(plannedTotal)}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(color: Color(0xFF68758F), fontSize: 12, fontWeight: FontWeight.w700),
+                  ),
                 ),
               ],
             ),
@@ -926,7 +933,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                   flex: 5,
                   child: Text(
                     'Bahan',
-                    style: TextStyle(fontSize: 8, color: Color(0xFF68758F), fontWeight: FontWeight.w900),
+                    style: TextStyle(fontSize: 11, color: Color(0xFF68758F), fontWeight: FontWeight.w900),
                   ),
                 ),
                 Expanded(
@@ -934,7 +941,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                   child: Text(
                     'Target',
                     textAlign: TextAlign.right,
-                    style: TextStyle(fontSize: 8, color: Color(0xFF68758F), fontWeight: FontWeight.w900),
+                    style: TextStyle(fontSize: 11, color: Color(0xFF68758F), fontWeight: FontWeight.w900),
                   ),
                 ),
                 SizedBox(width: 8),
@@ -943,7 +950,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                   child: Text(
                     'Timbang',
                     textAlign: TextAlign.right,
-                    style: TextStyle(fontSize: 8, color: Color(0xFF68758F), fontWeight: FontWeight.w900),
+                    style: TextStyle(fontSize: 11, color: Color(0xFF68758F), fontWeight: FontWeight.w900),
                   ),
                 ),
               ],
@@ -957,6 +964,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
 
   Widget _batchIngredientTile(FeedingBatchIngredient item) {
     final hasScaleData = _hasBatchScaleData(item);
+    final weighedColor = hasScaleData ? const Color(0xFF00A651) : const Color(0xFFA8B6C8);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
       decoration: const BoxDecoration(
@@ -971,7 +979,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
               item.feedName,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 10, color: Color(0xFF102033), fontWeight: FontWeight.w900),
+              style: const TextStyle(fontSize: 14, color: Color(0xFF102033), fontWeight: FontWeight.w900),
             ),
           ),
           Expanded(
@@ -981,7 +989,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
               textAlign: TextAlign.right,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 10, color: Color(0xFF102033), fontWeight: FontWeight.w800),
+              style: const TextStyle(fontSize: 13, color: Color(0xFF102033), fontWeight: FontWeight.w800),
             ),
           ),
           const SizedBox(width: 8),
@@ -993,8 +1001,8 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 10,
-                color: hasScaleData ? const Color(0xFF102033) : const Color(0xFFA8B6C8),
+                fontSize: 13,
+                color: weighedColor,
                 fontWeight: FontWeight.w900,
               ),
             ),
@@ -1063,7 +1071,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
         children: [
           const Text(
             'Potong stok:',
-            style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Color(0xFF102033)),
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF102033)),
           ),
           const SizedBox(height: 8),
           Wrap(
@@ -1080,7 +1088,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                   ),
                   child: Text(
                     '${item.feedName} ${_formatKg(isFinalized ? item.deducted : item.weighed)}',
-                    style: const TextStyle(fontSize: 9, color: Color(0xFF102033), fontWeight: FontWeight.w800),
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF102033), fontWeight: FontWeight.w800),
                   ),
                 ),
             ],
@@ -1099,7 +1107,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
         label: Text(label),
         style: TextButton.styleFrom(
           foregroundColor: const Color(0xFF1B5E20),
-          textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900),
+          textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900),
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           minimumSize: const Size(0, 32),
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -1110,13 +1118,13 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
 
   Widget _primaryActionButton(String label, IconData icon, Future<void> Function() onPressed) {
     return SizedBox(
-      height: 38,
+      height: 42,
       child: ElevatedButton.icon(
         onPressed: widget.isSyncing ? null : () => onPressed(),
         icon: Icon(icon, size: 15),
         label: FittedBox(
           fit: BoxFit.scaleDown,
-          child: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900)),
+          child: Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900)),
         ),
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF15D36B),
@@ -1131,11 +1139,14 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
   Widget _outlineActionButton(String label, IconData icon, Future<void> Function() onPressed, {bool danger = false}) {
     final color = danger ? const Color(0xFFE53E3E) : const Color(0xFF1B5E20);
     return SizedBox(
-      height: 38,
+      height: 42,
       child: OutlinedButton.icon(
         onPressed: widget.isSyncing ? null : () => onPressed(),
         icon: Icon(icon, size: 15),
-        label: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900)),
+        label: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900)),
+        ),
         style: OutlinedButton.styleFrom(
           foregroundColor: color,
           side: BorderSide(color: color),

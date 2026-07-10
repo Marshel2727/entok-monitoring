@@ -12,6 +12,7 @@
 #define API_BASE_URL "https://api-entok.bengkelit.id/api"
 #define DEVICE_API_KEY "CHANGE_THIS_TO_MATCH_IOT_DEVICE_API_KEY"
 #define TIMBANGAN_ID 2
+#define FIRMWARE_VERSION "timbangan2-2026.07.10"
 
 // ================= LCD I2C =================
 #define LCD_ADDR 0x27
@@ -25,7 +26,7 @@
 #define LOADCELL_SCK_PIN 17
 #define CALIBRATION_FACTOR 6304.998047
 #define ZERO_THRESHOLD 0.050
-#define WEIGHT_TOLERANCE_PERCENT 35.0
+#define WEIGHT_TOLERANCE_PERCENT 15.0
 #define WEIGHT_TOLERANCE_MIN_KG 0.030
 #define WEIGHT_OVERRIDE_MS 6000
 #define FAST_WEIGHT_SAMPLES 15
@@ -39,6 +40,10 @@
 // ================= API =================
 #define API_RETRY_COUNT 2
 #define API_RETRY_DELAY_MS 800
+#define HEARTBEAT_INTERVAL_MS 30000
+#define BATCH_STATUS_POLL_MS 15000
+#define AUTO_SEND_RETRY_MIN_MS 5000
+#define AUTO_SEND_RETRY_MAX_MS 120000
 
 // ================= KEYPAD =================
 #define ROW1_PIN 13

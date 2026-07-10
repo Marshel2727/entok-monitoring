@@ -260,7 +260,7 @@ class FeedingBatchSchema(BaseSchema):
     task_id = UUIDString(allow_none=True)
     task_execution_id = UUIDString(allow_none=True)
     keeper_id = UUIDString(dump_only=True)
-    status = fields.Str(dump_only=True, validate=validate.OneOf(['PREPARING', 'READY_TO_FINALIZE', 'FINALIZED', 'CANCELLED']))
+    status = fields.Str(dump_only=True, validate=validate.OneOf(['PREPARING', 'WEIGHING', 'READY_TO_FINALIZE', 'FINALIZED', 'CANCELLED']))
     tolerance_percent = fields.Float(load_default=10.0, validate=validate.Range(min=0, max=100))
     notes = fields.Str(allow_none=True, validate=validate.Length(max=1000))
 
@@ -282,6 +282,7 @@ class FeedingBatchIngredientSchema(BaseSchema):
 
 
 class FeedingBatchScaleReadingSchema(BaseSchema):
+    request_id = fields.Str(allow_none=True, validate=validate.Length(min=8, max=100))
     batch_id = UUIDString(allow_none=True)
     ingredient_id = fields.Int(validate=validate.Range(min=1))
     feed_id = UUIDString(allow_none=True)
@@ -339,6 +340,7 @@ class FeedingBatchScaleReadingBulkItemSchema(BaseSchema):
 
 
 class FeedingBatchScaleReadingBulkSchema(BaseSchema):
+    request_id = fields.Str(allow_none=True, validate=validate.Length(min=8, max=100))
     batch_id = UUIDString(allow_none=True)
     timbangan_id = fields.Int(load_default=2, validate=validate.Range(min=1))
     date = fields.Str(allow_none=True, validate=validate.Regexp(r'^\d{4}-\d{2}-\d{2}$', error='Format tanggal harus YYYY-MM-DD.'))
@@ -356,6 +358,11 @@ class FeedingBatchWeightSchema(BaseSchema):
     ingredient_id = fields.Int(required=True, validate=validate.Range(min=1))
     amount = fields.Float(required=True, validate=validate.Range(min=0))
     timbangan_id = fields.Int(load_default=2, validate=validate.Range(min=1))
+
+
+class TimbanganHeartbeatSchema(BaseSchema):
+    firmware_version = fields.Str(allow_none=True, validate=validate.Length(max=50))
+    sent_at = fields.DateTime(allow_none=True)
 
 
 class ActivityLogSchema(BaseSchema):

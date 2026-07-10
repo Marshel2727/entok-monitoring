@@ -1,0 +1,145 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">
+  <defs>
+    <style>
+      .bg { fill: #f4fbf7; }
+      .panel { fill: #ffffff; stroke: #cfe6d9; stroke-width: 3; }
+      .title { font: 800 42px Arial, sans-serif; fill: #0f2a1f; }
+      .subtitle { font: 600 22px Arial, sans-serif; fill: #537365; }
+      .key { fill: #f8fffb; stroke: #10c76a; stroke-width: 4; }
+      .key-action { fill: #e9fff3; stroke: #10c76a; stroke-width: 4; }
+      .key-danger { fill: #fff5f5; stroke: #ef4444; stroke-width: 4; }
+      .key-primary { fill: #ecfdf5; stroke: #059669; stroke-width: 5; }
+      .key-label { font: 800 42px Arial, sans-serif; fill: #0f2a1f; text-anchor: middle; dominant-baseline: middle; }
+      .key-help { font: 700 16px Arial, sans-serif; fill: #355447; text-anchor: middle; }
+      .legend-title { font: 800 24px Arial, sans-serif; fill: #0f2a1f; }
+      .legend-text { font: 600 20px Arial, sans-serif; fill: #28473a; }
+      .small { font: 600 17px Arial, sans-serif; fill: #60786d; }
+      .lcd { fill: #10251c; stroke: #10c76a; stroke-width: 3; }
+      .lcd-text { font: 700 24px "Courier New", monospace; fill: #8cffb8; }
+      .pill { fill: #e8fff2; stroke: #a7eac5; stroke-width: 2; }
+      .pill-text { font: 800 18px Arial, sans-serif; fill: #059669; text-anchor: middle; dominant-baseline: middle; }
+    </style>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1200" height="900"/>
+
+  <text class="title" x="60" y="76">Panduan Keypad Timbangan 2</text>
+  <text class="subtitle" x="60" y="112">Mode racikan per fase: timbang semua bahan dalam satu fase, lalu tekan D untuk kirim ke API.</text>
+
+  <rect class="panel" x="55" y="145" width="520" height="690" rx="18"/>
+  <text class="legend-title" x="95" y="198">Layout Keypad 4x4</text>
+
+  <!-- keypad grid -->
+  <g transform="translate(95 230)">
+    <!-- row 1 -->
+    <rect class="key" x="0" y="0" width="100" height="100" rx="16"/>
+    <text class="key-label" x="50" y="40">1</text>
+    <text class="key-help" x="50" y="74">Pilih item</text>
+
+    <rect class="key" x="120" y="0" width="100" height="100" rx="16"/>
+    <text class="key-label" x="170" y="40">2</text>
+    <text class="key-help" x="170" y="74">Pilih item</text>
+
+    <rect class="key" x="240" y="0" width="100" height="100" rx="16"/>
+    <text class="key-label" x="290" y="40">3</text>
+    <text class="key-help" x="290" y="74">Pilih item</text>
+
+    <rect class="key-action" x="360" y="0" width="100" height="100" rx="16"/>
+    <text class="key-label" x="410" y="40">A</text>
+    <text class="key-help" x="410" y="74">TARE</text>
+
+    <!-- row 2 -->
+    <rect class="key" x="0" y="120" width="100" height="100" rx="16"/>
+    <text class="key-label" x="50" y="160">4</text>
+    <text class="key-help" x="50" y="194">Pilih item</text>
+
+    <rect class="key" x="120" y="120" width="100" height="100" rx="16"/>
+    <text class="key-label" x="170" y="160">5</text>
+    <text class="key-help" x="170" y="194">Pilih item</text>
+
+    <rect class="key" x="240" y="120" width="100" height="100" rx="16"/>
+    <text class="key-label" x="290" y="160">6</text>
+    <text class="key-help" x="290" y="194">Pilih item</text>
+
+    <rect class="key-primary" x="360" y="120" width="100" height="100" rx="16"/>
+    <text class="key-label" x="410" y="160">B</text>
+    <text class="key-help" x="410" y="194">SIMPAN</text>
+
+    <!-- row 3 -->
+    <rect class="key" x="0" y="240" width="100" height="100" rx="16"/>
+    <text class="key-label" x="50" y="280">7</text>
+    <text class="key-help" x="50" y="314">Pilih item</text>
+
+    <rect class="key" x="120" y="240" width="100" height="100" rx="16"/>
+    <text class="key-label" x="170" y="280">8</text>
+    <text class="key-help" x="170" y="314">Pilih item</text>
+
+    <rect class="key" x="240" y="240" width="100" height="100" rx="16"/>
+    <text class="key-label" x="290" y="280">9</text>
+    <text class="key-help" x="290" y="314">Pilih item</text>
+
+    <rect class="key-action" x="360" y="240" width="100" height="100" rx="16"/>
+    <text class="key-label" x="410" y="280">C</text>
+    <text class="key-help" x="410" y="314">MUNDUR</text>
+
+    <!-- row 4 -->
+    <rect class="key-danger" x="0" y="360" width="100" height="100" rx="16"/>
+    <text class="key-label" x="50" y="400">*</text>
+    <text class="key-help" x="50" y="434">Batal/Hapus</text>
+
+    <rect class="key" x="120" y="360" width="100" height="100" rx="16"/>
+    <text class="key-label" x="170" y="400">0</text>
+    <text class="key-help" x="170" y="434">Pilih item</text>
+
+    <rect class="key-primary" x="240" y="360" width="100" height="100" rx="16"/>
+    <text class="key-label" x="290" y="400">#</text>
+    <text class="key-help" x="290" y="434">OK/Mulai</text>
+
+    <rect class="key-primary" x="360" y="360" width="100" height="100" rx="16"/>
+    <text class="key-label" x="410" y="400">D</text>
+    <text class="key-help" x="410" y="434">Kirim fase</text>
+  </g>
+
+  <rect class="panel" x="620" y="145" width="525" height="690" rx="18"/>
+  <text class="legend-title" x="660" y="198">Fungsi Tombol</text>
+
+  <g transform="translate(660 230)">
+    <rect class="pill" x="0" y="0" width="82" height="38" rx="19"/>
+    <text class="pill-text" x="41" y="20">1-9/0</text>
+    <text class="legend-text" x="105" y="26">Masukkan nomor item, lalu tekan #.</text>
+    <text class="small" x="105" y="54">Hanya untuk item yang sesuai urutan/fase aktif.</text>
+
+    <rect class="pill" x="0" y="92" width="82" height="38" rx="19"/>
+    <text class="pill-text" x="41" y="112">#</text>
+    <text class="legend-text" x="105" y="118">OK, ambil target, mulai timbang, atau lihat progress.</text>
+
+    <rect class="pill" x="0" y="168" width="82" height="38" rx="19"/>
+    <text class="pill-text" x="41" y="188">A</text>
+    <text class="legend-text" x="105" y="194">Tare / nol-kan timbangan.</text>
+    <text class="small" x="105" y="222">Gunakan saat wadah kosong atau sebelum bahan baru.</text>
+
+    <rect class="pill" x="0" y="260" width="82" height="38" rx="19"/>
+    <text class="pill-text" x="41" y="280">B</text>
+    <text class="legend-text" x="105" y="286">Simpan berat bahan saat ini.</text>
+    <text class="small" x="105" y="314">Data masih ditahan lokal sampai fase lengkap.</text>
+
+    <rect class="pill" x="0" y="352" width="82" height="38" rx="19"/>
+    <text class="pill-text" x="41" y="372">C</text>
+    <text class="legend-text" x="105" y="378">Mundur ke item sebelumnya.</text>
+
+    <rect class="pill" x="0" y="428" width="82" height="38" rx="19"/>
+    <text class="pill-text" x="41" y="448">D</text>
+    <text class="legend-text" x="105" y="454">Kirim semua bahan fase aktif ke API.</text>
+    <text class="small" x="105" y="482">Hanya bisa dipakai setelah fase lengkap.</text>
+
+    <rect class="pill" x="0" y="520" width="82" height="38" rx="19"/>
+    <text class="pill-text" x="41" y="540">*</text>
+    <text class="legend-text" x="105" y="546">Batal input nomor atau hapus item aktif.</text>
+  </g>
+
+  <rect class="lcd" x="660" y="775" width="430" height="82" rx="12"/>
+  <text class="lcd-text" x="690" y="809">G1 DDK #03</text>
+  <text class="lcd-text" x="690" y="842">B:0.000 T:0.180</text>
+
+  <text class="small" x="60" y="870">Alur normal: # ambil target - # mulai - B simpan bahan - D kirim fase setelah semua bahan fase lengkap.</text>
+</svg>

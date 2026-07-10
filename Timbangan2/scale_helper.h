@@ -4,6 +4,8 @@
 #include "HX711.h"
 #include "config.h"
 #include "display_helper.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 HX711 scale;
 
@@ -64,33 +66,16 @@ float smoothDisplayWeight(float weight) {
   return clampNoise(displayWeight);
 }
 
-void setupScale() {
-  scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
-  scale.set_scale(CALIBRATION_FACTOR);
-
-  printLine(0, "TARE AWAL");
-  printLine(1, "Kosongkan alat");
-  delay(3000);
-
-  scale.tare(TARE_SAMPLES);
-  displayWeightReady = false;
-  displayWeight = 0;
-
-  printLine(0, "TARE SELESAI");
-  printLine(1, "");
-  delay(1000);
-}
-
 float normalizeWeight(float weight) {
   return clampNoise(weight);
 }
 
-float readWeightFast() {
+float readWeightFastBlocking() {
   float weight = scale.get_units(FAST_WEIGHT_SAMPLES);
   return smoothDisplayWeight(weight);
 }
 
-float readWeightStable() {
+float readWeightStableBlocking() {
   const int count = STABLE_WEIGHT_WINDOWS;
   float data[count];
 
@@ -124,26 +109,108 @@ float readWeightStable() {
   return normalizeWeight(stable);
 }
 
-void doTare() {
-  printLine(0, "TARE...");
-  printLine(1, "Jangan sentuh");
-  delay(500);
+static portMUX_TYPE hx711Mux = portMUX_INITIALIZER_UNLOCKED;
 
-  scale.tare(AUTO_TARE_SAMPLES);
-  currentWeight = 0;
-  displayWeight = 0;
-  displayWeightReady = false;
+enum HxCommand { HX_IDLE, HX_CMD_STABLE, HX_CMD_TARE };
 
-  printLine(0, "TARE SELESAI");
-  printLine(1, "");
-  delay(700);
+volatile HxCommand hxCommand = HX_IDLE;
+volatile bool hxResultReady = false;
+volatile float hxResultWeight = 0;
+volatile float hxLiveWeight = 0;
 
-  if (weighingStarted) {
-    displayCurrentItem();
-  } else {
-    showStartPrompt();
+TaskHandle_t hx711TaskHandle = NULL;
+
+void hx711TaskFn(void *pvParameters) {
+  for (;;) {
+    HxCommand cmd;
+    portENTER_CRITICAL(&hx711Mux);
+    cmd = hxCommand;
+    portEXIT_CRITICAL(&hx711Mux);
+
+    if (cmd == HX_CMD_STABLE) {
+      float result = readWeightStableBlocking();
+      portENTER_CRITICAL(&hx711Mux);
+      hxResultWeight = result;
+      hxResultReady = true;
+      hxCommand = HX_IDLE;
+      portEXIT_CRITICAL(&hx711Mux);
+    } else if (cmd == HX_CMD_TARE) {
+      scale.tare(AUTO_TARE_SAMPLES);
+      portENTER_CRITICAL(&hx711Mux);
+      hxResultWeight = 0;
+      hxResultReady = true;
+      hxCommand = HX_IDLE;
+      portEXIT_CRITICAL(&hx711Mux);
+    } else {
+      float w = readWeightFastBlocking();
+      portENTER_CRITICAL(&hx711Mux);
+      hxLiveWeight = w;
+      portEXIT_CRITICAL(&hx711Mux);
+    }
+
+    vTaskDelay(1);
   }
 }
 
-#endif
+void startHx711Task() {
+  xTaskCreatePinnedToCore(hx711TaskFn, "hx711Task", 4096, NULL, 1, &hx711TaskHandle, 0);
+}
 
+float getLiveWeight() {
+  float w;
+  portENTER_CRITICAL(&hx711Mux);
+  w = hxLiveWeight;
+  portEXIT_CRITICAL(&hx711Mux);
+  return w;
+}
+
+void requestStableRead() {
+  portENTER_CRITICAL(&hx711Mux);
+  hxResultReady = false;
+  hxCommand = HX_CMD_STABLE;
+  portEXIT_CRITICAL(&hx711Mux);
+}
+
+void requestTare() {
+  portENTER_CRITICAL(&hx711Mux);
+  hxResultReady = false;
+  hxCommand = HX_CMD_TARE;
+  portEXIT_CRITICAL(&hx711Mux);
+}
+
+bool pollHxResult(float &outWeight) {
+  bool ready;
+  float w;
+
+  portENTER_CRITICAL(&hx711Mux);
+  ready = hxResultReady;
+  w = hxResultWeight;
+  if (ready) {
+    hxResultReady = false;
+  }
+  portEXIT_CRITICAL(&hx711Mux);
+
+  if (ready) {
+    outWeight = w;
+  }
+  return ready;
+}
+
+void setupScale() {
+  scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
+  scale.set_scale(CALIBRATION_FACTOR);
+
+  printLine(0, "TARE AWAL");
+  printLine(1, "Kosongkan alat");
+  delay(3000);
+
+  scale.tare(TARE_SAMPLES);
+  displayWeightReady = false;
+  displayWeight = 0;
+
+  printLine(0, "TARE SELESAI");
+  printLine(1, "");
+  delay(1000);
+}
+
+#endif

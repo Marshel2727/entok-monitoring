@@ -314,7 +314,7 @@ def reset_daily_checklist(date_str, keeper_id):
 
     batches = FeedingBatch.query.filter(
         FeedingBatch.batch_date == query_date,
-        FeedingBatch.status.in_(('PREPARING', 'READY_TO_FINALIZE', 'FINALIZED'))
+        FeedingBatch.status.in_(('PREPARING', 'WEIGHING', 'READY_TO_FINALIZE', 'FINALIZED'))
     ).all()
 
     for batch in batches:

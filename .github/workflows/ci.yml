@@ -19,12 +19,12 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.11'
+        python-version: '3.12'
 
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
 
     - name: Lint with flake8
       run: |
@@ -32,6 +32,9 @@ jobs:
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+    - name: Run backend tests
+      run: pytest -q
 
   frontend-ci:
     runs-on: ubuntu-latest
@@ -50,10 +53,62 @@ jobs:
         cache-dependency-path: frontend/package-lock.json
 
     - name: Install dependencies
-      run: npm install
+      run: npm ci
 
     - name: Lint with ESLint
       run: npm run lint
 
+    - name: Typecheck
+      run: npx tsc --noEmit
+
     - name: Build project
       run: npm run build
+
+  flutter-ci:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./apk-mobile-entok
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        channel: stable
+        cache: true
+
+    - name: Install dependencies
+      run: flutter pub get
+
+    - name: Analyze
+      run: flutter analyze --no-fatal-warnings --no-fatal-infos
+
+    - name: Run Flutter tests
+      run: flutter test
+
+    - name: Compile debug APK
+      run: flutter build apk --debug
+
+  firmware-ci:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Arduino CLI
+      uses: arduino/setup-arduino-cli@v2
+
+    - name: Install ESP32 core and libraries
+      run: |
+        arduino-cli config init
+        arduino-cli core update-index --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+        arduino-cli core install esp32:esp32 --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+        arduino-cli lib install "HX711" "Keypad" "LiquidCrystal I2C" "ArduinoJson@6.21.5"
+
+    - name: Prepare firmware config
+      run: cp Timbangan2/config.example.h Timbangan2/config.h
+
+    - name: Compile Timbangan 2
+      run: arduino-cli compile --fqbn esp32:esp32:esp32 Timbangan2

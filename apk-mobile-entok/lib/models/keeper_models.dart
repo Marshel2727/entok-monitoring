@@ -298,8 +298,9 @@ class FeedingBatch {
   });
 
   bool get isFinalized => status == 'FINALIZED';
+  bool get isWeighing => status == 'WEIGHING';
   bool get isReadyToFinalize => status == 'READY_TO_FINALIZE';
-  bool get isPreparing => status == 'PREPARING' || isReadyToFinalize;
+  bool get isPreparing => status == 'PREPARING' || isWeighing || isReadyToFinalize;
   bool get hasScaleData => ingredients.any((item) => item.weighedAmount > 0 || item.deductedAmount > 0);
 
   factory FeedingBatch.fromJson(Map<String, dynamic> json) {

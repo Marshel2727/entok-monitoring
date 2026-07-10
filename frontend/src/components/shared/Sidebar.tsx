@@ -19,7 +19,8 @@ import {
   LuChevronRight,
   LuStore,
   LuBookOpen,
-  LuUsers
+  LuUsers,
+  LuActivity
 } from 'react-icons/lu';
 
 interface MenuItem {
@@ -93,6 +94,10 @@ export default function Sidebar() {
     {
       type: 'item',
       data: { name: 'RIWAYAT AKTIVITAS', icon: <LuHistory size={16} />, path: '/dashboard/riwayat' }
+    },
+    {
+      type: 'item',
+      data: { name: 'KESEHATAN SISTEM', icon: <LuActivity size={16} />, path: '/dashboard/kesehatan-sistem' }
     }
   ];
 

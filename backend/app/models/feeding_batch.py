@@ -12,7 +12,11 @@ class FeedingBatch(db.Model):
     task_id = db.Column(db.String(50), db.ForeignKey('tasks.id', ondelete='SET NULL'), nullable=True, index=True)
     task_execution_id = db.Column(db.String(50), db.ForeignKey('task_executions.id', ondelete='SET NULL'), nullable=True, index=True)
     keeper_id = db.Column(db.String(50), db.ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
-    status = db.Column(db.Enum('PREPARING', 'READY_TO_FINALIZE', 'FINALIZED', 'CANCELLED', name='feeding_batch_status'), nullable=False, default='PREPARING')
+    status = db.Column(
+        db.Enum('PREPARING', 'WEIGHING', 'READY_TO_FINALIZE', 'FINALIZED', 'CANCELLED', name='feeding_batch_status'),
+        nullable=False,
+        default='PREPARING'
+    )
     tolerance_percent = db.Column(db.Float, nullable=False, default=10.0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     finalized_at = db.Column(db.DateTime, nullable=True)

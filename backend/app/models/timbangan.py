@@ -1,4 +1,5 @@
 # app/models/timbangan.py
+import os
 import uuid
 from datetime import datetime
 from app.utils.db import db
@@ -19,6 +20,12 @@ class Timbangan(db.Model):
     tipe = db.Column(db.Enum('DEDICATED', 'MULTI', name='timbangan_tipe'), nullable=False, default='DEDICATED')
     status = db.Column(db.Enum('ONLINE', 'OFFLINE', name='timbangan_status'), nullable=False, default='OFFLINE')
     default_label = db.Column(db.String(100), nullable=True)  # Label tetap untuk tipe DEDICATED (e.g. "Dedak", "Entok")
+    last_seen_at = db.Column(db.DateTime, nullable=True, index=True)
+    firmware_version = db.Column(db.String(50), nullable=True)
+    last_ip = db.Column(db.String(45), nullable=True)
+    device_key_hash = db.Column(db.String(64), nullable=True)
+    device_key_prefix = db.Column(db.String(16), nullable=True)
+    device_key_revoked_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -28,13 +35,25 @@ class Timbangan(db.Model):
     def to_dict(self):
         # Ambil reading terakhir untuk info status
         last_reading = self.readings.order_by(TimbanganReading.recorded_at.desc()).first()
+        offline_seconds = int(os.getenv('DEVICE_OFFLINE_SECONDS', '90'))
+        is_recent = bool(
+            self.last_seen_at
+            and (datetime.utcnow() - self.last_seen_at).total_seconds() <= offline_seconds
+        )
+        effective_status = 'ONLINE' if self.status == 'ONLINE' and is_recent else 'OFFLINE'
         return {
             'id': self.id,
             'nama': self.nama,
             'deskripsi': self.deskripsi,
             'tipe': self.tipe,
-            'status': self.status,
+            'status': effective_status,
             'default_label': self.default_label,
+            'last_seen_at': format_wita_iso(self.last_seen_at),
+            'firmware_version': self.firmware_version,
+            'last_ip': self.last_ip,
+            'credential_configured': bool(self.device_key_hash),
+            'device_key_prefix': self.device_key_prefix,
+            'device_key_revoked': self.device_key_revoked_at is not None,
             'last_reading': last_reading.to_dict() if last_reading else None,
             'created_at': format_wita_iso(self.created_at),
             'updated_at': format_wita_iso(self.updated_at)
@@ -71,3 +90,22 @@ class TimbanganReading(db.Model):
             'feed_id': self.feed_id,
             'recorded_at': format_wita_iso(self.recorded_at)
         }
+
+
+class TimbanganRequest(db.Model):
+    """Idempotency record for requests sent by an IoT scale."""
+    __tablename__ = 'timbangan_requests'
+    __table_args__ = (
+        db.UniqueConstraint('timbangan_id', 'endpoint', 'request_id', name='uq_timbangan_request'),
+    )
+
+    id = db.Column(db.String(50), primary_key=True, default=lambda: str(uuid.uuid4()))
+    timbangan_id = db.Column(db.Integer, db.ForeignKey('timbangan.id', ondelete='CASCADE'), nullable=False, index=True)
+    endpoint = db.Column(db.String(50), nullable=False)
+    request_id = db.Column(db.String(100), nullable=False)
+    payload_hash = db.Column(db.String(64), nullable=False)
+    batch_id = db.Column(db.String(50), db.ForeignKey('feeding_batches.id', ondelete='SET NULL'), nullable=True, index=True)
+    response_code = db.Column(db.Integer, nullable=True)
+    response_payload = db.Column(db.JSON, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    completed_at = db.Column(db.DateTime, nullable=True)

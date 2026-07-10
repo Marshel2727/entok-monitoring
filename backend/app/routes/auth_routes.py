@@ -1,13 +1,15 @@
 # app/routes/auth_routes.py
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from app.utils.decorators import token_required, roles_allowed
 from app.utils.cache import cached_json
 from app.service import auth_service
 from app.schemas import LoginSchema, PublicRegisterSchema, UserSchema, UserUpdateSchema, load_or_error
+from app.utils.rate_limit import rate_limit
 
 auth_bp = Blueprint('auth_bp', __name__)
 
 @auth_bp.route('/login', methods=['POST'])
+@rate_limit('LOGIN_RATE_LIMIT', 60)
 def login():
     """
     User Login
@@ -82,7 +84,14 @@ def update_profile(current_user):
     return jsonify(res), code
 
 @auth_bp.route('/register-public', methods=['POST'])
+@rate_limit(5, 3600)
 def register_public():
+    if not current_app.config.get('ALLOW_PUBLIC_REGISTRATION', False):
+        return jsonify({
+            'status': 'error',
+            'code': 'PUBLIC_REGISTRATION_DISABLED',
+            'message': 'Pendaftaran publik dinonaktifkan. Hubungi pengawas.',
+        }), 403
     data, error = load_or_error(PublicRegisterSchema(), request.get_json())
     if error:
         return jsonify(error[0]), error[1]

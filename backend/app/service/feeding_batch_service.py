@@ -1,21 +1,98 @@
 from datetime import datetime
-import pytz
+import hashlib
+import json
 from sqlalchemy import or_
+from sqlalchemy.exc import IntegrityError
 
 from app.utils.db import db
 from app.models.feed import Feed, FeedTransaction
 from app.models.formulation import Formulation
 from app.models.population import Population
 from app.models.growth_phase import GrowthPhase, normalize_phase_key
-from app.models.timbangan import Timbangan, TimbanganReading
+from app.models.timbangan import Timbangan, TimbanganReading, TimbanganRequest
 from app.models.feeding_batch import FeedingBatch, FeedingBatchIngredient
 from app.models.task import TaskExecution
 from app.realtime import emit_realtime_event
 from app.service.activity_service import create_log
+from app.utils.helpers import get_local_time
 
 PHASE_ORDER = ('starter', 'grower 1', 'grower 2', 'finisher')
-MUTABLE_BATCH_STATUSES = ('PREPARING', 'READY_TO_FINALIZE')
-VISIBLE_BATCH_STATUSES = ('PREPARING', 'READY_TO_FINALIZE', 'FINALIZED')
+MUTABLE_BATCH_STATUSES = ('PREPARING', 'WEIGHING', 'READY_TO_FINALIZE')
+VISIBLE_BATCH_STATUSES = ('PREPARING', 'WEIGHING', 'READY_TO_FINALIZE', 'FINALIZED')
+
+
+def _error(code, message, **extra):
+    payload = {'status': 'error', 'code': code, 'message': message}
+    payload.update(extra)
+    return payload
+
+
+def _payload_hash(data):
+    serialized = json.dumps(data, sort_keys=True, separators=(',', ':'), default=str)
+    return hashlib.sha256(serialized.encode('utf-8')).hexdigest()
+
+
+def _replay_device_request(timbangan_id, endpoint, request_id, data):
+    if not request_id:
+        return None
+    payload_hash = _payload_hash(data)
+    existing = TimbanganRequest.query.filter_by(
+        timbangan_id=timbangan_id,
+        endpoint=endpoint,
+        request_id=request_id,
+    ).first()
+    if not existing:
+        return None
+    if existing.payload_hash != payload_hash:
+        return _error('REQUEST_ID_CONFLICT', 'request_id sudah pernah dipakai dengan payload berbeda.'), 409
+    if existing.response_payload is not None:
+        response = dict(existing.response_payload)
+        response['idempotent_replay'] = True
+        return response, existing.response_code or 200
+    return _error('REQUEST_IN_PROGRESS', 'Request yang sama sedang diproses.'), 409
+
+
+def _claim_device_request(timbangan_id, endpoint, request_id, data, batch_id=None):
+    if not request_id:
+        return None, None
+
+    payload_hash = _payload_hash(data)
+    replay = _replay_device_request(timbangan_id, endpoint, request_id, data)
+    if replay:
+        return None, replay
+
+    record = TimbanganRequest(
+        timbangan_id=timbangan_id,
+        endpoint=endpoint,
+        request_id=request_id,
+        payload_hash=payload_hash,
+        batch_id=batch_id,
+    )
+    db.session.add(record)
+    try:
+        db.session.flush()
+    except IntegrityError:
+        db.session.rollback()
+        existing = TimbanganRequest.query.filter_by(
+            timbangan_id=timbangan_id,
+            endpoint=endpoint,
+            request_id=request_id,
+        ).first()
+        if existing and existing.payload_hash == payload_hash and existing.response_payload is not None:
+            response = dict(existing.response_payload)
+            response['idempotent_replay'] = True
+            return None, (response, existing.response_code or 200)
+        return None, (_error('REQUEST_IN_PROGRESS', 'Request yang sama sedang diproses.'), 409)
+    return record, None
+
+
+def _complete_device_request(record, batch, response, response_code=200):
+    if not record:
+        return
+    record.batch_id = batch.id if batch else record.batch_id
+    record.response_code = response_code
+    record.response_payload = response
+    record.completed_at = datetime.utcnow()
 
 
 def _emit_batch_updated(action, batch, extra=None):
@@ -42,7 +119,7 @@ def _emit_batch_stock_updated(action, batch):
 
 
 def _today_wita():
-    return datetime.now(pytz.timezone('Asia/Makassar')).date()
+    return get_local_time().date()
 
 
 def _parse_date(date_str=None):
@@ -241,7 +318,12 @@ def _sync_batch_weighing_status(batch):
     if batch.status not in MUTABLE_BATCH_STATUSES:
         return
 
-    batch.status = 'READY_TO_FINALIZE' if _batch_scale_is_complete(batch) else 'PREPARING'
+    if _batch_scale_is_complete(batch):
+        batch.status = 'READY_TO_FINALIZE'
+    elif _batch_has_scale_data(batch):
+        batch.status = 'WEIGHING'
+    else:
+        batch.status = 'PREPARING'
 
 
 def _select_scale_batch(batches):
@@ -433,6 +515,7 @@ def _get_active_batch_for_scale(date_str, user_id=None):
 
     return None, {
         'status': 'error',
+        'code': 'BATCH_NOT_ACTIVE',
         'message': 'Belum ada batch racikan misi pakan aktif. Siapkan target racikan dari card tugas Beri Pakan.'
     }, 400
 
@@ -443,16 +526,16 @@ def _get_batch_for_scale(date_str=None, user_id=None, batch_id=None):
 
     batch = FeedingBatch.query.get(batch_id)
     if not batch:
-        return None, {'status': 'error', 'message': 'Batch racikan dari timbangan tidak ditemukan'}, 404
+        return None, _error('BATCH_NOT_FOUND', 'Batch racikan dari timbangan tidak ditemukan'), 404
     if batch.status not in MUTABLE_BATCH_STATUSES:
-        return None, {'status': 'error', 'message': 'Batch racikan sudah tidak bisa menerima data timbangan'}, 400
+        return None, _error('BATCH_NOT_MUTABLE', 'Batch racikan sudah tidak bisa menerima data timbangan'), 400
 
     if date_str:
         batch_date, error = _parse_date(date_str)
         if error:
             return None, error, 400
         if batch.batch_date != batch_date:
-            return None, {'status': 'error', 'message': 'Tanggal data timbangan tidak cocok dengan batch racikan'}, 400
+            return None, _error('BATCH_DATE_MISMATCH', 'Tanggal data timbangan tidak cocok dengan batch racikan'), 400
 
     response, code = create_batch(
         user_id,
@@ -509,9 +592,9 @@ def get_scale_map(timbangan_id=2, date_str=None, user_id=None, batch_id=None):
     """
     timbangan = Timbangan.query.get(timbangan_id)
     if not timbangan:
-        return {'status': 'error', 'message': f'Timbangan dengan ID {timbangan_id} tidak terdaftar'}, 404
+        return _error('DEVICE_NOT_FOUND', f'Timbangan dengan ID {timbangan_id} tidak terdaftar'), 404
     if timbangan.tipe != 'MULTI':
-        return {'status': 'error', 'message': 'Scale map hanya tersedia untuk timbangan tipe MULTI'}, 400
+        return _error('DEVICE_TYPE_INVALID', 'Scale map hanya tersedia untuk timbangan tipe MULTI'), 400
 
     batch, error, code = _get_batch_for_scale(date_str, user_id, batch_id)
     if error:
@@ -524,6 +607,7 @@ def get_scale_map(timbangan_id=2, date_str=None, user_id=None, batch_id=None):
         'status': 'success',
         'message': 'Scale map Timbangan 2 siap',
         'batch_id': batch.id,
+        'batch_status': batch.status,
         'date': batch.batch_date.isoformat() if batch.batch_date else None,
         'timbangan_id': timbangan.id,
         'tolerance_percent': batch.tolerance_percent,
@@ -627,6 +711,7 @@ def _apply_scale_reading_to_batch(batch, timbangan, reading_data):
     _sync_batch_weighing_status(batch)
 
     timbangan.status = 'ONLINE'
+    timbangan.last_seen_at = datetime.utcnow()
     reading = TimbanganReading(
         timbangan_id=timbangan.id,
         value=round(value, 3),
@@ -655,20 +740,42 @@ def record_scale_reading(data, user_id=None):
     if error:
         return error, code
 
+    timbangan = Timbangan.query.get(reading_data['timbangan_id'])
+    if not timbangan:
+        return _error('DEVICE_NOT_FOUND', f'Timbangan dengan ID {reading_data["timbangan_id"]} tidak terdaftar'), 404
+    if timbangan.tipe != 'MULTI':
+        return _error('DEVICE_TYPE_INVALID', 'Racikan pakan harus dikirim dari timbangan tipe MULTI'), 400
+
+    request_id = (data.get('request_id') or '').strip() or None
+    replay = _replay_device_request(timbangan.id, 'scale-reading', request_id, data)
+    if replay:
+        return replay
+
     batch, error, code = _get_batch_for_scale(data.get('date'), user_id, data.get('batch_id'))
     if error:
         return error, code
 
-    timbangan = Timbangan.query.get(reading_data['timbangan_id'])
-    if not timbangan:
-        return {'status': 'error', 'message': f'Timbangan dengan ID {reading_data["timbangan_id"]} tidak terdaftar'}, 404
-    if timbangan.tipe != 'MULTI':
-        return {'status': 'error', 'message': 'Racikan pakan harus dikirim dari timbangan tipe MULTI'}, 400
+    request_record, replay = _claim_device_request(
+        timbangan.id,
+        'scale-reading',
+        request_id,
+        data,
+        batch.id,
+    )
+    if replay:
+        return replay
 
     applied, error, code = _apply_scale_reading_to_batch(batch, timbangan, reading_data)
     if error:
+        db.session.rollback()
         return error, code
 
+    response = {
+        'status': 'success',
+        'message': 'Data racikan dari timbangan berhasil masuk ke batch',
+        'data': batch.to_dict()
+    }
+    _complete_device_request(request_record, batch, response)
     db.session.commit()
     emit_realtime_event('scale_reading_created', {
         'timbangan_id': timbangan.id,
@@ -683,11 +790,7 @@ def record_scale_reading(data, user_id=None):
         'ingredient_id': applied.get('ingredient_id') if applied else None,
     })
 
-    return {
-        'status': 'success',
-        'message': 'Data racikan dari timbangan berhasil masuk ke batch',
-        'data': batch.to_dict()
-    }, 200
+    return response, 200
 
 
 def record_scale_readings_bulk(data, user_id=None):
@@ -701,15 +804,30 @@ def record_scale_readings_bulk(data, user_id=None):
     if not batch_id and items:
         batch_id = items[0].get('batch_id')
 
+    timbangan = Timbangan.query.get(timbangan_id)
+    if not timbangan:
+        return _error('DEVICE_NOT_FOUND', f'Timbangan dengan ID {timbangan_id} tidak terdaftar'), 404
+    if timbangan.tipe != 'MULTI':
+        return _error('DEVICE_TYPE_INVALID', 'Racikan pakan harus dikirim dari timbangan tipe MULTI'), 400
+
+    request_id = (data.get('request_id') or '').strip() or None
+    replay = _replay_device_request(timbangan.id, 'scale-readings-bulk', request_id, data)
+    if replay:
+        return replay
+
     batch, error, code = _get_batch_for_scale(data.get('date'), user_id, batch_id)
     if error:
         return error, code
 
-    timbangan = Timbangan.query.get(timbangan_id)
-    if not timbangan:
-        return {'status': 'error', 'message': f'Timbangan dengan ID {timbangan_id} tidak terdaftar'}, 404
-    if timbangan.tipe != 'MULTI':
-        return {'status': 'error', 'message': 'Racikan pakan harus dikirim dari timbangan tipe MULTI'}, 400
+    request_record, replay = _claim_device_request(
+        timbangan.id,
+        'scale-readings-bulk',
+        request_id,
+        data,
+        batch.id,
+    )
+    if replay:
+        return replay
 
     applied_items = []
     try:
@@ -750,6 +868,13 @@ def record_scale_readings_bulk(data, user_id=None):
 
             applied_items.append(applied)
 
+        response = {
+            'status': 'success',
+            'message': f'{len(applied_items)} data racikan dari timbangan berhasil masuk ke batch',
+            'data': batch.to_dict(),
+            'applied_items': applied_items,
+        }
+        _complete_device_request(request_record, batch, response)
         db.session.commit()
     except Exception:
         db.session.rollback()
@@ -764,12 +889,7 @@ def record_scale_readings_bulk(data, user_id=None):
         'items_count': len(applied_items),
     })
 
-    return {
-        'status': 'success',
-        'message': f'{len(applied_items)} data racikan dari timbangan berhasil masuk ke batch',
-        'data': batch.to_dict(),
-        'applied_items': applied_items,
-    }, 200
+    return response, 200
 
 
 def record_weight(batch_id, ingredient_id, amount, user_id=None, timbangan_id=2):
@@ -829,101 +949,161 @@ def record_weight(batch_id, ingredient_id, amount, user_id=None, timbangan_id=2)
 
 
 def finalize_batch(batch_id, user_id=None):
-    batch = FeedingBatch.query.get(batch_id)
-    if not batch:
-        return {'status': 'error', 'message': 'Batch racikan tidak ditemukan'}, 404
-    if batch.status == 'FINALIZED':
-        return {'status': 'success', 'message': 'Batch racikan sudah final', 'data': batch.to_dict()}, 200
-    if batch.status not in MUTABLE_BATCH_STATUSES:
-        return {'status': 'error', 'message': 'Batch racikan tidak bisa difinalisasi'}, 400
+    try:
+        batch = FeedingBatch.query.with_for_update().filter_by(id=batch_id).first()
+        if not batch:
+            db.session.rollback()
+            return _error('BATCH_NOT_FOUND', 'Batch racikan tidak ditemukan'), 404
+        if batch.status == 'FINALIZED':
+            response = {
+                'status': 'success',
+                'code': 'BATCH_ALREADY_FINALIZED',
+                'message': 'Batch racikan sudah final. Stok tidak dipotong ulang.',
+                'idempotent_replay': True,
+                'data': batch.to_dict(),
+            }
+            db.session.commit()
+            return response, 200
+        if batch.status not in MUTABLE_BATCH_STATUSES:
+            db.session.rollback()
+            return _error('BATCH_NOT_FINALIZABLE', 'Batch racikan tidak bisa difinalisasi'), 400
 
-    missing = [f'{item.phase} - {item.feed_name}' for item in batch.ingredients if item.weighed_amount <= 0]
-    if missing:
-        return {'status': 'error', 'message': f'Bahan belum ditimbang: {", ".join(missing)}'}, 400
+        missing = [f'{item.phase} - {item.feed_name}' for item in batch.ingredients if item.weighed_amount <= 0]
+        if missing:
+            db.session.rollback()
+            return _error('BATCH_INCOMPLETE', f'Bahan belum ditimbang: {", ".join(missing)}', items=missing), 400
 
-    out_of_tolerance = []
-    for item in batch.ingredients:
-        tolerance = max(0.05, item.planned_amount * (batch.tolerance_percent / 100.0))
-        if abs(item.weighed_amount - item.planned_amount) > tolerance:
-            out_of_tolerance.append(
-                f'{item.feed_name} target {item.planned_amount:.2f} kg, timbang {item.weighed_amount:.2f} kg'
-            )
+        out_of_tolerance = []
+        for item in batch.ingredients:
+            tolerance = max(0.05, item.planned_amount * (batch.tolerance_percent / 100.0))
+            if abs(item.weighed_amount - item.planned_amount) > tolerance:
+                out_of_tolerance.append(
+                    f'{item.feed_name} target {item.planned_amount:.2f} kg, timbang {item.weighed_amount:.2f} kg'
+                )
 
-    if out_of_tolerance:
-        return {
-            'status': 'error',
-            'message': 'Hasil timbang belum sesuai toleransi: ' + '; '.join(out_of_tolerance)
-        }, 400
+        warning = None
+        if out_of_tolerance:
+            warning = {
+                'code': 'WEIGHT_OUT_OF_TOLERANCE',
+                'message': 'Ada hasil timbang di luar toleransi. Stok tetap dipotong sesuai hasil timbang aktual.',
+                'items': out_of_tolerance,
+            }
 
-    required_by_feed = {}
-    for item in batch.ingredients:
-        required_by_feed[item.feed_id] = required_by_feed.get(item.feed_id, 0.0) + item.weighed_amount
+        required_by_feed = {}
+        for item in batch.ingredients:
+            if not item.feed_id:
+                db.session.rollback()
+                return _error('FEED_NOT_FOUND', 'Bahan pakan tidak ditemukan di inventaris'), 404
+            required_by_feed[item.feed_id] = required_by_feed.get(item.feed_id, 0.0) + item.weighed_amount
 
-    for feed_id, required_amount in required_by_feed.items():
-        feed = Feed.query.get(feed_id)
-        if not feed:
-            return {'status': 'error', 'message': 'Bahan pakan tidak ditemukan di inventaris'}, 404
-        if feed.stock < required_amount:
-            return {
-                'status': 'error',
-                'message': f'Stok "{feed.name}" tidak cukup. Stok {feed.stock:.1f} kg, kebutuhan {required_amount:.1f} kg'
-            }, 400
+        feed_ids = sorted(required_by_feed)
+        locked_feeds = Feed.query.filter(Feed.id.in_(feed_ids)).order_by(Feed.id.asc()).with_for_update().all()
+        feeds_by_id = {feed.id: feed for feed in locked_feeds}
 
-    for item in batch.ingredients:
-        feed = Feed.query.get(item.feed_id)
-        feed.stock = round(feed.stock - item.weighed_amount, 2)
-        item.deducted_amount = item.weighed_amount
-        item.variance_amount = round(item.weighed_amount - item.planned_amount, 3)
+        for feed_id, required_amount in required_by_feed.items():
+            feed = feeds_by_id.get(feed_id)
+            if not feed:
+                db.session.rollback()
+                return _error('FEED_NOT_FOUND', 'Bahan pakan tidak ditemukan di inventaris'), 404
+            if feed.stock < required_amount:
+                db.session.rollback()
+                return _error(
+                    'INSUFFICIENT_FEED_STOCK',
+                    f'Stok "{feed.name}" tidak cukup. Stok {feed.stock:.1f} kg, kebutuhan {required_amount:.1f} kg',
+                    feed_id=feed.id,
+                ), 400
 
-        db.session.add(FeedTransaction(
-            feed_id=feed.id,
-            type='OUT',
-            amount=item.weighed_amount,
-            description=f'Finalisasi racikan pakan {batch.id} - {item.phase}',
-            user_id=user_id
-        ))
+        for item in batch.ingredients:
+            feed = feeds_by_id[item.feed_id]
+            feed.stock = round(feed.stock - item.weighed_amount, 2)
+            item.deducted_amount = item.weighed_amount
+            item.variance_amount = round(item.weighed_amount - item.planned_amount, 3)
+            db.session.add(FeedTransaction(
+                feed_id=feed.id,
+                type='OUT',
+                amount=item.weighed_amount,
+                description=f'Finalisasi racikan pakan {batch.id} - {item.phase}',
+                user_id=user_id
+            ))
 
-    batch.status = 'FINALIZED'
-    batch.keeper_id = user_id or batch.keeper_id
-    batch.finalized_at = datetime.utcnow()
+        batch.status = 'FINALIZED'
+        batch.keeper_id = user_id or batch.keeper_id
+        batch.finalized_at = datetime.utcnow()
 
-    db.session.commit()
-    create_log("SISTEM", f"Finalisasi racikan pakan {batch.id}. Stok dipotong sesuai hasil Timbangan 2.", user_id)
+        log_message = f"Finalisasi racikan pakan {batch.id}. Stok dipotong sesuai hasil Timbangan 2."
+        if warning:
+            log_message += f" Peringatan selisih: {'; '.join(out_of_tolerance)}."
+        create_log('SISTEM', log_message, user_id, commit=False)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        raise
+
     _emit_batch_updated('finalized', batch)
     _emit_batch_stock_updated('batch_finalized', batch)
 
-    return {
+    response = {
         'status': 'success',
-        'message': 'Racikan final. Stok pakan berhasil dipotong.',
+        'message': (
+            'Racikan final dengan peringatan selisih. Stok pakan berhasil dipotong sesuai hasil timbang.'
+            if warning
+            else 'Racikan final. Stok pakan berhasil dipotong.'
+        ),
         'data': batch.to_dict()
-    }, 200
+    }
+    if warning:
+        response['warning'] = warning
+
+    return response, 200
 
 
 def cancel_batch(batch_id, user_id=None):
-    batch = FeedingBatch.query.get(batch_id)
-    if not batch:
-        return {'status': 'error', 'message': 'Batch racikan tidak ditemukan'}, 404
+    try:
+        batch = FeedingBatch.query.with_for_update().filter_by(id=batch_id).first()
+        if not batch:
+            db.session.rollback()
+            return _error('BATCH_NOT_FOUND', 'Batch racikan tidak ditemukan'), 404
+        if batch.status == 'CANCELLED':
+            response = {
+                'status': 'success',
+                'code': 'BATCH_ALREADY_CANCELLED',
+                'message': 'Batch racikan sudah dibatalkan.',
+                'idempotent_replay': True,
+                'data': batch.to_dict(),
+            }
+            db.session.commit()
+            return response, 200
 
-    # If the batch was finalized, we reverse the stock deductions and transactions
-    if batch.status == 'FINALIZED':
-        for item in batch.ingredients:
-            if item.deducted_amount and item.deducted_amount > 0:
-                feed = Feed.query.get(item.feed_id)
-                if feed:
-                    feed.stock = round(feed.stock + item.deducted_amount, 2)
-                item.deducted_amount = 0.0
-        
-        # Delete related FeedTransactions
-        desc_pattern = f"Finalisasi racikan pakan {batch.id}%"
-        FeedTransaction.query.filter(
-            FeedTransaction.feed_id.in_([item.feed_id for item in batch.ingredients]),
-            FeedTransaction.type == 'OUT',
-            FeedTransaction.description.like(desc_pattern)
-        ).delete(synchronize_session=False)
+        if batch.status == 'FINALIZED':
+            feed_ids = sorted({item.feed_id for item in batch.ingredients if item.feed_id})
+            locked_feeds = Feed.query.filter(Feed.id.in_(feed_ids)).order_by(Feed.id.asc()).with_for_update().all()
+            feeds_by_id = {feed.id: feed for feed in locked_feeds}
+            for item in batch.ingredients:
+                if item.deducted_amount and item.deducted_amount > 0:
+                    feed = feeds_by_id.get(item.feed_id)
+                    if feed:
+                        feed.stock = round(feed.stock + item.deducted_amount, 2)
+                    item.deducted_amount = 0.0
 
-    batch.status = 'CANCELLED'
-    db.session.commit()
-    create_log("SISTEM", f"Membatalkan batch racikan pakan {batch.id} (pembalikan stok dilakukan jika sebelumnya FINAL).", user_id)
+            desc_pattern = f"Finalisasi racikan pakan {batch.id}%"
+            FeedTransaction.query.filter(
+                FeedTransaction.feed_id.in_(feed_ids),
+                FeedTransaction.type == 'OUT',
+                FeedTransaction.description.like(desc_pattern)
+            ).delete(synchronize_session=False)
+
+        batch.status = 'CANCELLED'
+        create_log(
+            'SISTEM',
+            f'Membatalkan batch racikan pakan {batch.id} (pembalikan stok dilakukan jika sebelumnya FINAL).',
+            user_id,
+            commit=False,
+        )
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        raise
+
     _emit_batch_updated('cancelled', batch)
     _emit_batch_stock_updated('batch_cancelled', batch)
 
