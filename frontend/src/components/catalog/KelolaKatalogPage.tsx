@@ -200,7 +200,7 @@ export default function KelolaKatalogPage({
               {katalogList.length === 0 ? (
                 <tr>
                   <td colSpan={7} style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                    [ TIDAK ADA DATA PRODUK KATALOG ]
+                    Tidak Ada Data Produk Katalog
                   </td>
                 </tr>
               ) : (

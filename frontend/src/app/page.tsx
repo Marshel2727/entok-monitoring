@@ -71,7 +71,7 @@ export default function HomeRoute() {
         alignItems: 'center',
         justifyContent: 'center'
       }}>
-        [ MEMUAT HALAMAN UTAMA... ]
+        Memuat halaman utama...
       </div>
     );
   }

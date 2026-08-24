@@ -35,7 +35,7 @@ export default function DashboardLayout({
         alignItems: 'center',
         justifyContent: 'center'
       }}>
-        [ MEMUAT DATA SISTEM... ]
+        Memuat data sistem...
       </div>
     );
   }
