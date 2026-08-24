@@ -1,0 +1,162 @@
+{"kind":"deck","id":"pr/3886s5","name":"Deck"}
+{"kind":"layout","layoutId":"5f90b9e2-6c51-4946-8599-3f45e96e7a4c","name":"Master","type":"master"}
+{"kind":"layout","layoutId":"37753676-d172-4858-ae58-0973a80b9006","name":"Title Slide","type":"title"}
+{"kind":"slide","id":"sl/pkqepw","slide":1,"title":"DOKUMENTASI RANCANGAN FITUR","textShapes":4}
+{"kind":"textbox","id":"sh/gzi1c7i5","slide":1,"text":"DOKUMENTASI RANCANGAN FITUR","textPreview":"DOKUMENTASI RANCANGAN FITUR","textChars":27,"textLines":1,"bbox":[72,76,420,22]}
+{"kind":"textbox","id":"sh/fy9k321k","slide":1,"text":"Kesehatan Entok\nberbasis YOLO","textPreview":"Kesehatan Entok | berbasis YOLO","textChars":29,"textLines":2,"bbox":[72,150,535,180]}
+{"kind":"shape","id":"sh/ex0jax0f","slide":1,"bbox":[72,360,124,4]}
+{"kind":"textbox","id":"sh/p4b29cj2","slide":1,"text":"Sistem deteksi visual untuk membantu pengamatan awal, pencatatan bukti, dan tindak lanjut oleh peternak.","textPreview":"Sistem deteksi visual untuk membantu pengamatan awal, pencatatan bukti, dan tindak lanjut oleh peternak.","textChars":104,"textLines":1,"bbox":[72,392,500,92]}
+{"kind":"textbox","id":"sh/o3i1grih","slide":1,"text":"ENTOK WEB · RANCANGAN FITUR","textPreview":"ENTOK WEB · RANCANGAN FITUR","textChars":27,"textLines":1,"bbox":[72,625,360,24]}
+{"kind":"image","id":"im/ulsry50r","slide":1,"name":"","geometry":"roundRect","alt":"Ilustrasi entok dengan overlay deteksi visi komputer","bbox":[650,58,558,604]}
+{"kind":"notes","id":"nt/pkqepw","slide":1,"text":"[Sources]\n- Visual: OpenAI ImageGen, dibuat khusus untuk deck ini. Ilustratif; bukan hasil inferensi sistem aktif.\n- Scope: rancangan fitur berdasarkan permintaan dokumentasi; kode ENTOK saat ini belum memuat model YOLO.\n[/Sources]"}
+{"kind":"slide","id":"sl/fjgi5y","slide":2,"title":"STATUS SAAT INI","textShapes":10}
+{"kind":"textbox","id":"sh/snah0bix","slide":2,"text":"STATUS SAAT INI","textPreview":"STATUS SAAT INI","textChars":15,"textLines":1,"bbox":[72,45,330,22]}
+{"kind":"textbox","id":"sh/rm1gr6hc","slide":2,"text":"Fondasi web sudah ada; modul YOLO perlu ditambahkan","textPreview":"Fondasi web sudah ada; modul YOLO perlu ditambahkan","textChars":51,"textLines":1,"bbox":[72,80,990,55]}
+{"kind":"shape","id":"sh/q1sfy10r","slide":2,"bbox":[72,151,1136,1]}
+{"kind":"textbox","id":"sh/1s3yx0ze","slide":2,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[1150,47,58,24]}
+{"kind":"textbox","id":"sh/0ruh4vit","slide":2,"text":"Yang sudah tersedia","textPreview":"Yang sudah tersedia","textChars":19,"textLines":1,"bbox":[72,204,360,32]}
+{"kind":"textbox","id":"sh/fqlgvqh8","slide":2,"text":"Flask API, SQLAlchemy, migrasi database, MySQL, data populasi, dan status perangkat/sistem.","textPreview":"Flask API, SQLAlchemy, migrasi database, MySQL, data populasi, dan status perangkat/sistem.","textChars":91,"textLines":1,"bbox":[72,253,442,125]}
+{"kind":"shape","id":"sh/epcz2l0n","slide":2,"bbox":[72,412,442,3]}
+{"kind":"textbox","id":"sh/pwny10za","slide":2,"text":"Data populasi bisa menjadi konteks setiap pemeriksaan kesehatan.","textPreview":"Data populasi bisa menjadi konteks setiap pemeriksaan kesehatan.","textChars":64,"textLines":1,"bbox":[72,435,420,54]}
+{"kind":"textbox","id":"sh/ovuh8vi5","slide":2,"text":"Yang diusulkan","textPreview":"Yang diusulkan","textChars":14,"textLines":1,"bbox":[670,204,360,32]}
+{"kind":"textbox","id":"sh/250bq1cn","slide":2,"text":"Model YOLO terlatih, API pemeriksaan kesehatan, tabel hasil deteksi, media bukti, aturan peringatan, dan halaman triase.","textPreview":"Model YOLO terlatih, API pemeriksaan kesehatan, tabel hasil deteksi, media bukti, aturan peringatan, dan halaman triase.","textChars":120,"textLines":1,"bbox":[670,253,468,125]}
+{"kind":"shape","id":"sh/369cz6t8","slide":2,"bbox":[670,412,468,3]}
+{"kind":"textbox","id":"sh/o7idsbut","slide":2,"text":"Semua diberi status RANCANGAN sampai model dan API benar-benar diimplementasikan.","textPreview":"Semua diberi status RANCANGAN sampai model dan API benar-benar diimplementasikan.","textChars":81,"textLines":1,"bbox":[670,435,468,54]}
+{"kind":"textbox","id":"sh/p8ru1gbe","slide":2,"text":"Catatan penting: pemeriksaan kondisi Docker menunjukkan layanan MySQL tidak sedang tersedia, sehingga skema database pada slide berikutnya bukan tangkapan layar database hidup.","textPreview":"Catatan penting: pemeriksaan kondisi Docker menunjukkan layanan MySQL tidak sedang tersedia, sehingga skema database pada slide berikutny...","textChars":176,"textLines":1,"bbox":[72,590,1066,48]}
+{"kind":"notes","id":"nt/fjgi5y","slide":2,"text":"[Sources]\n- Local code: backend/app/__init__.py; backend/app/models/__init__.py; backend/app/models/population.py; frontend/src/services/systemHealth.ts.\n- Local dependency check: backend/requirements.txt tidak mencantumkan Ultralytics/YOLO.\n- Runtime check: docker compose ps, 18 Aug 2026 — Docker daemon tidak tersedia pada saat pemeriksaan.\n[/Sources]"}
+{"kind":"slide","id":"sl/ptzyc5","slide":3,"title":"PRINSIP DETEKSI","textShapes":13}
+{"kind":"textbox","id":"sh/xcbq9grq","slide":3,"text":"PRINSIP DETEKSI","textPreview":"PRINSIP DETEKSI","textChars":15,"textLines":1,"bbox":[72,45,330,22]}
+{"kind":"textbox","id":"sh/ap07yl8z","slide":3,"text":"YOLO menghasilkan sinyal visual, bukan diagnosis otomatis","textPreview":"YOLO menghasilkan sinyal visual, bukan diagnosis otomatis","textChars":57,"textLines":1,"bbox":[72,80,990,55]}
+{"kind":"shape","id":"sh/bq98769k","slide":3,"bbox":[72,151,1136,1]}
+{"kind":"textbox","id":"sh/onipwbqt","slide":3,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[1150,47,58,24]}
+{"kind":"textbox","id":"sh/2l07u18n","slide":3,"text":"Untuk setiap frame, sistem menyimpan bukti yang dapat ditinjau:","textPreview":"Untuk setiap frame, sistem menyimpan bukti yang dapat ditinjau:","textChars":63,"textLines":1,"bbox":[550,206,560,32]}
+{"kind":"textbox","id":"sh/nm983698","slide":3,"text":"Label","textPreview":"Label","textChars":5,"textLines":1,"bbox":[550,278,170,26]}
+{"kind":"textbox","id":"sh/0jipsrqx","slide":3,"text":"kategori visual yang dilatih pada dataset","textPreview":"kategori visual yang dilatih pada dataset","textChars":41,"textLines":1,"bbox":[730,278,432,46]}
+{"kind":"shape","id":"sh/1krq1wri","slide":3,"bbox":[550,331,612,1]}
+{"kind":"textbox","id":"sh/xojaxob6","slide":3,"text":"Kepercayaan","textPreview":"Kepercayaan","textChars":11,"textLines":1,"bbox":[550,356,170,26]}
+{"kind":"textbox","id":"sh/wnatojul","slide":3,"text":"skor keyakinan model untuk hasil tersebut","textPreview":"skor keyakinan model untuk hasil tersebut","textChars":41,"textLines":1,"bbox":[730,356,432,46]}
+{"kind":"shape","id":"sh/vm1svet0","slide":3,"bbox":[550,409,612,1]}
+{"kind":"textbox","id":"sh/a1sbm9cf","slide":3,"text":"Lokasi","textPreview":"Lokasi","textChars":6,"textLines":1,"bbox":[550,434,170,26]}
+{"kind":"textbox","id":"sh/90jat4bu","slide":3,"text":"bounding box sebagai posisi objek pada gambar","textPreview":"bounding box sebagai posisi objek pada gambar","textChars":45,"textLines":1,"bbox":[730,434,432,46]}
+{"kind":"shape","id":"sh/8za9kju9","slide":3,"bbox":[550,487,612,1]}
+{"kind":"textbox","id":"sh/nyhsret4","slide":3,"text":"Waktu & bukti","textPreview":"Waktu & bukti","textChars":13,"textLines":1,"bbox":[550,512,170,26]}
+{"kind":"textbox","id":"sh/mx8ri9cj","slide":3,"text":"timestamp, sumber kamera, dan media pendukung","textPreview":"timestamp, sumber kamera, dan media pendukung","textChars":45,"textLines":1,"bbox":[730,512,432,46]}
+{"kind":"textbox","id":"sh/lwzap4by","slide":3,"text":"Keputusan perawatan tetap diverifikasi manusia. Sistem hanya memprioritaskan pemeriksaan berdasarkan bukti visual.","textPreview":"Keputusan perawatan tetap diverifikasi manusia. Sistem hanya memprioritaskan pemeriksaan berdasarkan bukti visual.","textChars":114,"textLines":1,"bbox":[550,590,612,55]}
+{"kind":"image","id":"im/4b61ob2x","slide":3,"name":"","geometry":"roundRect","alt":"Entok dari aset aplikasi ENTOK","bbox":[72,195,410,420]}
+{"kind":"notes","id":"nt/ptzyc5","slide":3,"text":"[Sources]\n- Ultralytics Object Detection: https://docs.ultralytics.com/tasks/detect — keluaran deteksi mencakup bounding boxes, class labels, dan confidence scores.\n- Aset visual: frontend/public/images/muscovy_duck_home.png (local project asset).\n- Interpretasi dan batas diagnosis adalah rancangan keselamatan produk, bukan klaim kemampuan klinis model.\n[/Sources]"}
+{"kind":"slide","id":"sl/ogyv1k","slide":4,"title":"ALUR DATA","textShapes":20}
+{"kind":"textbox","id":"sh/14ryh87y","slide":4,"text":"ALUR DATA","textPreview":"ALUR DATA","textChars":9,"textLines":1,"bbox":[72,45,330,22]}
+{"kind":"textbox","id":"sh/eh0f6ton","slide":4,"text":"Dari frame kamera ke pemeriksaan yang ditindaklanjuti","textPreview":"Dari frame kamera ke pemeriksaan yang ditindaklanjuti","textChars":53,"textLines":1,"bbox":[72,80,990,55]}
+{"kind":"shape","id":"sh/fi9gfyps","slide":4,"bbox":[72,151,1136,1]}
+{"kind":"textbox","id":"sh/sfix4jqh","slide":4,"text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[1150,47,58,24]}
+{"kind":"shape","id":"sh/tgrydo72","slide":4,"bbox":[242,328,42,20]}
+{"kind":"shape","id":"sh/6dgf298b","slide":4,"bbox":[470,328,42,20]}
+{"kind":"shape","id":"sh/re9gbepw","slide":4,"bbox":[698,328,42,20]}
+{"kind":"shape","id":"sh/cb2hgn6l","slide":4,"bbox":[926,328,42,20]}
+{"kind":"shape","id":"sh/dcby9s76","slide":4,"bbox":[72,245,180,190]}
+{"kind":"textbox","id":"sh/tgfudsbi","slide":4,"text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[90,263,60,24]}
+{"kind":"textbox","id":"sh/sf6d4nux","slide":4,"text":"Kamera","textPreview":"Kamera","textChars":6,"textLines":1,"bbox":[90,307,144,34]}
+{"kind":"textbox","id":"sh/rexcbitc","slide":4,"text":"frame\nkandang","textPreview":"frame | kandang","textChars":13,"textLines":2,"bbox":[90,357,144,54]}
+{"kind":"shape","id":"sh/6tov2dcr","slide":4,"bbox":[300,245,180,190]}
+{"kind":"textbox","id":"sh/5sfu98b6","slide":4,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[318,263,60,24]}
+{"kind":"textbox","id":"sh/4r6t03u1","slide":4,"text":"YOLO","textPreview":"YOLO","textChars":4,"textLines":1,"bbox":[318,307,144,34]}
+{"kind":"textbox","id":"sh/jqdc7ytg","slide":4,"text":"deteksi\nvisual","textPreview":"deteksi | visual","textChars":14,"textLines":2,"bbox":[318,357,144,54]}
+{"kind":"shape","id":"sh/ip4bytcv","slide":4,"bbox":[528,245,180,190]}
+{"kind":"textbox","id":"sh/pozulcbq","slide":4,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[546,263,60,24]}
+{"kind":"textbox","id":"sh/onqdc7u5","slide":4,"text":"Aturan","textPreview":"Aturan","textChars":6,"textLines":1,"bbox":[546,307,144,34]}
+{"kind":"textbox","id":"sh/8ryx8bih","slide":4,"text":"saring skor &\npola","textPreview":"saring skor & | pola","textChars":18,"textLines":2,"bbox":[546,357,144,54]}
+{"kind":"shape","id":"sh/9s7ehgjm","slide":4,"bbox":[756,245,180,190]}
+{"kind":"textbox","id":"sh/mpgf610b","slide":4,"text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[774,263,60,24]}
+{"kind":"textbox","id":"sh/nqpwf61w","slide":4,"text":"API + DB","textPreview":"API + DB","textChars":8,"textLines":1,"bbox":[774,307,144,34]}
+{"kind":"textbox","id":"sh/0nyx4ri5","slide":4,"text":"simpan\nevent + bukti","textPreview":"simpan | event + bukti","textChars":20,"textLines":2,"bbox":[774,357,144,54]}
+{"kind":"shape","id":"sh/lo7edwjq","slide":4,"bbox":[984,245,180,190]}
+{"kind":"textbox","id":"sh/ylwf210z","slide":4,"text":"05","textPreview":"05","textChars":2,"textLines":1,"bbox":[1002,263,60,24]}
+{"kind":"textbox","id":"sh/zm5wb61k","slide":4,"text":"Tinjau","textPreview":"Tinjau","textChars":6,"textLines":1,"bbox":[1002,307,144,34]}
+{"kind":"textbox","id":"sh/czed0ri9","slide":4,"text":"verifikasi\ntindakan","textPreview":"verifikasi | tindakan","textChars":19,"textLines":2,"bbox":[1002,357,144,54]}
+{"kind":"textbox","id":"sh/d0ne9wju","slide":4,"text":"Data disimpan sebagai jejak pemeriksaan: siapa/kapan/sumber/bukti/hasil tinjauan. Ini membuat peringatan dapat diaudit dan dikoreksi.","textPreview":"Data disimpan sebagai jejak pemeriksaan: siapa/kapan/sumber/bukti/hasil tinjauan. Ini membuat peringatan dapat diaudit dan dikoreksi.","textChars":133,"textLines":1,"bbox":[72,536,1050,54]}
+{"kind":"shape","id":"sh/fulgjmlg","slide":4,"bbox":[72,616,1050,3]}
+{"kind":"textbox","id":"sh/etcfqh4v","slide":4,"text":"Output untuk web: daftar pemeriksaan terbaru, status tinjauan, dan bukti gambar per event.","textPreview":"Output untuk web: daftar pemeriksaan terbaru, status tinjauan, dan bukti gambar per event.","textChars":90,"textLines":1,"bbox":[72,634,950,25]}
+{"kind":"notes","id":"nt/ogyv1k","slide":4,"text":"[Sources]\n- Ultralytics Predict: https://docs.ultralytics.com/modes/predict — inferensi dapat menggunakan gambar, video, dan stream.\n- Alur API, database, dan tinjauan adalah rancangan usulan untuk stack Flask + SQLAlchemy ENTOK.\n[/Sources]"}
+{"kind":"slide","id":"sl/j5pra1","slide":5,"title":"RANCANGAN DATABASE","textShapes":28}
+{"kind":"textbox","id":"sh/h4vahw3e","slide":5,"text":"RANCANGAN DATABASE","textPreview":"RANCANGAN DATABASE","textChars":18,"textLines":1,"bbox":[72,45,330,22]}
+{"kind":"textbox","id":"sh/u14bm143","slide":5,"text":"Event dan deteksi disimpan secara terpisah","textPreview":"Event dan deteksi disimpan secara terpisah","textChars":42,"textLines":1,"bbox":[72,80,990,55]}
+{"kind":"shape","id":"sh/v2dsf6l8","slide":5,"bbox":[72,151,1136,1]}
+{"kind":"textbox","id":"sh/4r6tsbm5","slide":5,"text":"05","textPreview":"05","textChars":2,"textLines":1,"bbox":[1150,47,58,24]}
+{"kind":"textbox","id":"sh/5sfalg3q","slide":5,"text":"Visual ini menggantikan screenshot database hidup: layanan MySQL tidak aktif saat dokumentasi dibuat.","textPreview":"Visual ini menggantikan screenshot database hidup: layanan MySQL tidak aktif saat dokumentasi dibuat.","textChars":101,"textLines":1,"bbox":[72,172,1000,25]}
+{"kind":"shape","id":"sh/i54bq14z","slide":5,"bbox":[470,362,74,16]}
+{"kind":"shape","id":"sh/36xsj6lk","slide":5,"bbox":[815,362,74,16]}
+{"kind":"shape","id":"sh/kv29g7ml","slide":5,"bbox":[72,244,318,332]}
+{"kind":"textbox","id":"sh/lwba9cn6","slide":5,"text":"KONTEKS POPULASI","textPreview":"KONTEKS POPULASI","textChars":16,"textLines":1,"bbox":[90,264,260,18]}
+{"kind":"textbox","id":"sh/xgvqhgb2","slide":5,"text":"populations (sudah ada)","textPreview":"populations (sudah ada)","textChars":23,"textLines":1,"bbox":[90,297,278,30]}
+{"kind":"shape","id":"sh/cfmp8bax","slide":5,"bbox":[90,340,280,1]}
+{"kind":"textbox","id":"sh/bud8f6tc","slide":5,"text":"id","textPreview":"id","textChars":2,"textLines":1,"bbox":[90,360,270,22]}
+{"kind":"textbox","id":"sh/at4761sr","slide":5,"text":"phase_id","textPreview":"phase_id","textChars":8,"textLines":1,"bbox":[90,391,270,22]}
+{"kind":"textbox","id":"sh/lkfqlgbe","slide":5,"text":"phase","textPreview":"phase","textChars":5,"textLines":1,"bbox":[90,422,270,22]}
+{"kind":"textbox","id":"sh/kj69cbat","slide":5,"text":"total_ducks","textPreview":"total_ducks","textChars":11,"textLines":1,"bbox":[90,453,270,22]}
+{"kind":"textbox","id":"sh/zix8j6t8","slide":5,"text":"updated_at","textPreview":"updated_at","textChars":10,"textLines":1,"bbox":[90,484,270,22]}
+{"kind":"shape","id":"sh/yho7a1sn","slide":5,"bbox":[545,244,318,332]}
+{"kind":"textbox","id":"sh/9ozqp0ba","slide":5,"text":"1 EVENT PEMERIKSAAN","textPreview":"1 EVENT PEMERIKSAAN","textChars":19,"textLines":1,"bbox":[563,264,260,18]}
+{"kind":"textbox","id":"sh/8n69gvap","slide":5,"text":"health_checks (usulan)","textPreview":"health_checks (usulan)","textChars":22,"textLines":1,"bbox":[563,297,278,30]}
+{"kind":"shape","id":"sh/sretczi1","slide":5,"bbox":[563,340,280,1]}
+{"kind":"textbox","id":"sh/ts7al4zm","slide":5,"text":"id","textPreview":"id","textChars":2,"textLines":1,"bbox":[563,360,270,22]}
+{"kind":"textbox","id":"sh/6pwbap0v","slide":5,"text":"population_id","textPreview":"population_id","textChars":13,"textLines":1,"bbox":[563,391,270,22]}
+{"kind":"textbox","id":"sh/7q5sju1g","slide":5,"text":"source","textPreview":"source","textChars":6,"textLines":1,"bbox":[563,422,270,22]}
+{"kind":"textbox","id":"sh/gvytgzid","slide":5,"text":"captured_at","textPreview":"captured_at","textChars":11,"textLines":1,"bbox":[563,453,270,22]}
+{"kind":"textbox","id":"sh/hw7ap4zi","slide":5,"text":"status","textPreview":"status","textChars":6,"textLines":1,"bbox":[563,484,270,22]}
+{"kind":"textbox","id":"sh/utgbe907","slide":5,"text":"reviewed_by","textPreview":"reviewed_by","textChars":11,"textLines":1,"bbox":[563,515,270,22]}
+{"kind":"shape","id":"sh/fupsnehs","slide":5,"bbox":[890,244,318,332]}
+{"kind":"textbox","id":"sh/wzu94fit","slide":5,"text":"N DETEKSI / EVENT","textPreview":"N DETEKSI / EVENT","textChars":17,"textLines":1,"bbox":[908,264,260,18]}
+{"kind":"textbox","id":"sh/x03adkje","slide":5,"text":"health_detections (usulan)","textPreview":"health_detections (usulan)","textChars":26,"textLines":1,"bbox":[908,297,278,30]}
+{"kind":"shape","id":"sh/zetwji1w","slide":5,"bbox":[908,340,280,1]}
+{"kind":"textbox","id":"sh/ydkvadkb","slide":5,"text":"id","textPreview":"id","textChars":2,"textLines":1,"bbox":[908,360,270,22]}
+{"kind":"textbox","id":"sh/lgbelsj2","slide":5,"text":"health_check_id","textPreview":"health_check_id","textChars":15,"textLines":1,"bbox":[908,391,270,22]}
+{"kind":"textbox","id":"sh/0f2dcn2h","slide":5,"text":"label","textPreview":"label","textChars":5,"textLines":1,"bbox":[908,422,270,22]}
+{"kind":"textbox","id":"sh/rq9cfy10","slide":5,"text":"confidence","textPreview":"confidence","textChars":10,"textLines":1,"bbox":[908,453,270,22]}
+{"kind":"textbox","id":"sh/qp0v6dkf","slide":5,"text":"bbox_json","textPreview":"bbox_json","textChars":9,"textLines":1,"bbox":[908,484,270,22]}
+{"kind":"textbox","id":"sh/dcbeh8jq","slide":5,"text":"evidence_url","textPreview":"evidence_url","textChars":12,"textLines":1,"bbox":[908,515,270,22]}
+{"kind":"textbox","id":"sh/crid832l","slide":5,"text":"Relasi utama: satu populasi memiliki banyak health_checks; satu health_check memiliki banyak health_detections.","textPreview":"Relasi utama: satu populasi memiliki banyak health_checks; satu health_check memiliki banyak health_detections.","textChars":111,"textLines":1,"bbox":[72,620,1080,28]}
+{"kind":"notes","id":"nt/j5pra1","slide":5,"text":"[Sources]\n- Existing schema: backend/app/models/population.py — populations memiliki id, phase_id, phase, total_ducks, updated_at.\n- health_checks dan health_detections adalah tabel USULAN untuk fitur ini; belum ada di backend/app/models/__init__.py.\n- Database service declared in docker-compose.yml: MySQL 8.4 / entok_db; live service unavailable during this documentation run.\n[/Sources]"}
+{"kind":"slide","id":"sl/xfrmx8","slide":6,"title":"PENGALAMAN WEB","textShapes":14}
+{"kind":"textbox","id":"sh/n61sj2l0","slide":6,"text":"PENGALAMAN WEB","textPreview":"PENGALAMAN WEB","textChars":14,"textLines":1,"bbox":[72,45,330,22]}
+{"kind":"textbox","id":"sh/o7a9c72l","slide":6,"text":"Halaman Kesehatan sebaiknya memusatkan triase dan bukti","textPreview":"Halaman Kesehatan sebaiknya memusatkan triase dan bukti","textChars":55,"textLines":1,"bbox":[72,80,990,55]}
+{"kind":"shape","id":"sh/9s3alc36","slide":6,"bbox":[72,151,1136,1]}
+{"kind":"textbox","id":"sh/atcrehkb","slide":6,"text":"06","textPreview":"06","textChars":2,"textLines":1,"bbox":[1150,47,58,24]}
+{"kind":"textbox","id":"sh/wvu9gr2h","slide":6,"text":"Bukan sekadar memberi label — halaman perlu membuat pemeriksaan cepat, jelas, dan dapat ditelusuri.","textPreview":"Bukan sekadar memberi label — halaman perlu membuat pemeriksaan cepat, jelas, dan dapat ditelusuri.","textChars":99,"textLines":1,"bbox":[548,206,584,62]}
+{"kind":"textbox","id":"sh/xw3apwj2","slide":6,"text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[548,313,34,30]}
+{"kind":"textbox","id":"sh/qx8r2dk7","slide":6,"text":"Ringkasan","textPreview":"Ringkasan","textChars":9,"textLines":1,"bbox":[602,313,150,30]}
+{"kind":"textbox","id":"sh/ryh8bils","slide":6,"text":"jumlah event baru, prioritas, dan status tinjauan","textPreview":"jumlah event baru, prioritas, dan status tinjauan","textChars":49,"textLines":1,"bbox":[765,315,400,45]}
+{"kind":"shape","id":"sh/fyl0v65k","slide":6,"bbox":[548,373,614,1]}
+{"kind":"textbox","id":"sh/uxcz2loz","slide":6,"text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[548,405,34,30]}
+{"kind":"textbox","id":"sh/hk3ixgnq","slide":6,"text":"Bukti","textPreview":"Bukti","textChars":5,"textLines":1,"bbox":[602,405,150,30]}
+{"kind":"textbox","id":"sh/gzuh4b65","slide":6,"text":"gambar/frame, label, skor, sumber kamera, dan waktu","textPreview":"gambar/frame, label, skor, sumber kamera, dan waktu","textChars":51,"textLines":1,"bbox":[765,407,400,45]}
+{"kind":"shape","id":"sh/7u10r65o","slide":6,"bbox":[548,465,614,1]}
+{"kind":"textbox","id":"sh/6tszy1o3","slide":6,"text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[548,497,34,30]}
+{"kind":"textbox","id":"sh/tw3itgne","slide":6,"text":"Keputusan","textPreview":"Keputusan","textChars":9,"textLines":1,"bbox":[602,497,150,30]}
+{"kind":"textbox","id":"sh/svah0b69","slide":6,"text":"verifikasi peternak, catatan tindakan, atau tandai false positive","textPreview":"verifikasi peternak, catatan tindakan, atau tandai false positive","textChars":65,"textLines":1,"bbox":[765,499,400,45]}
+{"kind":"textbox","id":"sh/jq1gnmpc","slide":6,"text":"Kunci UX: setiap peringatan harus punya bukti, pemilik keputusan, dan status penyelesaian.","textPreview":"Kunci UX: setiap peringatan harus punya bukti, pemilik keputusan, dan status penyelesaian.","textChars":90,"textLines":1,"bbox":[548,590,614,48]}
+{"kind":"image","id":"im/ux4za1ov","slide":6,"name":"","geometry":"roundRect","alt":"Entok putih dari aset aplikasi ENTOK","bbox":[72,196,400,408]}
+{"kind":"notes","id":"nt/xfrmx8","slide":6,"text":"[Sources]\n- Existing system-health service: frontend/src/services/systemHealth.ts menyediakan indikator database, realtime, dan perangkat; bukan modul kesehatan ternak.\n- Aset visual: frontend/public/images/white_duck_login.png (local project asset).\n- Struktur triase dan review adalah rancangan usulan.\n[/Sources]"}
+{"kind":"slide","id":"sl/ttz78n","slide":7,"title":"IMPLEMENTASI BERTAHAP","textShapes":17}
+{"kind":"textbox","id":"sh/hsz61cju","slide":7,"text":"IMPLEMENTASI BERTAHAP","textPreview":"IMPLEMENTASI BERTAHAP","textChars":21,"textLines":1,"bbox":[72,45,330,22]}
+{"kind":"textbox","id":"sh/upon6xkj","slide":7,"text":"Bukti yang dapat dipercaya mempercepat pemeriksaan","textPreview":"Bukti yang dapat dipercaya mempercepat pemeriksaan","textChars":50,"textLines":1,"bbox":[72,80,990,55]}
+{"kind":"shape","id":"sh/vqhoz214","slide":7,"bbox":[72,151,1136,1]}
+{"kind":"textbox","id":"sh/4vq5c72l","slide":7,"text":"07","textPreview":"07","textChars":2,"textLines":1,"bbox":[1150,47,58,24]}
+{"kind":"shape","id":"sh/5gz65cj6","slide":7,"bbox":[304,354,38,15]}
+{"kind":"shape","id":"sh/it8nahkf","slide":7,"bbox":[586,354,38,15]}
+{"kind":"shape","id":"sh/juho3210","slide":7,"bbox":[868,354,38,15]}
+{"kind":"textbox","id":"sh/kz650n21","slide":7,"text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[72,238,70,28]}
+{"kind":"textbox","id":"sh/l0f6tsjm","slide":7,"text":"Dataset","textPreview":"Dataset","textChars":7,"textLines":1,"bbox":[72,292,220,34]}
+{"kind":"textbox","id":"sh/183ex8f2","slide":7,"text":"Kumpulkan dan anotasi kondisi visual yang benar-benar relevan di kandang.","textPreview":"Kumpulkan dan anotasi kondisi visual yang benar-benar relevan di kandang.","textChars":73,"textLines":1,"bbox":[72,352,214,108]}
+{"kind":"textbox","id":"sh/07ad43eh","slide":7,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[354,238,70,28]}
+{"kind":"textbox","id":"sh/f61wvyxw","slide":7,"text":"Model","textPreview":"Model","textChars":5,"textLines":1,"bbox":[354,292,220,34]}
+{"kind":"textbox","id":"sh/e5sv2twb","slide":7,"text":"Latih YOLO, lalu nilai precision, recall, dan contoh false positive/negative.","textPreview":"Latih YOLO, lalu nilai precision, recall, dan contoh false positive/negative.","textChars":77,"textLines":1,"bbox":[354,352,214,108]}
+{"kind":"textbox","id":"sh/pc3e18fy","slide":7,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[636,238,70,28]}
+{"kind":"textbox","id":"sh/obud83et","slide":7,"text":"Integrasi","textPreview":"Integrasi","textChars":9,"textLines":1,"bbox":[636,292,220,34]}
+{"kind":"textbox","id":"sh/nalwzyx8","slide":7,"text":"Tambahkan model, migrasi tabel, API, penyimpanan bukti, serta halaman review.","textPreview":"Tambahkan model, migrasi tabel, API, penyimpanan bukti, serta halaman review.","textChars":77,"textLines":1,"bbox":[636,352,214,108]}
+{"kind":"textbox","id":"sh/29cv6dwn","slide":7,"text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[918,238,70,28]}
+{"kind":"textbox","id":"sh/x0ne5sfa","slide":7,"text":"Pilot","textPreview":"Pilot","textChars":5,"textLines":1,"bbox":[918,292,220,34]}
+{"kind":"textbox","id":"sh/czexcnep","slide":7,"text":"Uji di alur peternak; perbaiki aturan alert dari hasil verifikasi lapangan.","textPreview":"Uji di alur peternak; perbaiki aturan alert dari hasil verifikasi lapangan.","textChars":75,"textLines":1,"bbox":[918,352,214,108]}
+{"kind":"shape","id":"sh/wfmpovqx","slide":7,"bbox":[72,532,1136,3]}
+{"kind":"textbox","id":"sh/hgv6xgri","slide":7,"text":"Hasil akhir yang diharapkan: sistem membantu menentukan mana yang perlu diperiksa lebih dulu — tanpa menggantikan keputusan manusia.","textPreview":"Hasil akhir yang diharapkan: sistem membantu menentukan mana yang perlu diperiksa lebih dulu — tanpa menggantikan keputusan manusia.","textChars":132,"textLines":1,"bbox":[72,560,1080,55]}
+{"kind":"textbox","id":"sh/ut47ml87","slide":7,"text":"Dokumentasi ini dapat menjadi dasar implementasi, demo fitur, dan bahan presentasi proyek.","textPreview":"Dokumentasi ini dapat menjadi dasar implementasi, demo fitur, dan bahan presentasi proyek.","textChars":90,"textLines":1,"bbox":[72,637,1000,24]}
+{"kind":"notes","id":"nt/ttz78n","slide":7,"text":"[Sources]\n- Ultralytics modes: https://docs.ultralytics.com/modes — lifecycle includes train, val, predict, export, track, and benchmark.\n- Rencana implementasi adalah usulan teknis yang disesuaikan dengan stack ENTOK saat ini: Flask + SQLAlchemy + MySQL.\n[/Sources]"}

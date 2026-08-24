@@ -94,13 +94,13 @@ export default function FormulasiPage() {
 
   const formatComposition = (komposisi: { [key: string]: number }) => {
     const entries = Object.entries(komposisi);
-    if (entries.length === 0) return "[ Bahan Kosong - Sesuaikan Formulasi ]";
+    if (entries.length === 0) return "Bahan Kosong - Sesuaikan Formulasi";
     return entries
       .map(([name, pct]) => `${pct}% ${name}`)
       .join(', ');
   };
 
-  if (loading) return <div>[ MEMUAT DATA FORMULASI NUTRISI... ]</div>;
+  if (loading) return <div>Memuat data formulasi nutrisi...</div>;
 
   return (
     <div className="content-wrapper" style={{ padding: 0 }}>
@@ -130,7 +130,7 @@ export default function FormulasiPage() {
               {formulations.length === 0 ? (
                 <tr>
                   <td colSpan={5} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
-                    [ TIDAK ADA DATA FORMULASI PAKAN ]
+                    Tidak Ada Data Formulasi Pakan
                   </td>
                 </tr>
               ) : (

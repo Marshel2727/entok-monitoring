@@ -43,7 +43,7 @@ export default function RiwayatPage() {
   if (loading) {
     return (
       <div className="panel" style={{ padding: '24px', textAlign: 'center', fontFamily: 'var(--font-mono)' }}>
-        [ MEMUAT DATA RIWAYAT AKTIVITAS... ]
+        Memuat data riwayat aktivitas...
       </div>
     );
   }

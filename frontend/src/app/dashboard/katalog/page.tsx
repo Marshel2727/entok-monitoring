@@ -59,7 +59,7 @@ export default function KatalogPage() {
   if (loading) {
     return (
       <div style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>
-        [ MEMUAT DATA KATALOG... ]
+        Memuat data katalog...
       </div>
     );
   }
@@ -67,7 +67,7 @@ export default function KatalogPage() {
   if (error) {
     return (
       <div style={{ fontFamily: 'var(--font-mono)', color: 'var(--danger)', padding: '24px' }}>
-        [ ERROR: {error} ]
+        Gagal: {error}
       </div>
     );
   }

@@ -214,7 +214,7 @@ export default function NotifikasiPage({
                         {item.deskripsi}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '6px', fontSize: '10px', fontFamily: 'var(--font-mono)' }}>
-                        <span style={{ color: tagColor, fontWeight: 'bold' }}>[{item.kategori.toUpperCase()}]</span>
+                        <span style={{ color: tagColor, fontWeight: 'bold' }}>{item.kategori.toUpperCase()}</span>
                         <span style={{ color: 'var(--text-muted)' }}>·</span>
                         <span style={{ color: 'var(--text-secondary)' }}>{item.waktu}</span>
                       </div>

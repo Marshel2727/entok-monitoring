@@ -69,7 +69,7 @@ export default function PopulasiPage() {
   if (loading) {
     return (
       <div className="panel" style={{ padding: '24px', textAlign: 'center', fontFamily: 'var(--font-mono)' }}>
-        [ MEMUAT DATA POPULASI BEBEK... ]
+        Memuat data populasi ternak...
       </div>
     );
   }

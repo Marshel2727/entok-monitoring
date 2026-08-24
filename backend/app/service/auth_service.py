@@ -176,3 +176,45 @@ def get_all_users():
         'status': 'success',
         'data': [user.to_dict() for user in users]
     }, 200
+
+def seed_default_users():
+    """Seeds default supervisor and keeper users if none exist."""
+    admin = User.query.filter_by(username='admin').first()
+    if not admin:
+        new_admin = User(
+            name='Kepala Pengawas',
+            username='admin',
+            email='admin@entok.local',
+            role='PENGAWAS',
+            status='AKTIF'
+        )
+        new_admin.set_password('admin123')
+        db.session.add(new_admin)
+    
+    pengawas = User.query.filter_by(username='pengawas').first()
+    if not pengawas:
+        new_pengawas = User(
+            name='Pengawas Kandang',
+            username='pengawas',
+            email='pengawas@entok.local',
+            role='PENGAWAS',
+            status='AKTIF'
+        )
+        new_pengawas.set_password('pengawas123')
+        db.session.add(new_pengawas)
+
+    penjaga = User.query.filter_by(username='penjaga').first()
+    if not penjaga:
+        new_penjaga = User(
+            name='Budi Penjaga',
+            username='penjaga',
+            email='penjaga@entok.local',
+            role='PENJAGA',
+            shift='FULL_TIME',
+            status='AKTIF'
+        )
+        new_penjaga.set_password('penjaga123')
+        db.session.add(new_penjaga)
+
+    db.session.commit()
+

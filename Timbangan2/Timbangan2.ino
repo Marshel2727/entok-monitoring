@@ -265,6 +265,8 @@ void setup() {
   setupScale();
   startHx711Task();
   connectWiFi();
+  sendHeartbeat();
+  lastHeartbeatAt = millis();
   if (loadLocalCache()) {
     printLine(0, "DATA TERSIMPAN");
     printLine(1, "D=KIRIM/#=LANJUT");

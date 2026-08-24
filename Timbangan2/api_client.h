@@ -583,15 +583,11 @@ void sendBulkData() {
     int nextMissing = firstMissingIndex();
     if (nextMissing >= 0) {
       currentIndex = nextMissing;
-      weighingStarted = true;
-
-      printLine(0, "AUTO TARE...");
-      printLine(1, "Fase berikut");
+      weighingStarted = false;
       currentWeight = 0;
-
-      requestTare();
-      appState = APP_WAIT_TARE_AUTO;
-      pendingNextIndexAfterTare = nextMissing;
+      pendingNextIndexAfterTare = -1;
+      appState = APP_IDLE;
+      showTargetReadyScreen();
     } else {
       printLine(0, "SEMUA TERKIRIM");
       printLine(1, "Cek web");
@@ -619,14 +615,14 @@ void sendBulkData() {
 }
 
 void serviceDeviceSync() {
-  if (appState != APP_IDLE || resetConfirmPending) {
-    return;
-  }
-
   unsigned long now = millis();
   if (now - lastHeartbeatAt >= HEARTBEAT_INTERVAL_MS) {
     lastHeartbeatAt = now;
     sendHeartbeat();
+  }
+
+  if (appState != APP_IDLE || resetConfirmPending) {
+    return;
   }
 
   if (strlen(activeBatchId) > 0 && now - lastBatchStatusPollAt >= BATCH_STATUS_POLL_MS) {

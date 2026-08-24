@@ -64,11 +64,13 @@ def create_app(config_class=Config):
     # Import models to ensure they are registered with SQLAlchemy
     from app import models
 
-    # Auto-seed default timbangan (3 unit) on first run
+    # Auto-seed default timbangan & users on first run
     with app.app_context():
         from app.service.timbangan_service import seed_default_timbangan
+        from app.service.auth_service import seed_default_users
         try:
             seed_default_timbangan()
+            seed_default_users()
         except Exception:
             pass  # Table may not exist yet before migration
 

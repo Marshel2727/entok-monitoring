@@ -371,7 +371,7 @@ export default function KelolaPakanPage({
               <input
                 type="number"
                 className="form-input"
-                placeholder="> [ Jumlah Stok Masuk (kg) ]"
+                placeholder="Jumlah Stok Masuk (kg)"
                 value={quickAmount}
                 onChange={(e) => setQuickAmount(e.target.value)}
                 min="0.1"

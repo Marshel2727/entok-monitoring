@@ -195,7 +195,7 @@ export default function PakanPage() {
   if (loading) {
     return (
       <div style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>
-        [ MEMUAT DATA INVENTARIS PAKAN... ]
+        Memuat data inventaris pakan...
       </div>
     );
   }
@@ -203,7 +203,7 @@ export default function PakanPage() {
   if (error) {
     return (
       <div style={{ fontFamily: 'var(--font-mono)', color: 'var(--danger)', padding: '24px' }}>
-        [ ERROR: {error} ]
+        Gagal: {error}
       </div>
     );
   }

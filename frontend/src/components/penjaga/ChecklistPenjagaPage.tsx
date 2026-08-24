@@ -884,12 +884,12 @@ export default function ChecklistPenjagaPage({
         }
       } else {
         if (onAddActivityLog) {
-          onAddActivityLog("SISTEM", `[OPERASIONAL] Penjaga menyelesaikan tugas ${taskName}.`);
+          onAddActivityLog("SISTEM", `Penjaga menyelesaikan tugas ${taskName}.`);
         }
       }
     } else {
       if (onAddActivityLog) {
-        onAddActivityLog("SISTEM", `[OPERASIONAL] Penjaga membatalkan status tugas ${taskName}.`);
+        onAddActivityLog("SISTEM", `Penjaga membatalkan status tugas ${taskName}.`);
       }
     }
 

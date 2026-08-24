@@ -86,7 +86,7 @@ export default function AkunPenjagaPage() {
   if (loading) {
     return (
       <div className="panel" style={{ padding: '24px', textAlign: 'center', fontFamily: 'var(--font-mono)' }}>
-        [ MEMUAT DATA AKUN PENJAGA... ]
+        Memuat data akun penjaga...
       </div>
     );
   }

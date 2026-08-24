@@ -64,7 +64,7 @@ export default function ActivityHistoryPage({ history, onClearHistory }: Activit
           {history.length > 0 && (
             <button className="retro-btn" onClick={handleClearClick} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
               <LuTrash2 size={12} />
-              <span>[ BERSIHKAN LOG ]</span>
+              <span>BERSIHKAN LOG</span>
             </button>
           )}
         </div>
@@ -82,7 +82,7 @@ export default function ActivityHistoryPage({ history, onClearHistory }: Activit
               {displayedLogs.length === 0 ? (
                 <tr>
                   <td colSpan={3} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
-                    [ BELUM ADA RIWAYAT AKTIVITAS ]
+                    Belum Ada Riwayat Aktivitas
                   </td>
                 </tr>
               ) : (
@@ -115,10 +115,10 @@ export default function ActivityHistoryPage({ history, onClearHistory }: Activit
           <div>TOTAL: {history.length} LOG TERATUR (HALAMAN {currentPage} DARI {totalPages || 1})</div>
           <div style={{ display: 'flex', gap: '8px' }}>
             <button className="action-btn" onClick={handlePrevPage} disabled={currentPage === 1} style={{ cursor: 'pointer' }}>
-              [ &lt; PREV ]
+              &lt; PREV
             </button>
             <button className="action-btn" onClick={handleNextPage} disabled={currentPage === totalPages || totalPages === 0} style={{ cursor: 'pointer' }}>
-              [ NEXT &gt; ]
+              NEXT &gt;
             </button>
           </div>
         </div>

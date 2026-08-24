@@ -58,7 +58,7 @@ export default function TugasPage() {
   if (loading) {
     return (
       <div className="panel" style={{ padding: '24px', textAlign: 'center', fontFamily: 'var(--font-mono)' }}>
-        [ MEMUAT DATA TUGAS MASTER... ]
+        Memuat data tugas master...
       </div>
     );
   }

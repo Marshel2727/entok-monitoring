@@ -40,7 +40,7 @@ export default function AcuanPakanRoute() {
   if (loading) {
     return (
       <div style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>
-        [ MEMUAT DATA ACUAN PAKAN... ]
+        Memuat data acuan pakan...
       </div>
     );
   }
@@ -48,7 +48,7 @@ export default function AcuanPakanRoute() {
   if (error) {
     return (
       <div style={{ fontFamily: 'var(--font-mono)', color: 'var(--danger)', padding: '24px' }}>
-        [ ERROR: {error} ]
+        Gagal: {error}
       </div>
     );
   }

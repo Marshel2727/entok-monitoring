@@ -45,7 +45,7 @@ export default function SystemHealthPage() {
   }, [refresh]);
 
   if (loading) {
-    return <div className="panel" style={{ padding: 24 }}>[ MEMERIKSA KESEHATAN SISTEM... ]</div>;
+    return <div className="panel" style={{ padding: 24 }}>Memeriksa kesehatan sistem...</div>;
   }
 
   return (

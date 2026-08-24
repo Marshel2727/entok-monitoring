@@ -429,7 +429,7 @@ export default function KelolaKatalogPage({
                         onChange={(e) => { if (e.target.value) setImg(e.target.value); }}
                         style={{ fontSize: '11px', maxWidth: '140px' }}
                       >
-                        <option value="" disabled>{img.startsWith('data:image') ? '[ File Diunggah ]' : '-- Pustaka Default --'}</option>
+                        <option value="" disabled>{img.startsWith('data:image') ? 'File Diunggah' : '-- Pustaka Default --'}</option>
                         {PREDEFINED_IMAGES.map((imgItem) => (
                           <option key={imgItem.value} value={imgItem.value}>
                             {imgItem.label}
